@@ -15,6 +15,9 @@
 
 /*ZONE BASE */
 #define USED_ZONE 932
+#define USED_VEHICLE 500
+#define USED_HOUSE 500
+#define USED_CLAN 500
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -118,6 +121,41 @@ enum USER_MODEL{
  	Float:AM
 }
 new USER[MAX_PLAYERS][USER_MODEL];
+
+enum VEHICLE_MODEL{
+ 	ID,
+	NAME[MAX_PLAYER_NAME],
+	VEH_NUM,
+ 	COLOR1,
+ 	COLOR2,
+	Float:POS_X,
+	Float:POS_Y,
+	Float:POS_Z,
+	Float:ANGLE
+}
+new VEHICLE[USED_VEHICLE][VEHICLE_MODEL];
+
+enum HOUSE_MODEL{
+ 	ID,
+ 	NAME[MAX_PLAYER_NAME],
+ 	LOCK,
+	Float:ENTER_POS_X,
+	Float:ENTER_POS_Y,
+	Float:ENTER_POS_Z,
+	Float:LEAVE_POS_X,
+	Float:LEAVE_POS_Y,
+	Float:LEAVE_POS_Z
+}
+new HOUSE[USED_HOUSE][HOUSE_MODEL];
+
+enum CLAN_MODEL{
+ 	ID,
+ 	LEADER_NAME[MAX_PLAYER_NAME],
+ 	KILLS,
+ 	DEATHS,
+    COLOR
+}
+new CLAN[USED_CLAN][CLAN_MODEL];
 
 enum INGAME_MODEL{
 	bool:LOGIN,
