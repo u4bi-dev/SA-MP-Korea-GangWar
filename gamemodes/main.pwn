@@ -283,7 +283,7 @@ stock info(playerid, listitem){
 	new result[502];
 	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],USER[playerid][CLEN],USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
 	else format(result,sizeof(result), infoMessege[listitem]);
-	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, "{8D8DFF}基橇况内府酒",result, "摧扁", "");
+	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "摧扁", "");
 }
 
 stock clan(playerid,listitem){
@@ -586,6 +586,7 @@ stock spawn(playerid){
 stock mode(){
 	zoneSetup();
 	loadMisson();
+	#include "module/vehicles.pwn"
 	textLabel_init();
 	object_init();
 }
