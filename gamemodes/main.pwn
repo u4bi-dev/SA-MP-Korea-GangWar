@@ -548,17 +548,11 @@ stock showZone(playerid){
 		}
 		flag = !flag;
 		if(flag == 1){
-			if(flag2 == 1){
-				GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
-			}else{
-				GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
-			}
+			if(flag2 == 1)GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
+			else GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
 		}
-		else if(!flag2){
-			GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
-		}else{
-			GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
-		}
+		else if(!flag2)GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
+		else GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
 	}
 	return 0;
 }
@@ -651,9 +645,7 @@ stock searchMissonRange(playerid){
 	    x=MissonDTO[i][POS_X];
 	    y=MissonDTO[i][POS_Y];
 	    z=MissonDTO[i][POS_Z];
-		if(IsPlayerInRangeOfPoint(playerid,3.0,x,y,z)){
-			showMisson(playerid, i);
-		}
+		if(IsPlayerInRangeOfPoint(playerid,3.0,x,y,z)) showMisson(playerid, i);
 	}
 }
 stock showMisson(playerid, type){
