@@ -31,7 +31,6 @@ forward load(playerid);
 forward ServerThread();
 
 /* variable */
-new zoneBase[932];
 new infoMessege[3][502] = {
 	"{8D8DFF}모드설명{FFFFFF}\n\n샘프워 코리아 모드입니다.\n세력을 넑혀가는 갱전쟁 형식의 모드입니다.\n\n{8D8DFF}게임방법{FFFFFF}\n\n샘프워코리아 전쟁 규정을 따릅니다.",
 	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%d\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d",
@@ -94,6 +93,16 @@ new Float:SPAWN_MODEL[54][3] = {
 {1685.1388,-1062.4604,23.4700},
 {1188.4440,-1331.1532,13.5488}
 };
+
+enum ZONE_MODEL{
+	ID,
+	COLOR,
+	Float:MIN_X,
+	Float:MIN_Y,
+	Float:MAX_X,
+	Float:MAX_Y
+}
+new ZONE[USED_ZONE][ZONE_MODEL];
 
 enum USER_MODEL{
  	ID,
@@ -190,13 +199,13 @@ public OnPlayerRequestClass(playerid, classid){
     if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    이미 로그인 하셨습니다.");
 
     join(playerid, check(playerid));
-    setupGangzone(playerid);
+    showZone(playerid);
 	SetPlayerColor(playerid, 0xE6E6E6E6);
     return 1;
 }
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
 	if (PRESSED(KEY_YES)){
-	    showEventRange(playerid);
+	    searchMissonRange(playerid);
 	}
     return 1;
 }
@@ -255,6 +264,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
    	if(!strcmp("/help", cmdtext)){
 		ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, "{8D8DFF}샘프워코리아", "서버 규정\n내 프로필\n문의\n","확인", "닫기");
         return 1;
+ 	}
+    if(!strcmp("/check", cmdtext)){
+ 	    checkZone(playerid);
+ 	    return 1;
  	}
  	
     return 0;
@@ -316,7 +329,6 @@ public check(playerid){
 }
 public regist(playerid, pass[]){
     GetPlayerIp(playerid, USER[playerid][USERIP], 16);
-	fixSpawnPos(playerid);
 	format(USER[playerid][PASS],24, "%s",pass);
 
 	new query[400];
@@ -336,10 +348,10 @@ public regist(playerid, pass[]){
 	USER[playerid][WEP3] = 0, USER[playerid][AMMO3] = 0,
 	USER[playerid][INTERIOR] = 0,
     USER[playerid][WORLD] = 0,
-	USER[playerid][POS_X] = INGAME[playerid][SPAWN_POS_X],
- 	USER[playerid][POS_Y] = INGAME[playerid][SPAWN_POS_Y],
-	USER[playerid][POS_Z] = INGAME[playerid][SPAWN_POS_Z],
-	USER[playerid][ANGLE] = INGAME[playerid][SPAWN_ANGLE],
+	USER[playerid][POS_X] = 1913.1345,
+ 	USER[playerid][POS_Y] = -1710.5565,
+	USER[playerid][POS_Z] = 13.4003,
+	USER[playerid][ANGLE] = 89.3591,
 	USER[playerid][HP] = 100.0,
 	USER[playerid][AM] = 100.0);
 
@@ -432,7 +444,7 @@ stock spawn(playerid){
    @ cleaning(playerid)
 */
 stock mode(){
-	gangZone();
+	zoneSetup();
 	loadMisson();
 	textLabel_init();
 	object_init();
@@ -478,13 +490,14 @@ stock cleaning(playerid){
 public ServerThread(){
     foreach (new i : Player){
 	    eventMoney(i);
+	    checkZone(i);
     }
 }
 
 /* stock
-   @ gangZone()
-   @ setupGangzone(playerid)
-   @ fixSpawnPos(playerid)
+   @ zoneSetup()
+   @ showZone(playerid)
+   @ fixPos(playerid)
    @ eventMoney(playerid)
    @ giveMoney(playerid,money)
    @ death(playerid, killerid, reason)
@@ -492,11 +505,13 @@ public ServerThread(){
    @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)
    @ object_init()
    @ textLabel_init()
-   @ showEventRange(playerid)
-   @ eventMisson(playerid, type)
+   @ searchMissonRange(playerid)
+   @ showMisson(playerid, type)
+   @ isPlayerZone(playerid, zoneid)
+   @ checkZone(playerid)
 */
 
-stock gangZone(){
+stock zoneSetup(){
 	new pos[4] = { -3000, 2800, -2800, 3000 };
 	new fix = 200, tick = 0;
 
@@ -509,13 +524,18 @@ stock gangZone(){
 			pos[2] = -2800;
 			pos[3] = pos[3] - fix;
 		}
-		zoneBase[i] = GangZoneCreate(pos[0], pos[1], pos[2], pos[3]);
+		ZONE[i][ID] = GangZoneCreate(pos[0], pos[1], pos[2], pos[3]);
+		ZONE[i][COLOR] = 0xFFFFFFFF;
+		ZONE[i][MIN_X] = pos[0];
+		ZONE[i][MIN_Y] = pos[1];
+		ZONE[i][MAX_X] = pos[2];
+		ZONE[i][MAX_Y] = pos[3];
 		pos[0] = fix + pos[0];
 		pos[2] = fix + pos[2];
 	}
 }
 
-stock setupGangzone(playerid){
+stock showZone(playerid){
 	new zoneCol[2] = { 0xFFFFFF99, 0xAFAFAF99};
 	new flag = 0, flag2 = 0, tick = 0;
 
@@ -528,21 +548,41 @@ stock setupGangzone(playerid){
 		flag = !flag;
 		if(flag == 1){
 			if(flag2 == 1){
-				GangZoneShowForPlayer(playerid, zoneBase[i], zoneCol[0]);
+				GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
 			}else{
-				GangZoneShowForPlayer(playerid, zoneBase[i], zoneCol[1]);
+				GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
 			}
 		}
 		else if(!flag2){
-			GangZoneShowForPlayer(playerid, zoneBase[i], zoneCol[0]);
+			GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
 		}else{
-			GangZoneShowForPlayer(playerid, zoneBase[i], zoneCol[1]);
+			GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
 		}
 	}
 	return 0;
 }
 
-stock fixSpawnPos(playerid){
+stock isPlayerZone(playerid, zoneid){
+    new	Float:x, Float:y, Float:z;
+    GetPlayerPos(playerid, x, y, z);
+
+    if(x > ZONE[zoneid][MIN_X] && x < ZONE[zoneid][MAX_X] && y > ZONE[zoneid][MIN_Y] && y < ZONE[zoneid][MAX_Y])return 1;
+    
+    return 0;
+}
+
+stock checkZone(playerid){
+	for(new z = 0; z < USED_ZONE; z++){
+        if(isPlayerZone(playerid, z)){
+            new str[60];
+            format(str, sizeof(str),"%d번 존",z);
+            SendClientMessage(playerid,COL_SYS,str);
+        }
+	}
+	return 0;
+}
+
+stock fixPos(playerid){
     new ran = random(sizeof(SPAWN_MODEL));
 	INGAME[playerid][SPAWN_POS_X] = SPAWN_MODEL[ran][0];
 	INGAME[playerid][SPAWN_POS_Y] = SPAWN_MODEL[ran][1];
@@ -558,7 +598,7 @@ stock giveMoney(playerid,money){
 }
 
 stock death(playerid, killerid, reason){
-	fixSpawnPos(playerid);
+	fixPos(playerid);
 	USER[playerid][POS_X]   = INGAME[playerid][SPAWN_POS_X];
  	USER[playerid][POS_Y]   = INGAME[playerid][SPAWN_POS_Y];
 	USER[playerid][POS_Z]   = INGAME[playerid][SPAWN_POS_Y];
@@ -600,7 +640,7 @@ stock textLabel_init(){
 	}
 }
 
-stock showEventRange(playerid){
+stock searchMissonRange(playerid){
 	new Float:x,Float:y,Float:z;
 
 	for(new i=0; i < sizeof(MissonDTO); i++){
@@ -608,11 +648,11 @@ stock showEventRange(playerid){
 	    y=MissonDTO[i][POS_Y];
 	    z=MissonDTO[i][POS_Z];
 		if(IsPlayerInRangeOfPoint(playerid,3.0,x,y,z)){
-			eventMisson(playerid, i);
+			showMisson(playerid, i);
 		}
 	}
 }
-stock eventMisson(playerid, type){
+stock showMisson(playerid, type){
 	new str[60];
 	format(str, sizeof(str),"{8D8DFF}%s",MissonDTO[type][NAME]);
 	switch(type){
