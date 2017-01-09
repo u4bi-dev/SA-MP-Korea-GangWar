@@ -171,7 +171,8 @@ enum INGAME_MODEL{
 	Float:SPAWN_POS_X,
 	Float:SPAWN_POS_Y,
 	Float:SPAWN_POS_Z,
-	Float:SPAWN_ANGLE
+	Float:SPAWN_ANGLE,
+	ENTER_ZONE
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -574,8 +575,11 @@ stock isPlayerZone(playerid, zoneid){
 stock checkZone(playerid){
 	for(new z = 0; z < USED_ZONE; z++){
         if(isPlayerZone(playerid, z)){
-            new str[60];
-            format(str, sizeof(str),"%d번 존",z);
+			if(INGAME[playerid][ENTER_ZONE] == z)return 0;
+			
+            new str[16];
+            INGAME[playerid][ENTER_ZONE] = z;
+            format(str, sizeof(str),"%d번 존", INGAME[playerid][ENTER_ZONE]);
             SendClientMessage(playerid,COL_SYS,str);
         }
 	}
