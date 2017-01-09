@@ -25,6 +25,9 @@
 #define DL_CLAN_SETUP_MEMBER_SETUP_KICK 30312
 
 #define COL_SYS  0xAFAFAF99
+#define DIALOG_TITLE "{8D8DFF}샘프워코리아"
+#define DIALOG_ENTER "확인"
+#define DIALOG_PREV "뒤로"
 
 /*ZONE BASE */
 #define USED_ZONE 932
@@ -803,37 +806,29 @@ stock searchMissonRange(playerid){
 	}
 }
 stock showMisson(playerid, type){
-	new str[60];
-	format(str, sizeof(str),"{8D8DFF}%s",MISSON[type][NAME]);
 	switch(type){
-		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLEN, DIALOG_STYLE_LIST,str,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 관리\n클랜 해체","확인", "닫기");
-		case 1: ShowPlayerDialog(playerid, DL_MISSON_ITEM, DIALOG_STYLE_LIST,str,"{FFFFFF}무기 구매\n무기 판매","확인", "닫기");
-		case 2: ShowPlayerDialog(playerid, DL_MISSON_CAR, DIALOG_STYLE_LIST,str,"{FFFFFF}차량 구매\n차량 판매","확인", "닫기");
+		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLEN, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 관리\n클랜 해체","확인", "닫기");
+		case 1: ShowPlayerDialog(playerid, DL_MISSON_ITEM, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}무기 구매\n무기 판매","확인", "닫기");
+		case 2: ShowPlayerDialog(playerid, DL_MISSON_CAR, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}차량 구매\n차량 판매","확인", "닫기");
 	}
 	return 1;
 }
 
 stock showDialog(playerid, type){
-	new title[60];
-	new click[2][10];
-	format(title, sizeof(title),"{8D8DFF}샘프워코리아");
-	format(click[0], 10, "확인");
-	format(click[1], 10, "뒤로");
-	
     switch(type){
-        case DL_LOGIN : ShowPlayerDialog(playerid, DL_LOGIN, DIALOG_STYLE_PASSWORD, title, "{FFFFFF}로그인을 해주세요", click[0], "나가기");
-        case DL_REGIST : ShowPlayerDialog(playerid, DL_REGIST, DIALOG_STYLE_PASSWORD, title, "{FFFFFF}회원가입을 해주세요.", click[0], "나가기");
-        case DL_INFO : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, title, "서버 규정\n내 프로필\n문의\n", click[0], click[1]);
-        case DL_CLAN_INSERT : ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, title, "{FFFFFF}클랜명을 입력해주세요.", click[0], click[1]);
-        case DL_CLAN_LIST : ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, title, "{FFFFFF}클랜 목록", click[0], click[1]);
-        case DL_CLAN_RANK : ShowPlayerDialog(playerid, DL_CLAN_RANK, DIALOG_STYLE_MSGBOX, title, "{FFFFFF}클랜 랭킹", click[0], click[1]);
-        case DL_CLAN_SETUP : ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, title, "{FFFFFF}클랜원 초대\n클랜원 관리", click[0], click[1]);
-        case DL_CLAN_DELETE : ShowPlayerDialog(playerid, DL_CLAN_DELETE, DIALOG_STYLE_MSGBOX, title, "{FFFFFF}정말로 클랜을 해체하시겠습니까?", click[0], click[1]);
-        case DL_CLAN_SETUP_INVITE : ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, title, "{FFFFFF}초대하실분의 닉네임을 입력해주세요.", click[0], click[1]);
-        case DL_CLAN_SETUP_MEMBER : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER, DIALOG_STYLE_LIST, title, "{FFFFFF}클랜원1\n클랜원2", click[0], click[1]);
-        case DL_CLAN_SETUP_MEMBER_SETUP : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, title, "{FFFFFF}직위 변경\n강제 추방", click[0], click[1]);
-        case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, title, "{FFFFFF}1등급\n2등급\n3등급", click[0], click[1]);
-        case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, title, "{FFFFFF}정말로 추방하시겠습니까?", click[0], click[1]);
+        case DL_LOGIN : ShowPlayerDialog(playerid, DL_LOGIN, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, "{FFFFFF}로그인을 해주세요", DIALOG_ENTER, "나가기");
+        case DL_REGIST : ShowPlayerDialog(playerid, DL_REGIST, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, "{FFFFFF}회원가입을 해주세요.", DIALOG_ENTER, "나가기");
+        case DL_INFO : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, "서버 규정\n내 프로필\n문의\n", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_INSERT : ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_LIST : ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 목록", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_RANK : ShowPlayerDialog(playerid, DL_CLAN_RANK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 랭킹", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP : ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원 초대\n클랜원 관리", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_DELETE : ShowPlayerDialog(playerid, DL_CLAN_DELETE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 클랜을 해체하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_INVITE : ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}초대하실분의 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_MEMBER : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원1\n클랜원2", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_MEMBER_SETUP : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}직위 변경\n강제 추방", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}1등급\n2등급\n3등급", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 추방하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
 }
