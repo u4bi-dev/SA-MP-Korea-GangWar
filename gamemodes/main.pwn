@@ -97,6 +97,7 @@ new Float:SPAWN_MODEL[54][3] = {
 enum ZONE_MODEL{
 	ID,
 	COLOR,
+	OWNER_CLEN,
 	Float:MIN_X,
 	Float:MIN_Y,
 	Float:MAX_X,
@@ -176,10 +177,13 @@ enum INGAME_MODEL{
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
-enum MISSON{
-	NAME[24], Float:POS_Y, Float:POS_X, Float:POS_Z
+enum MISSON_MODEL{
+	NAME[24],
+	Float:POS_Y,
+	Float:POS_X,
+	Float:POS_Z
 }
-new MissonDTO[3][MISSON];
+new MISSON[3][MISSON_MODEL];
 
 /* global variable */
 new missonTick=0;
@@ -201,7 +205,7 @@ public OnPlayerRequestClass(playerid, classid){
 
     join(playerid, check(playerid));
     showZone(playerid);
-	SetPlayerColor(playerid, 0xE6E6E6E6);
+	SetPlayerColor(playerid, 0x8D8DFF99); //E6E6E699
     return 1;
 }
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
@@ -268,6 +272,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
  	}
     if(!strcmp("/check", cmdtext)){
  	    checkZone(playerid);
+ 	    return 1;
+ 	}
+    if(!strcmp("/hold", cmdtext)){
+ 	    holdZone(playerid);
  	    return 1;
  	}
  	
@@ -510,6 +518,7 @@ public ServerThread(){
    @ showMisson(playerid, type)
    @ isPlayerZone(playerid, zoneid)
    @ checkZone(playerid)
+   @ holdZone(playerid)
 */
 
 stock zoneSetup(){
@@ -580,6 +589,20 @@ stock checkZone(playerid){
 	return 0;
 }
 
+stock holdZone(playerid){
+	new zoneid = INGAME[playerid][ENTER_ZONE];
+	new color = GetPlayerColor(playerid);
+	
+    GangZoneShowForAll(ZONE[zoneid][ID], color);
+    ZONE[zoneid][COLOR] = color;
+    ZONE[zoneid][OWNER_CLEN] = USER[playerid][CLEN];
+
+	new str[64];
+	format(str, sizeof(str),"%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLEN], USER[playerid][NAME]);
+	SendClientMessage(playerid,COL_SYS,str);
+	return 0;
+}
+
 stock fixPos(playerid){
     new ran = random(sizeof(SPAWN_MODEL));
 	INGAME[playerid][SPAWN_POS_X] = SPAWN_MODEL[ran][0];
@@ -605,9 +628,11 @@ stock death(playerid, killerid, reason){
 	USER[playerid][HP]      = 100.0;
 	USER[playerid][AM]      = 100.0;
 
+    save(playerid);
 	spawn(playerid);
 	if(reason == 255) return 1;
 	USER[killerid][KILLS] += 1;
+    save(killerid);
 	return 1;
 }
 
@@ -618,10 +643,10 @@ stock loadMisson(){
 }
 stock missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z){
 	new num = missonTick++;
-	format(MissonDTO[num][NAME], 24,"%s",name);
-	MissonDTO[num][POS_X]=pos_x;
-	MissonDTO[num][POS_Y]=pos_y;
-	MissonDTO[num][POS_Z]=pos_z;
+	format(MISSON[num][NAME], 24,"%s",name);
+	MISSON[num][POS_X]=pos_x;
+	MISSON[num][POS_Y]=pos_y;
+	MISSON[num][POS_Z]=pos_z;
 }
 
 stock object_init(){
@@ -633,24 +658,24 @@ stock object_init(){
 stock textLabel_init(){
 	for(new a = 0;a<3;a++){
 		new str[40];
-		format(str, sizeof(str),"%s (Y키)",MissonDTO[a][NAME]);
-		Create3DTextLabel(str, 0x8D8DFFFF, MissonDTO[a][POS_X], MissonDTO[a][POS_Y], MissonDTO[a][POS_Z], 7.0, 0, 0);
+		format(str, sizeof(str),"%s (Y키)",MISSON[a][NAME]);
+		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[a][POS_X], MISSON[a][POS_Y], MISSON[a][POS_Z], 7.0, 0, 0);
 	}
 }
 
 stock searchMissonRange(playerid){
 	new Float:x,Float:y,Float:z;
 
-	for(new i=0; i < sizeof(MissonDTO); i++){
-	    x=MissonDTO[i][POS_X];
-	    y=MissonDTO[i][POS_Y];
-	    z=MissonDTO[i][POS_Z];
+	for(new i=0; i < sizeof(MISSON); i++){
+	    x=MISSON[i][POS_X];
+	    y=MISSON[i][POS_Y];
+	    z=MISSON[i][POS_Z];
 		if(IsPlayerInRangeOfPoint(playerid,3.0,x,y,z)) showMisson(playerid, i);
 	}
 }
 stock showMisson(playerid, type){
 	new str[60];
-	format(str, sizeof(str),"{8D8DFF}%s",MissonDTO[type][NAME]);
+	format(str, sizeof(str),"{8D8DFF}%s",MISSON[type][NAME]);
 	switch(type){
 		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLEN, DIALOG_STYLE_LIST,str,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 관리\n클랜 해체","확인", "닫기");
 		case 1: ShowPlayerDialog(playerid, DL_MISSON_ITEM, DIALOG_STYLE_LIST,str,"{FFFFFF}무기 구매\n무기 판매","확인", "닫기");
