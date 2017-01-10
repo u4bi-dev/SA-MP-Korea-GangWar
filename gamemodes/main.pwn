@@ -7,7 +7,7 @@
 #define DL_INFO     103
 #define DL_MENU     104
 
-#define DL_MISSON_CLEN     200
+#define DL_MISSON_CLAN     200
 #define DL_MISSON_ITEM     201
 #define DL_MISSON_CAR      202
 
@@ -37,7 +37,7 @@
 #define USED_ZONE 932
 #define USED_VEHICLE 500
 #define USED_HOUSE 500
-#define USED_CLAN 500
+#define USED_CLAN 100
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -125,8 +125,7 @@ new Float:SPAWN_MODEL[54][3] = {
 
 enum ZONE_MODEL{
 	ID,
-	COLOR,
-	OWNER_CLEN,
+	OWNER_CLAN,
 	Float:MIN_X,
 	Float:MIN_Y,
 	Float:MAX_X,
@@ -139,7 +138,7 @@ enum USER_MODEL{
 	NAME[MAX_PLAYER_NAME],
 	PASS[24],
 	USERIP[16],
-	CLEN,
+	CLANID,
 	ADMIN,
 	MONEY,
 	LEVEL,
@@ -164,7 +163,7 @@ new USER[MAX_PLAYERS][USER_MODEL];
 enum VEHICLE_MODEL{
  	ID,
 	NAME[MAX_PLAYER_NAME],
-	VEH_NUM,
+	MODEL,
  	COLOR1,
  	COLOR2,
 	Float:POS_X,
@@ -177,7 +176,7 @@ new VEHICLE[USED_VEHICLE][VEHICLE_MODEL];
 enum HOUSE_MODEL{
  	ID,
  	NAME[MAX_PLAYER_NAME],
- 	LOCK,
+ 	OPEN,
 	Float:ENTER_POS_X,
 	Float:ENTER_POS_Y,
 	Float:ENTER_POS_Z,
@@ -189,6 +188,7 @@ new HOUSE[USED_HOUSE][HOUSE_MODEL];
 
 enum CLAN_MODEL{
  	ID,
+ 	NAME[50],
  	LEADER_NAME[MAX_PLAYER_NAME],
  	KILLS,
  	DEATHS,
@@ -216,7 +216,7 @@ new MISSON[3][MISSON_MODEL];
 
 enum CLAN_SETUP_MODEL{
 	NAME[50],
-	MEMBER,
+	MEMBER
 }
 new CLAN_SETUP[MAX_PLAYERS][CLAN_SETUP_MODEL];
 
@@ -228,9 +228,10 @@ static mysql;
 
 public OnGameModeExit(){return 1;}
 public OnGameModeInit(){
+	dbcon();
+	data();
     mode();
 	server();
-	dbcon();
 	thread();
     return 1;
 }
@@ -254,7 +255,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLEN, DL_MISSON_ITEM, DL_MISSON_CAR :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_ITEM, DL_MISSON_CAR :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_DELETE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM, DL_CLAN_INSERT_COLOR_CHOICE :return showDialog(playerid, DL_CLAN_INSERT_COLOR);
@@ -271,7 +272,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_INFO   : info(playerid,listitem);
 
         /* MISSON */
-        case DL_MISSON_CLEN : clan(playerid,listitem);
+        case DL_MISSON_CLAN : clan(playerid,listitem);
         case DL_MISSON_ITEM : item(playerid,listitem);
         case DL_MISSON_CAR  : car(playerid,listitem);
 
@@ -307,7 +308,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 */
 stock info(playerid, listitem){
 	new result[502];
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],USER[playerid][CLEN],USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],USER[playerid][CLANID],USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
 }
@@ -482,7 +483,7 @@ public check(playerid){
     new query[128], result;
     GetPlayerName(playerid, USER[playerid][NAME], MAX_PLAYER_NAME);
 
-    mysql_format(mysql, query, sizeof(query), "SELECT ID, PASS FROM `userlog_info` WHERE `NAME` = '%s' LIMIT 1", escape(USER[playerid][NAME]));
+    mysql_format(mysql, query, sizeof(query), "SELECT ID, PASS FROM `user_info` WHERE `NAME` = '%s' LIMIT 1", escape(USER[playerid][NAME]));
     mysql_query(mysql, query);
 
     result = cache_num_rows();
@@ -498,10 +499,10 @@ public regist(playerid, pass[]){
 
 	new query[400];
 	GetPlayerName(playerid, USER[playerid][NAME], MAX_PLAYER_NAME);
-	mysql_format(mysql, query, sizeof(query), "INSERT INTO `userlog_info` (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLEN`,`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`,`SKIN`,`WEP1`,`AMMO1`,`WEP2`,`AMMO2`,`WEP3`,`AMMO3`,`INTERIOR`,`WORLD`,`POS_X`,`POS_Y`,`POS_Z`,`ANGLE`,`HP`,`AM`) VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)",
+	mysql_format(mysql, query, sizeof(query), "INSERT INTO `user_info` (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`,`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`,`SKIN`,`WEP1`,`AMMO1`,`WEP2`,`AMMO2`,`WEP3`,`AMMO3`,`INTERIOR`,`WORLD`,`POS_X`,`POS_Y`,`POS_Z`,`ANGLE`,`HP`,`AM`) VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)",
 	USER[playerid][NAME], USER[playerid][PASS], USER[playerid][USERIP],
 	USER[playerid][ADMIN] = 0,
-	USER[playerid][CLEN] = 0,
+	USER[playerid][CLANID] = 0,
 	USER[playerid][MONEY] = 1000,
 	USER[playerid][LEVEL] = 1,
 	USER[playerid][EXP] = 0,
@@ -532,9 +533,9 @@ public save(playerid){
 	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
 
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "UPDATE `userlog_info` SET `ADMIN`=%d,`CLEN`=%d,`MONEY`=%d,`LEVEL`=%d,`EXP`=%d,`KILLS`=%d,`DEATHS`=%d,`SKIN`=%d,`WEP1`=%d,`AMMO1`=%d,`WEP2`=%d,`AMMO2`=%d,`WEP3`=%d,`AMMO3`=%d, `INTERIOR`=%d, `WORLD`=%d, `POS_X`=%f,`POS_Y`=%f,`POS_Z`=%f,`ANGLE`=%f,`HP`=%f,`AM`=%f WHERE `ID`=%d",
+	mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `ADMIN`=%d,`CLANID`=%d,`MONEY`=%d,`LEVEL`=%d,`EXP`=%d,`KILLS`=%d,`DEATHS`=%d,`SKIN`=%d,`WEP1`=%d,`AMMO1`=%d,`WEP2`=%d,`AMMO2`=%d,`WEP3`=%d,`AMMO3`=%d, `INTERIOR`=%d, `WORLD`=%d, `POS_X`=%f,`POS_Y`=%f,`POS_Z`=%f,`ANGLE`=%f,`HP`=%f,`AM`=%f WHERE `ID`=%d",
 	USER[playerid][ADMIN],
-	USER[playerid][CLEN],
+	USER[playerid][CLANID],
 	USER[playerid][MONEY],
 	USER[playerid][LEVEL],
 	USER[playerid][EXP],
@@ -558,12 +559,12 @@ public save(playerid){
 }
 public load(playerid){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `userlog_info` WHERE `ID` = %d LIMIT 1", USER[playerid][ID]);
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `user_info` WHERE `ID` = %d LIMIT 1", USER[playerid][ID]);
 	mysql_query(mysql, query);
 
 	USER[playerid][USERIP]   = cache_get_field_content_int(0, "USERIP");
 	USER[playerid][ADMIN]   = cache_get_field_content_int(0, "ADMIN");
-	USER[playerid][CLEN]   = cache_get_field_content_int(0, "CLEN");
+	USER[playerid][CLANID]   = cache_get_field_content_int(0, "CLANID");
 	USER[playerid][MONEY]   = cache_get_field_content_int(0, "MONEY");
 	USER[playerid][LEVEL]   = cache_get_field_content_int(0, "LEVEL");
 	USER[playerid][EXP]   = cache_get_field_content_int(0, "EXP");
@@ -593,7 +594,7 @@ stock escape(str[]){
    @ spawn(playerid)
 */
 stock spawn(playerid){
-	SetSpawnInfo(playerid, USER[playerid][CLEN], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], USER[playerid][AMMO1], USER[playerid][WEP2], USER[playerid][AMMO2], USER[playerid][WEP3], USER[playerid][AMMO3]);
+	SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], USER[playerid][AMMO1], USER[playerid][WEP2], USER[playerid][AMMO2], USER[playerid][WEP3], USER[playerid][AMMO3]);
 	SpawnPlayer(playerid);
 	ResetPlayerMoney(playerid);
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
@@ -602,10 +603,11 @@ stock spawn(playerid){
 }
 
 /* INIT
+   @ dbcon()
+   @ data()
    @ mode()
    @ thread()
    @ server()
-   @ dbcon()
    @ cleaning(playerid)
 */
 stock mode(){
@@ -644,12 +646,50 @@ stock dbcon(){
     mysql = mysql_connect(db_value[0], db_value[1], db_value[2], db_value[3]);
     mysql_set_charset("euckr");
 
-    if(!mysql_errno(mysql))print("DB 정상");
+    if(mysql_errno(mysql))print("DB연결오류");
+}
+stock data(){
+	house_data();
+	vehicle_data();
+	zone_data();
+	clan_data();
 }
 stock cleaning(playerid){
-    new temp[USER_MODEL], temp2[INGAME_MODEL];
+    new temp[USER_MODEL], temp2[INGAME_MODEL], temp3[CLAN_SETUP_MODEL];
     USER[playerid] = temp;
     INGAME[playerid] = temp2;
+    CLAN_SETUP[playerid] = temp3;
+}
+
+/* DB DATA
+   @ house_data()
+   @ vehicle_data()
+   @ clan_data()
+   @ zone_data()
+*/
+stock house_data(){
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `house_info`");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("집 DB 정상");
+}
+stock vehicle_data(){
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `vehicle_info`");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("차량 DB 정상");
+}
+stock clan_data(){
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `clan_info`");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("클랜 DB 정상");
+}
+stock zone_data(){
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `zone_info`");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("갱존 DB 정상");
 }
 
 /* SERVER THREAD*/
@@ -693,7 +733,6 @@ stock zoneSetup(){
 			pos[3] = pos[3] - fix;
 		}
 		ZONE[i][ID] = GangZoneCreate(pos[0], pos[1], pos[2], pos[3]);
-		ZONE[i][COLOR] = 0xFFFFFFFF;
 		ZONE[i][MIN_X] = pos[0];
 		ZONE[i][MIN_Y] = pos[1];
 		ZONE[i][MAX_X] = pos[2];
@@ -720,6 +759,9 @@ stock showZone(playerid){
 		}
 		else if(!flag2)GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
 		else GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
+        if(ZONE[i][OWNER_CLAN] != 0){
+            GangZoneShowForPlayer(playerid, ZONE[i][ID], CLAN[ZONE[i][OWNER_CLAN]][COLOR]);
+		}
 	}
 	return 0;
 }
@@ -747,13 +789,11 @@ stock checkZone(playerid){
 
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
-	new color = GetPlayerColor(playerid);
-	
-    GangZoneShowForAll(ZONE[zoneid][ID], color);
-    ZONE[zoneid][COLOR] = color;
-    ZONE[zoneid][OWNER_CLEN] = USER[playerid][CLEN];
 
-	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLEN], USER[playerid][NAME]);
+    ZONE[zoneid][OWNER_CLAN] = USER[playerid][CLANID];
+    GangZoneShowForAll(ZONE[zoneid][ID], CLAN[USER[playerid][CLANID]][COLOR]);
+
+	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLAN], USER[playerid][NAME]);
 	return 0;
 }
 
@@ -829,7 +869,7 @@ stock searchMissonRange(playerid){
 }
 stock showMisson(playerid, type){
 	switch(type){
-		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLEN, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 관리\n클랜 해체","확인", "닫기");
+		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 관리\n클랜 해체","확인", "닫기");
 		case 1: ShowPlayerDialog(playerid, DL_MISSON_ITEM, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}무기 구매\n무기 판매","확인", "닫기");
 		case 2: ShowPlayerDialog(playerid, DL_MISSON_CAR, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}차량 구매\n차량 판매","확인", "닫기");
 	}
