@@ -11,7 +11,9 @@
 #define DL_MISSON_ITEM     201
 #define DL_MISSON_CAR      202
 
-#define DL_CLAN_INSERT    300
+#define DL_CLAN_INSERT       300
+#define DL_CLAN_INSERT_COLOR 3000
+
 #define DL_CLAN_LIST      301
 #define DL_CLAN_RANK      302
 #define DL_CLAN_SETUP     303
@@ -37,6 +39,15 @@
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
+
+new FALSE = false;
+#define formatMsg(%0,%1,%2)\
+    do{\
+	    new _str[256];\
+        format(_str,256,%2);\
+        SendClientMessage(%0,%1,_str);\
+	}\
+	while(FALSE)
 
 main(){}
 
@@ -201,6 +212,12 @@ enum MISSON_MODEL{
 }
 new MISSON[3][MISSON_MODEL];
 
+enum CLAN_SETUP_MODEL{
+	NAME[50],
+	MEMBER,
+}
+new CLAN_SETUP[MAX_PLAYERS][CLAN_SETUP_MODEL];
+
 /* global variable */
 new missonTick=0;
 
@@ -237,6 +254,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_LOGIN, DL_REGIST: return Kick(playerid);
 			case DL_MISSON_CLEN, DL_MISSON_ITEM, DL_MISSON_CAR : return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_DELETE : return showMisson(playerid, 0);
+			case DL_CLAN_INSERT_COLOR : return clanInsert(playerid, inputtext);
 			case DL_CLAN_SETUP_INVITE, DL_CLAN_SETUP_MEMBER : return ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, "{8D8DFF}샘프워코리아", "{FFFFFF}클랜원 초대\n클랜원 관리", "확인", "닫기");
 			case DL_CLAN_SETUP_MEMBER_SETUP : return ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER, DIALOG_STYLE_LIST, "{8D8DFF}샘프워코리아", "{FFFFFF}클랜원1\n클랜원2", "확인", "닫기");
 			case DL_CLAN_SETUP_MEMBER_SETUP_RANK, DL_CLAN_SETUP_MEMBER_SETUP_KICK : return ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, "{8D8DFF}샘프워코리아", "{FFFFFF}직위 변경\n강제 추방", "확인", "닫기");
@@ -260,6 +278,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_CLAN_RANK   : clanRank(playerid);
         case DL_CLAN_SETUP  : clanSetup(playerid, listitem);
         case DL_CLAN_DELETE : clanDelete(playerid);
+        
+        /* CLAN INSERT */
+        case DL_CLAN_INSERT_COLOR : clanInsertColor(playerid, listitem);
         
         /* CLAN SETUP */
         case DL_CLAN_SETUP_INVITE : clanInvite(playerid, inputtext);
@@ -287,9 +308,8 @@ stock info(playerid, listitem){
 }
 
 stock clan(playerid,listitem){
-	new str[60];
-	format(str, sizeof(str),"클랜 조합 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+    formatMsg(playerid, COL_SYS, "클랜 조합 %d - %d",playerid, listitem);
+    
 	switch(listitem){
         case 0 : showDialog(playerid, DL_CLAN_INSERT);
         case 1 : showDialog(playerid, DL_CLAN_LIST);
@@ -299,14 +319,10 @@ stock clan(playerid,listitem){
 	}
 }
 stock item(playerid,listitem){
-	new str[60];
-	format(str, sizeof(str),"아이템 상점 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+    formatMsg(playerid, COL_SYS, "아이템 상점 %d - %d",playerid, listitem);
 }
 stock car(playerid,listitem){
-	new str[60];
-	format(str, sizeof(str),"차량 판매점 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+    formatMsg(playerid, COL_SYS, "차량 판매점 %d - %d",playerid, listitem);
 }
 
 /* CLAN
@@ -317,33 +333,33 @@ stock car(playerid,listitem){
    @ clanDelete(playerid);
 */
 stock clanInsert(playerid, inputtext[]){
-	new str[60];
-	format(str, sizeof(str),"클랜 생성 %d - %s",playerid, inputtext);
-	SendClientMessage(playerid,COL_SYS,str);
+    formatMsg(playerid, COL_SYS, "클랜 생성 %d - %s",playerid, inputtext);
+	return 1;
 }
 stock clanList(playerid){
-	new str[60];
-	format(str, sizeof(str),"클랜 리스트 %d - %d",playerid);
-	SendClientMessage(playerid,COL_SYS,str);
+    formatMsg(playerid, COL_SYS, "클랜 리스트 %d - %d",playerid);
 }
 stock clanRank(playerid){
-	new str[60];
-	format(str, sizeof(str),"클랜 랭킹 %d - %d",playerid);
-	SendClientMessage(playerid,COL_SYS,str);
+    formatMsg(playerid, COL_SYS, "클랜 랭킹 %d - %d",playerid);
 }
 stock clanSetup(playerid, listitem){
-	new str[60];
-	format(str, sizeof(str),"클랜 관리 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜 관리 %d - %d",playerid, listitem);
+	
 	switch(listitem){
         case 0 : showDialog(playerid, DL_CLAN_SETUP_INVITE);
         case 1 : showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 	}
 }
 stock clanDelete(playerid){
-	new str[60];
-	format(str, sizeof(str),"클랜 해체 %d",playerid);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜 해체 %d",playerid);
+}
+
+/* CLAN INSERT
+   @ clanInsertColor(playerid, listitem)
+*/
+
+stock clanInsertColor(playerid, listitem){
+	formatMsg(playerid, COL_SYS, "클랜 생성 컬러 %d - %d",playerid, listitem);
 }
 
 /* CLAN SETUP
@@ -351,14 +367,10 @@ stock clanDelete(playerid){
    @ clanMember(playerid, listitem)
 */
 stock clanInvite(playerid, inputtext[]){
-	new str[60];
-	format(str, sizeof(str),"클랜 초대 %d - %s",playerid, inputtext);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜 초대 %d - %s",playerid, inputtext);
 }
 stock clanMember(playerid, listitem){
-	new str[60];
-	format(str, sizeof(str),"클랜원 관리 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜원 관리 %d - %d",playerid, listitem);
 	showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
 }
 
@@ -368,9 +380,8 @@ stock clanMember(playerid, listitem){
    @ clanMemberKick(playerid);
 */
 stock clanMemberSetup(playerid, listitem){
-	new str[60];
-	format(str, sizeof(str),"클랜원 정보설정 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜원 정보설정 %d - %d",playerid, listitem);
+	
 	switch(listitem){
         case 0 : showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK);
         case 1 : showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK);
@@ -378,14 +389,10 @@ stock clanMemberSetup(playerid, listitem){
 }
 
 stock clanMemberRank(playerid, listitem){
-	new str[60];
-	format(str, sizeof(str),"클랜원 직위변경 %d - %d",playerid, listitem);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜원 직위변경 %d - %d",playerid, listitem);
 }
 stock clanMemberKick(playerid){
-	new str[60];
-	format(str, sizeof(str),"클랜원 강제추방 %d",playerid);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "클랜원 강제추방 %d",playerid);
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -713,10 +720,8 @@ stock checkZone(playerid){
         if(isPlayerZone(playerid, z)){
 			if(INGAME[playerid][ENTER_ZONE] == z)return 0;
 			
-            new str[16];
             INGAME[playerid][ENTER_ZONE] = z;
-            format(str, sizeof(str),"%d번 존", INGAME[playerid][ENTER_ZONE]);
-            SendClientMessage(playerid,COL_SYS,str);
+            formatMsg(playerid, COL_SYS, "%d번 존", INGAME[playerid][ENTER_ZONE]);
         }
 	}
 	return 0;
@@ -730,9 +735,7 @@ stock holdZone(playerid){
     ZONE[zoneid][COLOR] = color;
     ZONE[zoneid][OWNER_CLEN] = USER[playerid][CLEN];
 
-	new str[64];
-	format(str, sizeof(str),"%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLEN], USER[playerid][NAME]);
-	SendClientMessage(playerid,COL_SYS,str);
+	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLEN], USER[playerid][NAME]);
 	return 0;
 }
 
