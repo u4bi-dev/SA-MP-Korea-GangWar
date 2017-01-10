@@ -8,7 +8,7 @@
 #define DL_MENU                           103
 #define DL_MISSON_CLAN                    104
 #define DL_MISSON_SHOP                    105
-#define DL_MISSON_NOTICE                     106
+#define DL_MISSON_NOTICE                  106
 
 #define DL_CLAN_INSERT                    1040
 #define DL_CLAN_INSERT_COLOR              10400
@@ -27,6 +27,13 @@
 #define DL_CLAN_SETUP_MEMBER_SETUP        104310
 #define DL_CLAN_SETUP_MEMBER_SETUP_RANK   104311
 #define DL_CLAN_SETUP_MEMBER_SETUP_KICK   104312
+
+#define DL_SHOP_WEAPON                    1050
+#define DL_SHOP_CAR                       1051
+#define DL_SHOP_SKIN                      1052
+#define DL_SHOP_ACC                       1053
+
+#define DL_NOTICE_SEASON                  1060
 
 #define COL_SYS  0xAFAFAF99
 #define DIALOG_TITLE "{8D8DFF}샘프워코리아"
@@ -320,8 +327,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_INFO   : info(playerid,listitem);
 
         /* MISSON */
-        case DL_MISSON_CLAN : clan(playerid,listitem);
-        case DL_MISSON_SHOP : shop(playerid,listitem);
+        case DL_MISSON_CLAN    : clan(playerid,listitem);
+        case DL_MISSON_SHOP    : shop(playerid,listitem);
         case DL_MISSON_NOTICE  : notice(playerid,listitem);
 
         /* CLAN */
@@ -329,22 +336,31 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_CLAN_LIST   : clanList(playerid);
         case DL_CLAN_RANK   : clanRank(playerid);
         case DL_CLAN_SETUP  : clanSetup(playerid, listitem);
-        case DL_CLAN_LEAVE : clanLeave(playerid);
+        case DL_CLAN_LEAVE  : clanLeave(playerid);
         
         /* CLAN INSERT */
-        case DL_CLAN_INSERT_COLOR : clanInsertColor(playerid, listitem);
+        case DL_CLAN_INSERT_COLOR        : clanInsertColor(playerid, listitem);
         case DL_CLAN_INSERT_COLOR_RANDOM : showDialog(playerid, DL_CLAN_INSERT_COLOR);
 //        case DL_CLAN_INSERT_COLOR_CHOICE : clanInsertColorChoice(playerid, inputtext);
-		case DL_CLAN_INSERT_SUCCESS : clanInsertSuccess(playerid);
+		case DL_CLAN_INSERT_SUCCESS      : clanInsertSuccess(playerid);
         
         /* CLAN SETUP */
         case DL_CLAN_SETUP_INVITE : clanInvite(playerid, inputtext);
         case DL_CLAN_SETUP_MEMBER : clanMember(playerid, listitem);
         
         /* CLAN MEMBER SETUP */
-        case DL_CLAN_SETUP_MEMBER_SETUP : clanMemberSetup(playerid,listitem);
+        case DL_CLAN_SETUP_MEMBER_SETUP      : clanMemberSetup(playerid,listitem);
 		case DL_CLAN_SETUP_MEMBER_SETUP_RANK : clanMemberRank(playerid,listitem);
 		case DL_CLAN_SETUP_MEMBER_SETUP_KICK : clanMemberKick(playerid);
+		
+		/* SHOP */
+		case DL_SHOP_WEAPON : shopWeapon(playerid, listitem);
+		case DL_SHOP_CAR    : shopCar(playerid, listitem);
+		case DL_SHOP_SKIN   : shopSkin(playerid, inputtext);
+		case DL_SHOP_ACC    : shopAcc(playerid, listitem);
+		
+		/* NOTICE */
+		case DL_NOTICE_SEASON : noticeSeason(playerid);
         
     }
     return 1;
@@ -377,9 +393,18 @@ stock clan(playerid,listitem){
 }
 stock shop(playerid,listitem){
     formatMsg(playerid, COL_SYS, "카푸치노 상점 %d - %d",playerid, listitem);
+	switch(listitem){
+        case 0 : showDialog(playerid, DL_SHOP_WEAPON);
+        case 1 : showDialog(playerid, DL_SHOP_CAR);
+        case 2 : showDialog(playerid, DL_SHOP_SKIN);
+        case 3 : showDialog(playerid, DL_SHOP_ACC);
+	}
 }
 stock notice(playerid,listitem){
     formatMsg(playerid, COL_SYS, "만남의 광장 %d - %d",playerid, listitem);
+	switch(listitem){
+        case 0 : showDialog(playerid, DL_NOTICE_SEASON);
+	}
 }
 
 /* CLAN
@@ -410,10 +435,10 @@ stock clanInsert(playerid, inputtext[]){
     return 0;
 }
 stock clanList(playerid){
-    formatMsg(playerid, COL_SYS, "클랜 리스트 %d - %d",playerid);
+    formatMsg(playerid, COL_SYS, "클랜 리스트 %d",playerid);
 }
 stock clanRank(playerid){
-    formatMsg(playerid, COL_SYS, "클랜 랭킹 %d - %d",playerid);
+    formatMsg(playerid, COL_SYS, "클랜 랭킹 %d",playerid);
 }
 stock clanSetup(playerid, listitem){
 	switch(listitem){
@@ -536,6 +561,31 @@ stock clanMemberRank(playerid, listitem){
 }
 stock clanMemberKick(playerid){
 	formatMsg(playerid, COL_SYS, "클랜원 강제추방 %d",playerid);
+}
+
+/* SHOP
+	@ shopWeapon(playerid, listitem)
+	@ shopCar(playerid, listitem)
+	@ shopSkin(playerid, inputtext)
+	@ shopAcc(playerid, listitem)
+*/
+stock shopWeapon(playerid, listitem){
+    formatMsg(playerid, COL_SYS, "카푸치노샵 무기 %d - %d",playerid, listitem);
+}
+stock shopCar(playerid, listitem){
+    formatMsg(playerid, COL_SYS, "카푸치노샵 차량 %d - %d",playerid, listitem);
+}
+stock shopSkin(playerid, inputtext[]){
+    formatMsg(playerid, COL_SYS, "카푸치노샵 스킨 %d - %s",playerid, inputtext);
+}
+stock shopAcc(playerid, listitem){
+    formatMsg(playerid, COL_SYS, "카푸치노샵 악세 %d - %d",playerid, listitem);
+}
+/* NOTICE
+    @ noticeSeason(playerid)
+*/
+stock noticeSeason(playerid){
+    formatMsg(playerid, COL_SYS, "만남의광장 시즌랭킹 %d",playerid);
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -1093,6 +1143,13 @@ stock showDialog(playerid, type){
         case DL_CLAN_SETUP_MEMBER_SETUP : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}직위 변경\n강제 추방", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}1등급\n2등급\n3등급", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 추방하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
+
+		case DL_SHOP_WEAPON : ShowPlayerDialog(playerid, DL_SHOP_WEAPON, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}데져트이글\n샷건", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_CAR : ShowPlayerDialog(playerid, DL_SHOP_CAR, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}사바나\n헌틀리", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 스킨번호를 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}모자\n마스크", DIALOG_ENTER, DIALOG_PREV);
+		
+		case DL_NOTICE_SEASON : ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}이번 시즌 랭킹", DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
 }
