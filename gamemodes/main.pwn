@@ -33,9 +33,10 @@
 #define DIALOG_PREV "뒤로"
 
 /* IS CHECK */
-#define IS_CLEN_HAVE   500
-#define IS_CLEN_NOT    501
-#define IS_CLEN_LEADER 502
+#define IS_CLEN_HAVE          500
+#define IS_CLEN_NOT           501
+#define IS_CLEN_LEADER        502
+#define IS_CLEN_INSERT_MONEY  503
 
 /*ZONE BASE */
 #define USED_ZONE 932
@@ -311,8 +312,12 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
    @ car(playerid,listitem)
 */
 stock info(playerid, listitem){
-	new result[502];
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],CLAN[USER[playerid][CLANID]-1][NAME],USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
+	new result[502], clanName[50];
+	
+	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), "미소속");
+	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
+	
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
 }
@@ -434,11 +439,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		showDialog(playerid, DL_INFO);
         return 1;
  	}
-    if(!strcmp("/check", cmdtext)){
- 	    checkZone(playerid);
- 	    return 1;
- 	}
     if(!strcmp("/hold", cmdtext)){
+        if(isClan(playerid, IS_CLEN_NOT)) return 1;
  	    holdZone(playerid);
  	    return 1;
  	}
@@ -950,11 +952,13 @@ stock showDialog(playerid, type){
 		    ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원 초대\n클랜원 관리", DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_DELETE :{
+            if(isClan(playerid, IS_CLEN_NOT)) return 0;
             if(isClan(playerid, IS_CLEN_LEADER)) return 0;
 		    ShowPlayerDialog(playerid, DL_CLAN_DELETE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 클랜을 해체하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_INSERT :{
             if(isClan(playerid, IS_CLEN_HAVE)) return 0;
+            if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
             
 		    ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
         }
@@ -976,6 +980,7 @@ stock isClan(playerid, type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
 		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,"    당신은 클랜에 소속되어 있지 않습니다.");
 		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,"    클랜 리더가 아닙니다.");
+        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,"    당신은 클랜을 창설할 만큼의 자금이 부족합니다. (금액 : 5000원)");
 	}
     return 0;
 }
