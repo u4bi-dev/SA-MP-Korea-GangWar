@@ -496,9 +496,7 @@ public check(playerid){
 public regist(playerid, pass[]){
     GetPlayerIp(playerid, USER[playerid][USERIP], 16);
 	format(USER[playerid][PASS],24, "%s",pass);
-
 	new query[400];
-	GetPlayerName(playerid, USER[playerid][NAME], MAX_PLAYER_NAME);
 	mysql_format(mysql, query, sizeof(query), "INSERT INTO `user_info` (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`,`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`,`SKIN`,`WEP1`,`AMMO1`,`WEP2`,`AMMO2`,`WEP3`,`AMMO3`,`INTERIOR`,`WORLD`,`POS_X`,`POS_Y`,`POS_Z`,`ANGLE`,`HP`,`AM`) VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)",
 	USER[playerid][NAME], USER[playerid][PASS], USER[playerid][USERIP],
 	USER[playerid][ADMIN] = 0,
@@ -522,6 +520,8 @@ public regist(playerid, pass[]){
 	USER[playerid][AM] = 100.0);
 
 	mysql_query(mysql, query);
+	GetPlayerName(playerid, USER[playerid][NAME], MAX_PLAYER_NAME);
+//ss
 	USER[playerid][ID] = cache_insert_id();
 
 	SendClientMessage(playerid,COL_SYS,"    회원가입을 하였습니다.");
@@ -672,24 +672,69 @@ stock house_data(){
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `house_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("집 DB 정상");
+
+	new rows, fields;
+	cache_get_data(rows, fields);
+	
+    for(new i=0; i < rows; i++){
+	    HOUSE[i][ID]            = cache_get_field_content_int(i, "ID");
+	    HOUSE[i][OPEN]          = cache_get_field_content_int(i, "OPEM");
+		cache_get_field_content(i, "NAME", HOUSE[i][NAME], mysql, 24);
+        HOUSE[i][ENTER_POS_X]   = cache_get_field_content_float(i, "ENTER_POS_X");
+        HOUSE[i][ENTER_POS_Y]   = cache_get_field_content_float(i, "ENTER_POS_Y");
+        HOUSE[i][ENTER_POS_Z]   = cache_get_field_content_float(i, "ENTER_POS_Z");
+        HOUSE[i][LEAVE_POS_X]   = cache_get_field_content_float(i, "LEAVE_POS_X");
+        HOUSE[i][LEAVE_POS_Y]   = cache_get_field_content_float(i, "LEAVE_POS_Y");
+        HOUSE[i][LEAVE_POS_Z]   = cache_get_field_content_float(i, "LEAVE_POS_Z");
+    }
+	
+	
 }
 stock vehicle_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `vehicle_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("차량 DB 정상");
+	new rows, fields;
+	cache_get_data(rows, fields);
+	
+    for(new i=0; i < rows; i++){
+	    VEHICLE[i][ID]           = cache_get_field_content_int(i, "ID");
+		cache_get_field_content(i, "NAME", VEHICLE[i][NAME], mysql, 24);
+	    VEHICLE[i][MODEL]        = cache_get_field_content_int(i, "MODEL");
+	    VEHICLE[i][COLOR1]       = cache_get_field_content_int(i, "COLOR1");
+	    VEHICLE[i][COLOR2]       = cache_get_field_content_int(i, "COLOR2");
+    }
 }
 stock clan_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `clan_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("클랜 DB 정상");
+	new rows, fields;
+	cache_get_data(rows, fields);
+	
+    for(new i=0; i < rows; i++){
+	    CLAN[i][ID]             = cache_get_field_content_int(i, "ID");
+		cache_get_field_content(i, "NAME", CLAN[i][NAME], mysql, 50);
+		cache_get_field_content(i, "LEADER_NAME", CLAN[i][LEADER_NAME], mysql, 24);
+	    CLAN[i][KILLS]          = cache_get_field_content_int(i, "KILLS");
+	    CLAN[i][DEATHS]         = cache_get_field_content_int(i, "DEATHS");
+	    CLAN[i][COLOR]          = cache_get_field_content_int(i, "COLOR");
+    }
 }
 stock zone_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `zone_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("갱존 DB 정상");
+	new rows, fields;
+	cache_get_data(rows, fields);
+	
+    for(new i=0; i < rows; i++){
+        ZONE[i][ID]             = cache_get_field_content_int(i, "ID");
+        ZONE[i][OWNER_CLAN]             = cache_get_field_content_int(i, "OWNER_CLAN");
+    }
 }
 
 /* SERVER THREAD*/
