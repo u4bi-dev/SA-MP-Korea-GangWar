@@ -247,6 +247,23 @@ public OnGameModeInit(){
 
     return 1;
 }
+public OnPlayerText(playerid, text[]){
+    new send[256];
+    if(text[0] == '!'){
+        foreach (new i : Player){
+	        if(USER[i][CLANID] == USER[playerid][CLANID]){
+                new str[256];
+                strmid(str, text, 1, strlen(text));
+	            formatMsg(i, 0x7FFF00FF,"(클랜채팅) %s : %s", USER[playerid][NAME], str);
+	        }
+        }
+        return 0;
+    }
+	if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME], text);
+	else format(send,sizeof(send),"{E6E6E6} %s : %s", USER[playerid][NAME], text);
+    SendClientMessageToAll(-1, send);
+    return 0;
+}
 public OnPlayerRequestClass(playerid, classid){
 
     if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    이미 로그인 하셨습니다.");
@@ -486,10 +503,10 @@ stock clanInsertSuccess(playerid){
 */
 stock clanInvite(playerid, inputtext[]){
     new user = getPlayerId(inputtext);
-    
-    if(isClan(user, IS_CLEN_HAVE)) return 0;
+
 	if(user < 0 || user > MAX_PLAYERS) return SendClientMessage(playerid,COL_SYS,"    초대하실 유저분의 닉네임을 입력해주세요."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
     if(!INGAME[user][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    현재 서버에 접속하지 않은 유저 번호입니다."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
+    if(isClan(user, IS_CLEN_HAVE)) return 0;
     formatMsg(user, COL_SYS, "    %s님이 당신에게 [{%06x}%s{AFAFAF}] 클랜 가입 권유를 보냈습니다.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
     formatMsg(user, COL_SYS, "    동의하시면 {8D8DFF}Y키{AFAFAF} 거부하시면 {FF0000}N키{AFAFAF}를 눌러주세요.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
     INGAME[user][INVITE_CLANID] = USER[playerid][CLANID];
@@ -703,7 +720,7 @@ stock escape(str[]){
    @ spawn(playerid)
 */
 stock spawn(playerid){
-	SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], USER[playerid][AMMO1], USER[playerid][WEP2], USER[playerid][AMMO2], USER[playerid][WEP3], USER[playerid][AMMO3]);
+	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], USER[playerid][AMMO1], USER[playerid][WEP2], USER[playerid][AMMO2], USER[playerid][WEP3], USER[playerid][AMMO3]);
 	SpawnPlayer(playerid);
 	ResetPlayerMoney(playerid);
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
