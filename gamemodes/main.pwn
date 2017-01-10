@@ -57,6 +57,8 @@ new FALSE = false;
 	}\
 	while(FALSE)
 
+#define rgbToHex(%0,%1,%2,%3) %0 << 24 | %1 << 16 | %2 << 8 | %3
+
 main(){}
 
 forward check(playerid);
@@ -240,6 +242,7 @@ public OnGameModeInit(){
     mode();
 	server();
 	thread();
+
     return 1;
 }
 public OnPlayerRequestClass(playerid, classid){
@@ -383,6 +386,9 @@ stock clanDelete(playerid){
 
 stock clanJoin(playerid, clanid){
 	formatMsg(playerid, COL_SYS, "클랜 등록 %d - %d",playerid, clanid);
+	USER[playerid][CLANID] = clanid;
+	SetPlayerColor(playerid,CLAN[clanid-1][COLOR]);
+    save(playerid);
 }
 
 /* CLAN INSERT
@@ -394,15 +400,16 @@ stock clanJoin(playerid, clanid){
 stock clanInsertColor(playerid, listitem){
 	formatMsg(playerid, COL_SYS, "클랜 생성 컬러 %d - %d",playerid, listitem);
 	switch(listitem){
-		case 0 : showDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM);
+		case 0 :{
+		    CLAN_SETUP[playerid][COLOR] = randomColor();
+		    showDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM);
+		}
 		case 1 : showDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE);
 	}
 }
 
 stock clanInsertColorRandom(playerid){
-    CLAN_SETUP[playerid][COLOR] = 123;
-    
-    formatMsg(playerid, COL_SYS, "클랜 생성 컬러 랜덤 %d - %d",playerid, CLAN_SETUP[playerid][COLOR]);
+    formatMsg(playerid, COL_SYS, "클랜 생성 컬러 랜덤 %d - %06x",playerid, CLAN_SETUP[playerid][COLOR] >>> 8);
     showDialog(playerid, DL_CLAN_INSERT_SUCCESS);
     return 1;
 }
@@ -414,10 +421,27 @@ stock clanInsertColorChoice(playerid, inputtext[]){
 }
 
 stock clanInsertSuccess(playerid){
+    if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
+    
 	formatMsg(playerid, COL_SYS, "클랜 생성 성공 %d",playerid);
+	
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "INSERT INTO `clan_info` (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`) VALUES ('%s','%s',0,0,%d)",
+        CLAN_SETUP[playerid][NAME],
+        USER[playerid][NAME],
+        CLAN_SETUP[playerid][COLOR]
+	);
+	
+	mysql_query(mysql, query);
+	new num = cache_insert_id();
+	CLAN[num-1][COLOR] = CLAN_SETUP[playerid][COLOR];
+	clanJoin(playerid, cache_insert_id());
 	
     new temp[CLAN_SETUP_MODEL];
     CLAN_SETUP[playerid] = temp;
+    
+    clan_data();
+    return 0;
 }
 
 /* CLAN SETUP
@@ -483,9 +507,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         giveMoney(playerid, 5000);
         return 1;
  	}
- 	
+    
     return 0;
 }
+
 public OnPlayerDisconnect(playerid, reason){
 
     if(INGAME[playerid][LOGIN]) save(playerid);
@@ -648,7 +673,7 @@ stock spawn(playerid){
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
 	SetPlayerHealth(playerid, USER[playerid][HP]);
 	SetPlayerArmour(playerid, USER[playerid][AM]);
-	
+
 	if(USER[playerid][CLANID] == 0)SetPlayerColor(playerid, 0xE6E6E699);
     else SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
 }
@@ -997,16 +1022,19 @@ stock showDialog(playerid, type){
 		}
         case DL_CLAN_INSERT :{
             if(isClan(playerid, IS_CLEN_HAVE)) return 0;
-            if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
             
 		    ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
         }
         case DL_CLAN_INSERT_COLOR : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}랜덤색보기\n색지정", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_INSERT_COLOR_RANDOM : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}랜덤으로 색을 뽑아붑니다.", DIALOG_PREV, DIALOG_ENTER);
+        case DL_CLAN_INSERT_COLOR_RANDOM :{
+            new str[256];
+            format(str, sizeof(str),"{%06x}색상 :\t\t%s\n\n{FFFFFF}랜덤으로 색을 뽑아붑니다.", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
+		    ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_PREV, DIALOG_ENTER);
+		}
         case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜 색상을 지정해주세요.", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_SUCCESS :{
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t%d\n\n위 조건으로 클랜을 창설하시겠습니까?", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR]);
+            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t{%06x}%06x{FFFFFF}\n\n위 조건으로 클랜을 창설하시겠습니까?", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
             ShowPlayerDialog(playerid, DL_CLAN_INSERT_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 
@@ -1029,3 +1057,8 @@ stock isClan(playerid, type){
     return 0;
 }
 
+stock randomColor(){
+	new code[3];
+    for(new i=0; i < sizeof(code); i++)code[i] = random(256);
+    return rgbToHex(code[0], code[1], code[2], 103);
+}
