@@ -14,6 +14,7 @@
 #define DL_CLAN_INSERT_COLOR              10400
 #define DL_CLAN_INSERT_COLOR_RANDOM       10401
 #define DL_CLAN_INSERT_COLOR_CHOICE       10402
+#define DL_CLAN_INSERT_SUCCESS            10403
 
 #define DL_CLAN_LIST                      1041
 #define DL_CLAN_RANK                      1042
@@ -221,7 +222,8 @@ new MISSON[3][MISSON_MODEL];
 
 enum CLAN_SETUP_MODEL{
 	NAME[50],
-	MEMBER
+	MEMBER,
+	COLOR,
 }
 new CLAN_SETUP[MAX_PLAYERS][CLAN_SETUP_MODEL];
 
@@ -263,7 +265,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MISSON_CLAN, DL_MISSON_ITEM, DL_MISSON_CAR :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_DELETE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
-			case DL_CLAN_INSERT_COLOR_RANDOM, DL_CLAN_INSERT_COLOR_CHOICE :return showDialog(playerid, DL_CLAN_INSERT_COLOR);
+			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
+			case DL_CLAN_INSERT_COLOR_CHOICE :return showDialog(playerid, DL_CLAN_INSERT_COLOR);
+			case DL_CLAN_INSERT_SUCCESS : return showDialog(playerid, DL_CLAN_INSERT_COLOR);
 			case DL_CLAN_SETUP_INVITE, DL_CLAN_SETUP_MEMBER : return showDialog(playerid, DL_CLAN_SETUP);
 			case DL_CLAN_SETUP_MEMBER_SETUP : return showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 			case DL_CLAN_SETUP_MEMBER_SETUP_RANK, DL_CLAN_SETUP_MEMBER_SETUP_KICK : return showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
@@ -290,8 +294,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         
         /* CLAN INSERT */
         case DL_CLAN_INSERT_COLOR : clanInsertColor(playerid, listitem);
-        case DL_CLAN_INSERT_COLOR_RANDOM : clanInsertColorRandom(playerid);
+        case DL_CLAN_INSERT_COLOR_RANDOM : showDialog(playerid, DL_CLAN_INSERT_COLOR);
         case DL_CLAN_INSERT_COLOR_CHOICE : clanInsertColorChoice(playerid, inputtext);
+		case DL_CLAN_INSERT_SUCCESS : clanInsertSuccess(playerid);
         
         /* CLAN SETUP */
         case DL_CLAN_SETUP_INVITE : clanInvite(playerid, inputtext);
@@ -349,6 +354,8 @@ stock car(playerid,listitem){
 */
 stock clanInsert(playerid, inputtext[]){
     formatMsg(playerid, COL_SYS, "클랜 생성 %d - %s",playerid, inputtext);
+    format(CLAN_SETUP[playerid][NAME], 50, "%s", escape(inputtext));
+    
     showDialog(playerid, DL_CLAN_INSERT_COLOR);
     return 0;
 }
@@ -376,6 +383,7 @@ stock clanDelete(playerid){
    @ clanInsertColor(playerid, listitem)
    @ clanInsertColorRandom(playerid)
    @ clanInsertColorChoice(playerid, inputtext)
+   @ clanInsertSuccess(playerid)
 */
 stock clanInsertColor(playerid, listitem){
 	formatMsg(playerid, COL_SYS, "클랜 생성 컬러 %d - %d",playerid, listitem);
@@ -386,12 +394,25 @@ stock clanInsertColor(playerid, listitem){
 }
 
 stock clanInsertColorRandom(playerid){
-    formatMsg(playerid, COL_SYS, "클랜 생성 컬러 랜덤 %d",playerid);
+    CLAN_SETUP[playerid][COLOR] = 123;
+    
+    formatMsg(playerid, COL_SYS, "클랜 생성 컬러 랜덤 %d - %d",playerid, CLAN_SETUP[playerid][COLOR]);
+    showDialog(playerid, DL_CLAN_INSERT_SUCCESS);
+    return 1;
 }
 stock clanInsertColorChoice(playerid, inputtext[]){
-    formatMsg(playerid, COL_SYS, "클랜 생성 컬러 선택 %d - %s",playerid, inputtext);
+    CLAN_SETUP[playerid][COLOR] = strval(escape(inputtext));
+    
+    formatMsg(playerid, COL_SYS, "클랜 생성 컬러 선택 %d - %d",playerid, CLAN_SETUP[playerid][COLOR]);
+    showDialog(playerid, DL_CLAN_INSERT_SUCCESS);
 }
 
+stock clanInsertSuccess(playerid){
+	formatMsg(playerid, COL_SYS, "클랜 생성 성공 %d",playerid);
+	
+    new temp[CLAN_SETUP_MODEL];
+    CLAN_SETUP[playerid] = temp;
+}
 
 /* CLAN SETUP
    @ clanInvite(playerid, inputtext)
@@ -443,6 +464,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(isClan(playerid, IS_CLEN_NOT)) return 1;
  	    holdZone(playerid);
  	    return 1;
+ 	}
+ 	if(!strcmp("/money", cmdtext)){
+        giveMoney(playerid, 5000);
+        return 1;
  	}
  	
     return 0;
@@ -963,8 +988,13 @@ stock showDialog(playerid, type){
 		    ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
         }
         case DL_CLAN_INSERT_COLOR : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}랜덤색보기\n색지정", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_INSERT_COLOR_RANDOM : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}랜덤으로 색을 뽑아붑니다.", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_INSERT_COLOR_RANDOM : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}랜덤으로 색을 뽑아붑니다.", DIALOG_PREV, DIALOG_ENTER);
         case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜 색상을 지정해주세요.", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_INSERT_SUCCESS :{
+            new str[256];
+            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t%d\n\n위 조건으로 클랜을 창설하시겠습니까?", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR]);
+            ShowPlayerDialog(playerid, DL_CLAN_INSERT_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
 
         case DL_CLAN_SETUP_INVITE : ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}초대하실분의 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원1\n클랜원2", DIALOG_ENTER, DIALOG_PREV);
