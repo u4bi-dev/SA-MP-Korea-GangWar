@@ -220,6 +220,7 @@ enum INGAME_MODEL{
 	ENTER_ZONE,
 	INVITE_CLANID,
 	INVITE_CLAN_REQUEST_MEMBERID,
+    bool:SYNC,
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -281,6 +282,10 @@ public OnPlayerRequestClass(playerid, classid){
     return 1;
 }
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
+    if(newkeys == 160 && GetPlayerWeapon(playerid) == 0 && !IsPlayerInAnyVehicle(playerid)){
+        sync(playerid);
+	}
+    
 	if(PRESSED(KEY_YES)){
 		if(INGAME[playerid][INVITE_CLANID]){
             clanJoin(playerid, INGAME[playerid][INVITE_CLANID]);
@@ -540,8 +545,8 @@ stock clanInvite(playerid, inputtext[]){
 }
 
 stock clanMember(playerid, listitem){
-	formatMsg(playerid, COL_SYS, "클랜원 관리 %d - %d",playerid, listitem);
 	showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
+	formatMsg(playerid, COL_SYS, "클랜원 관리 %d - %d",playerid, listitem);
 }
 
 /* CLAN MEMBER SETUP
@@ -623,6 +628,8 @@ public OnPlayerDisconnect(playerid, reason){
 }
 
 public OnPlayerDeath(playerid, killerid, reason){
+    if(INGAME[playerid][SYNC]) return 0;
+    
 	death(playerid, killerid, reason);
 	return 1;
 }
@@ -941,6 +948,10 @@ public ServerThread(){
    @ isPlayerZone(playerid, zoneid)
    @ checkZone(playerid)
    @ holdZone(playerid)
+   @ isClan(playerid, type)
+   @ randomColor()
+   @ getPlayerId(name[]
+   @ sync(playerid)
 */
 
 stock zoneSetup(){
@@ -1153,7 +1164,6 @@ stock showDialog(playerid, type){
     }
     return 1;
 }
-
 stock isClan(playerid, type){
 	switch(type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
@@ -1163,13 +1173,11 @@ stock isClan(playerid, type){
 	}
     return 0;
 }
-
 stock randomColor(){
 	new code[3];
     for(new i=0; i < sizeof(code); i++)code[i] = random(256);
     return rgbToHex(code[0], code[1], code[2], 103);
 }
-
 stock getPlayerId(name[]){
   for(new i = 0; i <= MAX_PLAYERS; i++){
     if(IsPlayerConnected(i)){
@@ -1177,4 +1185,21 @@ stock getPlayerId(name[]){
     }
   }
   return INVALID_PLAYER_ID;
+}
+stock sync(playerid){
+	INGAME[playerid][SYNC] = true;
+	new Float:pos[4],world, inter;
+	GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
+	GetPlayerFacingAngle(playerid, pos[3]);
+	inter = GetPlayerInterior(playerid);
+	world = GetPlayerVirtualWorld(playerid);
+
+	SpawnPlayer(playerid);
+    
+	SetPlayerPos(playerid, pos[0], pos[1], pos[2]);
+	SetPlayerFacingAngle(playerid, pos[3]);
+	SetPlayerInterior(playerid, inter);
+	SetPlayerVirtualWorld(playerid, world);
+    SetPlayerArmedWeapon(playerid, 0);
+	INGAME[playerid][SYNC] = false;
 }
