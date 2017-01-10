@@ -33,6 +33,8 @@
 #define DL_SHOP_SKIN                      1052
 #define DL_SHOP_ACC                       1053
 
+#define DL_SHOP_SKIN_BUY                  10520
+
 #define DL_NOTICE_SEASON                  1060
 
 #define COL_SYS  0xAFAFAF99
@@ -220,6 +222,7 @@ enum INGAME_MODEL{
 	ENTER_ZONE,
 	INVITE_CLANID,
 	INVITE_CLAN_REQUEST_MEMBERID,
+	BUY_SKINID,
     bool:SYNC,
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
@@ -322,6 +325,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_CLAN_SETUP_INVITE, DL_CLAN_SETUP_MEMBER : return showDialog(playerid, DL_CLAN_SETUP);
 			case DL_CLAN_SETUP_MEMBER_SETUP : return showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 			case DL_CLAN_SETUP_MEMBER_SETUP_RANK, DL_CLAN_SETUP_MEMBER_SETUP_KICK : return showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
+			case DL_SHOP_WEAPON, DL_SHOP_SKIN, DL_SHOP_CAR, DL_SHOP_ACC : return showDialog(playerid, DL_MISSON_SHOP);
+			case DL_SHOP_SKIN_BUY : return showDialog(playerid, DL_SHOP_SKIN);
 		}
 	}
 	
@@ -364,6 +369,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_SHOP_SKIN   : shopSkin(playerid, inputtext);
 		case DL_SHOP_ACC    : shopAcc(playerid, listitem);
 		
+		/* SHOP BUY */
+		case DL_SHOP_SKIN_BUY : shopSkinBuy(playerid);
+		
 		/* NOTICE */
 		case DL_NOTICE_SEASON : noticeSeason(playerid);
         
@@ -397,7 +405,6 @@ stock clan(playerid,listitem){
 	}
 }
 stock shop(playerid,listitem){
-    formatMsg(playerid, COL_SYS, "카푸치노 상점 %d - %d",playerid, listitem);
 	switch(listitem){
         case 0 : showDialog(playerid, DL_SHOP_WEAPON);
         case 1 : showDialog(playerid, DL_SHOP_CAR);
@@ -504,9 +511,8 @@ stock clanInsertColorChoice(playerid, inputtext[]){
 stock clanInsertSuccess(playerid){
     if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
     
-	formatMsg(playerid, COL_SYS, "    당신은 [{%06x}%s{AFAFAF}]클랜을 창설하였습니다.", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
-	formatMsg(playerid, COL_SYS, "    소지하신 금액 5000원 차감합니다.");
-    giveMoney(playerid, -5000);
+	formatMsg(playerid, COL_SYS, "    당신은 [{%06x}%s{AFAFAF}]클랜을 창설하였습니다. (차감액 : 20000원)", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
+    giveMoney(playerid, -20000);
 	
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "INSERT INTO `clan_info` (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`) VALUES ('%s','%s',0,0,%d)",
@@ -581,10 +587,32 @@ stock shopCar(playerid, listitem){
     formatMsg(playerid, COL_SYS, "카푸치노샵 차량 %d - %d",playerid, listitem);
 }
 stock shopSkin(playerid, inputtext[]){
-    formatMsg(playerid, COL_SYS, "카푸치노샵 스킨 %d - %s",playerid, inputtext);
+    new skin = strval(inputtext);
+    if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, "    1번부터 299번까지 스킨이 존재합니다.");
+    if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, "    CJ 스킨은 규정상 선택하실 수 없습니다.");
+    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,"    스킨을 구매할 자금이 부족합니다. (가액 : 5000원)");
+
+    INGAME[playerid][BUY_SKINID] = skin;
+	showDialog(playerid, DL_SHOP_SKIN_BUY);
+	return 0;
 }
 stock shopAcc(playerid, listitem){
     formatMsg(playerid, COL_SYS, "카푸치노샵 악세 %d - %d",playerid, listitem);
+}
+
+/* SKIN BUY
+   @ shopSkinBuy(playerid)
+*/
+stock shopSkinBuy(playerid){
+    formatMsg(playerid, COL_SYS, "    당신은 %d번 스킨을 구매하였습니다. (차감액 : 5000원)",INGAME[playerid][BUY_SKINID]);
+    giveMoney(playerid, -5000);
+
+    USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
+    sync(playerid);
+    
+    INGAME[playerid][BUY_SKINID] = 0;
+    SetPlayerSkin(playerid, USER[playerid][SKIN]);
+	save(playerid);
 }
 /* NOTICE
     @ noticeSeason(playerid)
@@ -1145,7 +1173,7 @@ stock showDialog(playerid, type){
 //        case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜 색상을 지정해주세요.", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_SUCCESS :{
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t{%06x}%06x{FFFFFF}\n\n위 조건으로 클랜을 창설하시겠습니까?", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
+            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t{%06x}%06x{FFFFFF}\n\n위 조건으로 클랜을 창설하시겠습니까?\n(차감액 : 20000원)", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
             ShowPlayerDialog(playerid, DL_CLAN_INSERT_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 
@@ -1160,6 +1188,11 @@ stock showDialog(playerid, type){
 		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 스킨번호를 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}모자\n마스크", DIALOG_ENTER, DIALOG_PREV);
 		
+		case DL_SHOP_SKIN_BUY : {
+            new str[256];
+            format(str, sizeof(str),"{FFFFFF}스킨 번호 :\t\t%d\n\n해당 스킨을 정말로 구매하시겠습니까?\n(차감액 : 5000원)", INGAME[playerid][BUY_SKINID]);
+            ShowPlayerDialog(playerid, DL_SHOP_SKIN_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
 		case DL_NOTICE_SEASON : ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}이번 시즌 랭킹", DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
@@ -1169,7 +1202,7 @@ stock isClan(playerid, type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
 		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,"    당신은 클랜에 소속되어 있지 않습니다.");
 		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,"    클랜 리더가 아닙니다.");
-        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,"    당신은 클랜을 창설할 만큼의 자금이 부족합니다. (금액 : 5000원)");
+        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    클랜을 창설할 만큼의 자금이 부족합니다. (가액 : 20000원)");
 	}
     return 0;
 }
