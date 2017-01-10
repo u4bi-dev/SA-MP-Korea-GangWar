@@ -2,36 +2,40 @@
 #include <a_mysql>
 #include <foreach>
 
-#define DL_LOGIN    100
-#define DL_REGIST   101
-#define DL_INFO     103
-#define DL_MENU     104
+#define DL_LOGIN                          100
+#define DL_REGIST                         101
+#define DL_INFO                           102
+#define DL_MENU                           103
+#define DL_MISSON_CLAN                    104
+#define DL_MISSON_ITEM                    105
+#define DL_MISSON_CAR                     106
 
-#define DL_MISSON_CLAN     200
-#define DL_MISSON_ITEM     201
-#define DL_MISSON_CAR      202
+#define DL_CLAN_INSERT                    1040
+#define DL_CLAN_INSERT_COLOR              10400
+#define DL_CLAN_INSERT_COLOR_RANDOM       10401
+#define DL_CLAN_INSERT_COLOR_CHOICE       10402
 
-#define DL_CLAN_INSERT       300
-#define DL_CLAN_INSERT_COLOR 3000
-#define DL_CLAN_INSERT_COLOR_RANDOM 3001
-#define DL_CLAN_INSERT_COLOR_CHOICE 3002
+#define DL_CLAN_LIST                      1041
+#define DL_CLAN_RANK                      1042
+#define DL_CLAN_SETUP                     1043
+#define DL_CLAN_DELETE                    1044
 
-#define DL_CLAN_LIST      301
-#define DL_CLAN_RANK      302
-#define DL_CLAN_SETUP     303
-#define DL_CLAN_DELETE    304
+#define DL_CLAN_SETUP_INVITE              10430
+#define DL_CLAN_SETUP_MEMBER              10431
 
-#define DL_CLAN_SETUP_INVITE 3030
-#define DL_CLAN_SETUP_MEMBER 3031
-
-#define DL_CLAN_SETUP_MEMBER_SETUP 30310
-#define DL_CLAN_SETUP_MEMBER_SETUP_RANK 30311
-#define DL_CLAN_SETUP_MEMBER_SETUP_KICK 30312
+#define DL_CLAN_SETUP_MEMBER_SETUP        104310
+#define DL_CLAN_SETUP_MEMBER_SETUP_RANK   104311
+#define DL_CLAN_SETUP_MEMBER_SETUP_KICK   104312
 
 #define COL_SYS  0xAFAFAF99
 #define DIALOG_TITLE "{8D8DFF}샘프워코리아"
 #define DIALOG_ENTER "확인"
 #define DIALOG_PREV "뒤로"
+
+/* IS CHECK */
+#define IS_CLEN_HAVE   500
+#define IS_CLEN_NOT    501
+#define IS_CLEN_LEADER 502
 
 /*ZONE BASE */
 #define USED_ZONE 932
@@ -341,6 +345,7 @@ stock car(playerid,listitem){
 stock clanInsert(playerid, inputtext[]){
     formatMsg(playerid, COL_SYS, "클랜 생성 %d - %s",playerid, inputtext);
     showDialog(playerid, DL_CLAN_INSERT_COLOR);
+    return 0;
 }
 stock clanList(playerid){
     formatMsg(playerid, COL_SYS, "클랜 리스트 %d - %d",playerid);
@@ -355,9 +360,11 @@ stock clanSetup(playerid, listitem){
         case 0 : showDialog(playerid, DL_CLAN_SETUP_INVITE);
         case 1 : showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 	}
+	return 0;
 }
 stock clanDelete(playerid){
 	formatMsg(playerid, COL_SYS, "클랜 해체 %d",playerid);
+	return 0;
 }
 
 /* CLAN INSERT
@@ -936,9 +943,21 @@ stock showDialog(playerid, type){
         case DL_INFO : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, "서버 규정\n내 프로필\n문의\n", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_LIST : ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 목록", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_RANK : ShowPlayerDialog(playerid, DL_CLAN_RANK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 랭킹", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_SETUP : ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원 초대\n클랜원 관리", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_DELETE : ShowPlayerDialog(playerid, DL_CLAN_DELETE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 클랜을 해체하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_INSERT : ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP :{
+            if(isClan(playerid, IS_CLEN_NOT)) return 0;
+            if(isClan(playerid, IS_CLEN_LEADER)) return 0;
+            
+		    ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원 초대\n클랜원 관리", DIALOG_ENTER, DIALOG_PREV);
+		}
+        case DL_CLAN_DELETE :{
+            if(isClan(playerid, IS_CLEN_LEADER)) return 0;
+		    ShowPlayerDialog(playerid, DL_CLAN_DELETE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 클랜을 해체하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
+		}
+        case DL_CLAN_INSERT :{
+            if(isClan(playerid, IS_CLEN_HAVE)) return 0;
+            
+		    ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+        }
         case DL_CLAN_INSERT_COLOR : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}랜덤색보기\n색지정", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_COLOR_RANDOM : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}랜덤으로 색을 뽑아붑니다.", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜 색상을 지정해주세요.", DIALOG_ENTER, DIALOG_PREV);
@@ -950,5 +969,14 @@ stock showDialog(playerid, type){
         case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 추방하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
+}
+
+stock isClan(playerid, type){
+	switch(type){
+		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
+		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,"    당신은 클랜에 소속되어 있지 않습니다.");
+		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,"    클랜 리더가 아닙니다.");
+	}
+    return 0;
 }
 
