@@ -210,7 +210,9 @@ enum INGAME_MODEL{
 	Float:SPAWN_POS_Y,
 	Float:SPAWN_POS_Z,
 	Float:SPAWN_ANGLE,
-	ENTER_ZONE
+	ENTER_ZONE,
+	INVITE_CLANID,
+	INVITE_CLAN_REQUEST_MEMBERID,
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -255,7 +257,24 @@ public OnPlayerRequestClass(playerid, classid){
     return 1;
 }
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
-	if (PRESSED(KEY_YES)){
+	if(PRESSED(KEY_YES)){
+		if(INGAME[playerid][INVITE_CLANID]){
+            clanJoin(playerid, INGAME[playerid][INVITE_CLANID]);
+            formatMsg(playerid, COL_SYS, "    당신은  [{%06x}%s{AFAFAF}] 클랜의 멤버가 되었습니다.",CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][COLOR] >>> 8 , CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
+            formatMsg(INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID], COL_SYS, "    %s님이 당신의 클랜 초대 권유를 승낙하였습니다.",USER[playerid][NAME]);
+            INGAME[playerid][INVITE_CLANID] = 0;
+            INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
+		}
+	}
+	if(PRESSED(KEY_NO)){
+		if(INGAME[playerid][INVITE_CLANID]){
+            formatMsg(playerid, COL_SYS, "    당신은 [%s] 클랜의 초대 권유를 거부하였습니다.", CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
+            formatMsg(INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID], COL_SYS, "    %s님이 당신의 요청을 거부하였습니다.",USER[playerid][NAME]);
+		    INGAME[playerid][INVITE_CLANID] = 0;
+            INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
+		}
+	}
+	if(PRESSED(KEY_SECONDARY_ATTACK)){
 	    searchMissonRange(playerid);
 	}
     return 1;
@@ -331,7 +350,7 @@ stock info(playerid, listitem){
 }
 
 stock clan(playerid,listitem){
-    formatMsg(playerid, COL_SYS, "클랜 조합 %d - %d",playerid, listitem);
+    formatMsg(playerid, COL_SYS, "클랜 연합 %d - %d",playerid, listitem);
     
 	switch(listitem){
         case 0 : showDialog(playerid, DL_CLAN_INSERT);
@@ -469,7 +488,16 @@ stock clanInsertSuccess(playerid){
    @ clanMember(playerid, listitem)
 */
 stock clanInvite(playerid, inputtext[]){
-	formatMsg(playerid, COL_SYS, "클랜 초대 %d - %s",playerid, inputtext);
+	new user = strval(inputtext);
+
+	if(user < 0 || user > MAX_PLAYERS) return SendClientMessage(playerid,COL_SYS,"    초대하실 유저분의 번호를 입력해주세요."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
+    if(!INGAME[user][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    현재 서버에 접속하지 않은 유저 번호입니다."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
+    formatMsg(playerid, COL_SYS, "클랜 초대 %d - %d",playerid, user);
+    formatMsg(user, COL_SYS, "    %s님이 당신에게 [{%06x}%s{AFAFAF}] 클랜에 초대 권유를 하였습니다.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
+    formatMsg(user, COL_SYS, "    동의하시면 {8D8DFF}Y키{AFAFAF} 거부하시면 {FF0000}N키{AFAFAF}를 눌러주세요.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
+    INGAME[user][INVITE_CLANID] = USER[playerid][CLANID];
+    INGAME[user][INVITE_CLAN_REQUEST_MEMBERID] = playerid;
+	return 0;
 }
 
 stock clanMember(playerid, listitem){
@@ -997,7 +1025,7 @@ stock object_init(){
 stock textLabel_init(){
 	for(new a = 0;a<3;a++){
 		new str[40];
-		format(str, sizeof(str),"%s (Y키)",MISSON[a][NAME]);
+		format(str, sizeof(str),"%s (F키)",MISSON[a][NAME]);
 		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[a][POS_X], MISSON[a][POS_Y], MISSON[a][POS_Z], 7.0, 0, 0);
 	}
 }
