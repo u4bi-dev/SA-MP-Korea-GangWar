@@ -351,6 +351,8 @@ stock car(playerid,listitem){
    @ clanRank(playerid);
    @ clanSetup(playerid, listitem);
    @ clanDelete(playerid);
+   
+   @ clanJoin(playerid, clanid)
 */
 stock clanInsert(playerid, inputtext[]){
     formatMsg(playerid, COL_SYS, "클랜 생성 %d - %s",playerid, inputtext);
@@ -377,6 +379,10 @@ stock clanSetup(playerid, listitem){
 stock clanDelete(playerid){
 	formatMsg(playerid, COL_SYS, "클랜 해체 %d",playerid);
 	return 0;
+}
+
+stock clanJoin(playerid, clanid){
+	formatMsg(playerid, COL_SYS, "클랜 등록 %d - %d",playerid, clanid);
 }
 
 /* CLAN INSERT
@@ -421,9 +427,17 @@ stock clanInsertSuccess(playerid){
 stock clanInvite(playerid, inputtext[]){
 	formatMsg(playerid, COL_SYS, "클랜 초대 %d - %s",playerid, inputtext);
 }
+
 stock clanMember(playerid, listitem){
 	formatMsg(playerid, COL_SYS, "클랜원 관리 %d - %d",playerid, listitem);
 	showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
+}
+
+/* CLAN INVITE SETUP
+   @ clanInviteSuccess(playerid)
+*/
+stock clanInviteSuccess(playerid){
+	formatMsg(playerid, COL_SYS, "클랜 초대 성공 %d",playerid);
 }
 
 /* CLAN MEMBER SETUP
