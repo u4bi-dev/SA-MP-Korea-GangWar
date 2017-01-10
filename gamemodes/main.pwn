@@ -62,7 +62,7 @@ forward ServerThread();
 /* variable */
 new infoMessege[3][502] = {
 	"{8D8DFF}모드설명{FFFFFF}\n\n샘프워 코리아 모드입니다.\n세력을 넑혀가는 갱전쟁 형식의 모드입니다.\n\n{8D8DFF}게임방법{FFFFFF}\n\n샘프워코리아 전쟁 규정을 따릅니다.",
-	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%d\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d",
+	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d",
 	"{FFFFFF}github.com/u4bi\n하이오"
 };
 
@@ -241,7 +241,7 @@ public OnPlayerRequestClass(playerid, classid){
 
     join(playerid, check(playerid));
     showZone(playerid);
-	SetPlayerColor(playerid, 0x8D8DFF99); //E6E6E699
+	SetPlayerColor(playerid, 0x00000099);
     return 1;
 }
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
@@ -308,7 +308,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 */
 stock info(playerid, listitem){
 	new result[502];
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],USER[playerid][CLANID],USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],CLAN[USER[playerid][CLANID]-1][NAME],USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
 }
@@ -600,6 +600,9 @@ stock spawn(playerid){
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
 	SetPlayerHealth(playerid, USER[playerid][HP]);
 	SetPlayerArmour(playerid, USER[playerid][AM]);
+	
+	if(USER[playerid][CLANID] == 0)SetPlayerColor(playerid, 0xE6E6E699);
+    else SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
 }
 
 /* INIT
@@ -688,7 +691,7 @@ stock house_data(){
         HOUSE[i][LEAVE_POS_Z]   = cache_get_field_content_float(i, "LEAVE_POS_Z");
     }
 	
-	
+
 }
 stock vehicle_data(){
 	new query[400];
@@ -805,7 +808,7 @@ stock showZone(playerid){
 		else if(!flag2)GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
 		else GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
         if(ZONE[i][OWNER_CLAN] != 0){
-            GangZoneShowForPlayer(playerid, ZONE[i][ID], CLAN[ZONE[i][OWNER_CLAN]][COLOR]);
+            GangZoneShowForPlayer(playerid, ZONE[i][ID], CLAN[ZONE[i][OWNER_CLAN]-1][COLOR]);
 		}
 	}
 	return 0;
@@ -836,7 +839,11 @@ stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
 
     ZONE[zoneid][OWNER_CLAN] = USER[playerid][CLANID];
-    GangZoneShowForAll(ZONE[zoneid][ID], CLAN[USER[playerid][CLANID]][COLOR]);
+    
+    formatMsg(playerid, COL_SYS, " 클랜아이디 : %d",USER[playerid][CLANID]);
+	formatMsg(playerid, COL_SYS, " 컬러 : %d",CLAN[USER[playerid][CLANID]-1][COLOR]);
+    
+    GangZoneShowForAll(ZONE[zoneid][ID], CLAN[USER[playerid][CLANID]-1][COLOR]);
 
 	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLAN], USER[playerid][NAME]);
 	return 0;
