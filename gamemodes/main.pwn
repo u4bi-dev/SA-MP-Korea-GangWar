@@ -718,13 +718,22 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         giveMoney(playerid, 5000);
         return 1;
  	}
+
+ 	if(!strcmp("/combo", cmdtext)){
+	    if(INGAME[playerid][COMBO] < 10){
+		    TextDrawShowForPlayer(playerid, TDrawG[INGAME[playerid][COMBO]][COMBO]);
+		    INGAME[playerid][COMBO]+=1;
+		}
+        return 1;
+ 	}
     return 0;
 }
 
 public OnPlayerDisconnect(playerid, reason){
 
     if(INGAME[playerid][LOGIN]) save(playerid);
-
+    
+    ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
     cleaning(playerid);
     return 1;
 }
@@ -841,6 +850,17 @@ public save(playerid){
 	USER[playerid][ID]);
 
 	mysql_query(mysql, query);
+
+	new str[120];
+	format(str,sizeof(str),"NAME : %s  LEVEL : %d  EXP : %d  MONEY : %d  KILLS : %d  DEATHS : %d",
+	USER[playerid][NAME],
+	USER[playerid][LEVEL],
+	USER[playerid][EXP],
+	USER[playerid][MONEY],
+	USER[playerid][KILLS],
+	USER[playerid][DEATHS]);
+	
+	TextDrawSetString(TDraw[playerid][ZONETEXT],str);
 }
 public load(playerid){
 	new query[400];
@@ -888,6 +908,8 @@ stock spawn(playerid){
 
 	if(USER[playerid][CLANID] == 0)SetPlayerColor(playerid, 0xE6E6E699);
     else SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
+    
+    save(playerid);
 }
 
 /* INIT
@@ -1271,7 +1293,7 @@ stock textDraw_init(){
 	TextDrawSetOutline(TDrawG[2][ID],1);
 
     for(new i = 0; i <= GetMaxPlayers(); i++){
-		TDraw[i][ZONETEXT] = TextDrawCreate(1,438.000,"NAME :       LEVEL :       EXP :       MONEY :       KILL :       DEATH :");
+		TDraw[i][ZONETEXT] = TextDrawCreate(1,438.000,"NAME :       LEVEL :       EXP :       MONEY :       KILLS :       DEATHS :");
 		TextDrawLetterSize(TDraw[i][ZONETEXT], 0.199999,0.899999);
 		TextDrawFont(TDraw[i][ZONETEXT], 1);
 		TextDrawSetOutline(TDraw[i][ZONETEXT],1);
