@@ -142,6 +142,12 @@ new Float:SPAWN_MODEL[54][3] = {
 {1188.4440,-1331.1532,13.5488}
 };
 
+enum CLAN_CP_MODEL{
+   CP,
+   INDEX
+}
+new CLAN_CP[USED_ZONE][USED_CLAN][CLAN_CP_MODEL];
+
 enum ZONE_MODEL{
 	ID,
 	OWNER_CLAN,
@@ -224,7 +230,6 @@ enum INGAME_MODEL{
 	Float:SPAWN_ANGLE,
 	ENTER_ZONE,
 	ZONE_TICK,
-	CP_VALUE,
 	INVITE_CLANID,
 	INVITE_CLAN_REQUEST_MEMBERID,
 	BUY_SKINID,
@@ -727,6 +732,8 @@ public OnPlayerDisconnect(playerid, reason){
     if(INGAME[playerid][LOGIN]) save(playerid);
     
     ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+    
     cleaning(playerid);
     return 1;
 }
@@ -1175,11 +1182,15 @@ stock checkZone(playerid){
 
 			if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
 			ZONE[z][STAY_HUMAN]+=1;
+			if(INGAME[playerid][ENTER_ZONE]){
+			    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+			}
+            CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
 			
             INGAME[playerid][ENTER_ZONE] = z;
 
 			INGAME[playerid][ZONE_TICK] = 0;
-			INGAME[playerid][CP_VALUE] = 0;
         }
 	}
 	
@@ -1191,18 +1202,20 @@ stock tickZone(playerid){
     
     if(INGAME[playerid][ZONE_TICK] == 2){
         INGAME[playerid][ZONE_TICK] = 0;
-        INGAME[playerid][CP_VALUE] += 1;
-        PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
+
+        CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] +=1;
         
-        if(INGAME[playerid][CP_VALUE] == 100){
+        PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
+
+        if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
 			holdZone(playerid);
-			INGAME[playerid][CP_VALUE] = 0;
+            CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
         }
     }
     
 	new str[120];
 	if(USER[playerid][CLANID] == 0)format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
-	else format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], INGAME[playerid][CP_VALUE]);
+	else format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP]);
 	TextDrawSetString(TDraw[playerid][CP],str);
 }
 stock holdZone(playerid){
