@@ -52,6 +52,7 @@
 
 /*ZONE BASE */
 #define USED_ZONE 932
+#define USED_TEXTDRAW 500
 #define USED_VEHICLE 500
 #define USED_HOUSE 500
 #define USED_CLAN 100
@@ -245,6 +246,12 @@ enum CLAN_SETUP_MODEL{
 }
 new CLAN_SETUP[MAX_PLAYERS][CLAN_SETUP_MODEL];
 
+enum TDraw_MODEL{
+	Text:ID,
+	Text:COMBO
+}
+new TDraw[USED_TEXTDRAW][TDraw_MODEL];
+
 /* global variable */
 new missonTick=0;
 
@@ -258,7 +265,6 @@ public OnGameModeInit(){
     mode();
 	server();
 	thread();
-
     return 1;
 }
 public OnPlayerText(playerid, text[]){
@@ -284,6 +290,7 @@ public OnPlayerRequestClass(playerid, classid){
 
     join(playerid, check(playerid));
     showZone(playerid);
+    showTextDraw(playerid);
 	SetPlayerColor(playerid, 0x00000099);
     return 1;
 }
@@ -549,7 +556,7 @@ stock clanInsertSuccess(playerid){
 stock clanInvite(playerid, inputtext[]){
     new user = getPlayerId(inputtext);
 
-	if(user < 0 || user > MAX_PLAYERS) return SendClientMessage(playerid,COL_SYS,"    초대하실 유저분의 닉네임을 입력해주세요."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
+	if(user < 0 || user > GetMaxPlayers()) return SendClientMessage(playerid,COL_SYS,"    초대하실 유저분의 닉네임을 입력해주세요."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
     if(!INGAME[user][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    현재 서버에 접속하지 않은 유저 번호입니다."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
     if(isClan(user, IS_CLEN_HAVE)) return 0;
     formatMsg(user, COL_SYS, "    %s님이 당신에게 [{%06x}%s{AFAFAF}] 클랜 가입 권유를 보냈습니다.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
@@ -881,6 +888,7 @@ stock mode(){
 	loadMisson();
 	#include "module/vehicles.pwn"
 	textLabel_init();
+	textDraw_init();
 	object_init();
 }
 
@@ -998,7 +1006,6 @@ stock zone_data(){
 	cache_get_data(rows, fields);
 	
     for(new i=0; i < rows; i++){
-        ZONE[i][ID]             = cache_get_field_content_int(i, "ID");
         ZONE[i][OWNER_CLAN]             = cache_get_field_content_int(i, "OWNER_CLAN");
     }
 }
@@ -1014,6 +1021,7 @@ public ServerThread(){
 /* stock
    @ zoneSetup()
    @ showZone(playerid)
+   @ showTextDraw(playerid)
    @ fixPos(playerid)
    @ eventMoney(playerid)
    @ giveMoney(playerid,money)
@@ -1022,6 +1030,7 @@ public ServerThread(){
    @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)
    @ object_init()
    @ textLabel_init()
+   @ textDraw_init();
    @ searchMissonRange(playerid)
    @ showMisson(playerid, type)
    @ showDialog(playerid, type)
@@ -1080,7 +1089,18 @@ stock showZone(playerid){
 	}
 	return 0;
 }
+stock showTextDraw(playerid){
+    TextDrawShowForPlayer(playerid, TDraw[0][ID]);
+    TextDrawShowForPlayer(playerid, TDraw[1][ID]);
+    TextDrawShowForPlayer(playerid, TDraw[2][ID]);
 
+	TextDrawShowForPlayer(playerid, TDraw[10][ID]);
+	TextDrawShowForPlayer(playerid, TDraw[11][ID]);
+    
+    for(new i = 0; i <= 10; i++){
+        TextDrawShowForPlayer(playerid, TDraw[i][COMBO]);
+	}
+}
 stock isPlayerZone(playerid, zoneid){
     new	Float:x, Float:y, Float:z;
     GetPlayerPos(playerid, x, y, z);
@@ -1170,6 +1190,89 @@ stock textLabel_init(){
 		format(str, sizeof(str),"%s (F키)",MISSON[a][NAME]);
 		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[a][POS_X], MISSON[a][POS_Y], MISSON[a][POS_Z], 7.0, 0, 0);
 	}
+}
+
+stock textDraw_init(){
+    TDraw[0][ID] = TextDrawCreate(20.000000,428.000000,"SA:MP KOREA ~b~~h~WAR~w~ Server");
+	TextDrawAlignment(TDraw[0][ID],0);
+	TextDrawBackgroundColor(TDraw[0][ID],0x000000ff);
+	TextDrawFont(TDraw[0][ID],2);
+	TextDrawLetterSize(TDraw[0][ID],0.199999,0.899999);
+	TextDrawColor(TDraw[0][ID],0xffffffff);
+	TextDrawSetOutline(TDraw[0][ID],1);
+	TextDrawSetProportional(TDraw[0][ID],1);
+	TextDrawSetShadow(TDraw[0][ID],1);
+	
+    TDraw[1][ID] = TextDrawCreate(-0.500, 436.000, "LD_PLAN:tvbase");
+    TextDrawFont(TDraw[1][ID], 4);
+    TextDrawTextSize(TDraw[1][ID], 641.500, 13.000);
+    TextDrawColor(TDraw[1][ID], -1);
+
+	TDraw[2][ID] = TextDrawCreate(520,438.000,"~b~~h~S~w~hot:");
+	TextDrawLetterSize(TDraw[2][ID],0.199999,0.899999);
+	TextDrawFont(TDraw[2][ID],1);
+	TextDrawSetOutline(TDraw[2][ID],1);
+
+	TDraw[10][ID] = TextDrawCreate(1,438.000,"ddddddddddddddddddddddd              ddddddddddddddddddddddddddddddd\tddddddddddddddddddddd");
+	TextDrawLetterSize(TDraw[10][ID], 0.199999,0.899999);
+	TextDrawFont(TDraw[10][ID], 1);
+	TextDrawSetOutline(TDraw[10][ID],1);
+
+	TDraw[11][ID] = TextDrawCreate(535.000000, 410.000,"746Zone");
+	TextDrawLetterSize(TDraw[11][ID],0.660000, 2.599999);
+	TextDrawFont(TDraw[11][ID],1);
+	TextDrawSetOutline(TDraw[11][ID],1);
+
+	TDraw[0][COMBO] = TextDrawCreate(540.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[0][COMBO], 4);
+	TextDrawTextSize(TDraw[0][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[0][COMBO], -1);
+
+	TDraw[1][COMBO] = TextDrawCreate(550.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[1][COMBO], 4);
+	TextDrawTextSize(TDraw[1][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[1][COMBO], -1);
+
+    TDraw[2][COMBO] = TextDrawCreate(560.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[2][COMBO], 4);
+	TextDrawTextSize(TDraw[2][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[2][COMBO], -1);
+
+	TDraw[3][COMBO] = TextDrawCreate(570.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[3][COMBO], 4);
+	TextDrawTextSize(TDraw[3][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[3][COMBO], -1);
+
+	TDraw[4][COMBO] = TextDrawCreate(580.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[4][COMBO], 4);
+	TextDrawTextSize(TDraw[4][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[4][COMBO], -1);
+
+	TDraw[5][COMBO] = TextDrawCreate(590.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[5][COMBO], 4);
+	TextDrawTextSize(TDraw[5][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[5][COMBO], -1);
+
+	TDraw[6][COMBO] = TextDrawCreate(600.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[6][COMBO], 4);
+	TextDrawTextSize(TDraw[6][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[6][COMBO], -1);
+
+	TDraw[7][COMBO] = TextDrawCreate(610.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[7][COMBO], 4);
+	TextDrawTextSize(TDraw[7][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[7][COMBO], -1);
+
+	TDraw[8][COMBO] = TextDrawCreate(620.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[8][COMBO], 4);
+	TextDrawTextSize(TDraw[8][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[8][COMBO], -1);
+
+	TDraw[9][COMBO] = TextDrawCreate(630.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDraw[9][COMBO], 4);
+	TextDrawTextSize(TDraw[9][COMBO], 10.000, 8.500);
+	TextDrawColor(TDraw[9][COMBO], -1);
+      
 }
 
 stock searchMissonRange(playerid){
@@ -1269,7 +1372,7 @@ stock randomColor(){
     return rgbToHex(code[0], code[1], code[2], 103);
 }
 stock getPlayerId(name[]){
-  for(new i = 0; i <= MAX_PLAYERS; i++){
+  for(new i = 0; i <= GetMaxPlayers(); i++){
     if(IsPlayerConnected(i)){
       if(strcmp(USER[i][NAME], name, true, strlen(name)) == 0)return i;
     }
