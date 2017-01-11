@@ -146,6 +146,7 @@ new Float:SPAWN_MODEL[54][3] = {
 enum ZONE_MODEL{
 	ID,
 	OWNER_CLAN,
+	STAY_HUMAN,
 	Float:MIN_X,
 	Float:MIN_Y,
 	Float:MAX_X,
@@ -223,6 +224,8 @@ enum INGAME_MODEL{
 	Float:SPAWN_POS_Z,
 	Float:SPAWN_ANGLE,
 	ENTER_ZONE,
+	ZONE_TICK,
+	CP_VALUE,
 	INVITE_CLANID,
 	INVITE_CLAN_REQUEST_MEMBERID,
 	BUY_SKINID,
@@ -255,7 +258,8 @@ new TDrawG[USED_TEXTDRAW][TDrawG_MODEL];
 
 enum TDraw_MODEL{
 	Text:ZONETEXT,
-	Text:INFO
+	Text:INFO,
+	Text:CP
 }
 new TDraw[MAX_PLAYERS][TDraw_MODEL];
 
@@ -909,7 +913,7 @@ stock server(){
 	UsePlayerPedAnims();
 	EnableStuntBonusForAll(0);
 	DisableInteriorEnterExits();
-	ShowPlayerMarkers(PLAYER_MARKERS_MODE_OFF);
+	ShowPlayerMarkers(PLAYER_MARKERS_MODE_GLOBAL);
 	AddPlayerClass(0,0,0,0,0,0,0,0,0,0,0);
 }
 /* TODO : README.MD*/
@@ -1107,6 +1111,7 @@ stock showTextDraw(playerid){
     
     TextDrawShowForPlayer(playerid, TDraw[playerid][ZONETEXT]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][INFO]);
+    TextDrawShowForPlayer(playerid, TDraw[playerid][CP]);
 }
 stock isPlayerZone(playerid, zoneid){
     new	Float:x, Float:y, Float:z;
@@ -1120,17 +1125,48 @@ stock isPlayerZone(playerid, zoneid){
 stock checkZone(playerid){
 	for(new z = 0; z < USED_ZONE; z++){
         if(isPlayerZone(playerid, z)){
-			if(INGAME[playerid][ENTER_ZONE] == z)return 0;
+			if(INGAME[playerid][ENTER_ZONE] == z){
+				if(ZONE[z][OWNER_CLAN] == USER[playerid][CLANID]) return 0;
+				
+				tickZone(playerid);
+			    return 0;
+			}
+
+			if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+			ZONE[z][STAY_HUMAN]+=1;
 			
             INGAME[playerid][ENTER_ZONE] = z;
             new str[30];
 			format(str,sizeof(str),"%dZone",INGAME[playerid][ENTER_ZONE]);
 			TextDrawSetString(TDraw[playerid][INFO],str);
+
+			INGAME[playerid][ZONE_TICK] = 0;
+			INGAME[playerid][CP_VALUE] = 0;
         }
 	}
+	
 	return 0;
 }
 
+stock tickZone(playerid){
+    INGAME[playerid][ZONE_TICK] +=1;
+    
+    if(INGAME[playerid][ZONE_TICK] == 3){
+        INGAME[playerid][ZONE_TICK] = 0;
+        INGAME[playerid][CP_VALUE] += 1;
+        PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
+        
+        if(INGAME[playerid][CP_VALUE] == 100){
+			holdZone(playerid);
+			INGAME[playerid][CP_VALUE] = 0;
+        }
+    }
+    
+	new str[120];
+	if(USER[playerid][CLANID] == 0)format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+	else format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], INGAME[playerid][CP_VALUE]);
+	TextDrawSetString(TDraw[playerid][CP],str);
+}
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
 
@@ -1169,6 +1205,7 @@ stock death(playerid, killerid, reason){
     for(new i=0; i < INGAME[playerid][COMBO]; i++){
         TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
     }
+    INGAME[playerid][COMBO] = 0;
     
     save(playerid);
 	spawn(playerid);
@@ -1234,7 +1271,7 @@ stock textDraw_init(){
 	TextDrawSetOutline(TDrawG[2][ID],1);
 
     for(new i = 0; i <= GetMaxPlayers(); i++){
-		TDraw[i][ZONETEXT] = TextDrawCreate(1,438.000,"ddddddddddddddddddddddd              ddddddddddddddddddddddddddddddd\tddddddddddddddddddddd");
+		TDraw[i][ZONETEXT] = TextDrawCreate(1,438.000,"NAME :       LEVEL :       EXP :       MONEY :       KILL :       DEATH :");
 		TextDrawLetterSize(TDraw[i][ZONETEXT], 0.199999,0.899999);
 		TextDrawFont(TDraw[i][ZONETEXT], 1);
 		TextDrawSetOutline(TDraw[i][ZONETEXT],1);
@@ -1243,6 +1280,16 @@ stock textDraw_init(){
 		TextDrawLetterSize(TDraw[i][INFO] ,0.660000, 2.599999);
 		TextDrawFont(TDraw[i][INFO] ,1);
 		TextDrawSetOutline(TDraw[i][INFO] ,1);
+
+		TDraw[i][CP] = TextDrawCreate(302.500, 2.500,"~r~~h~NEAR ZONE IN ~w~HUMAN 6 ~r~~h~- CP : ~w~00%");
+		TextDrawAlignment(TDraw[i][CP],0);
+		TextDrawBackgroundColor(TDraw[i][CP],0x000000ff);
+		TextDrawFont(TDraw[i][CP],2);
+		TextDrawLetterSize(TDraw[i][CP],0.199999,0.899999);
+		TextDrawColor(TDraw[i][CP],0xffffffff);
+		TextDrawSetOutline(TDraw[i][CP],1);
+		TextDrawSetProportional(TDraw[i][CP],1);
+		TextDrawSetShadow(TDraw[i][CP],1);
     }
     
 	TDrawG[0][COMBO] = TextDrawCreate(540.000, 437.500, "ld_shtr:ex3");
