@@ -52,7 +52,7 @@
 
 /*ZONE BASE */
 #define USED_ZONE 932
-#define USED_TEXTDRAW 500
+#define USED_TEXTDRAW 200
 #define USED_VEHICLE 500
 #define USED_HOUSE 500
 #define USED_CLAN 100
@@ -246,11 +246,17 @@ enum CLAN_SETUP_MODEL{
 }
 new CLAN_SETUP[MAX_PLAYERS][CLAN_SETUP_MODEL];
 
-enum TDraw_MODEL{
+enum TDrawG_MODEL{
 	Text:ID,
 	Text:COMBO
 }
-new TDraw[USED_TEXTDRAW][TDraw_MODEL];
+new TDrawG[USED_TEXTDRAW][TDrawG_MODEL];
+
+enum TDraw_MODEL{
+	Text:ZONETEXT,
+	Text:INFO
+}
+new TDraw[MAX_PLAYERS][TDraw_MODEL];
 
 /* global variable */
 new missonTick=0;
@@ -1090,15 +1096,15 @@ stock showZone(playerid){
 	return 0;
 }
 stock showTextDraw(playerid){
-    TextDrawShowForPlayer(playerid, TDraw[0][ID]);
-    TextDrawShowForPlayer(playerid, TDraw[1][ID]);
-    TextDrawShowForPlayer(playerid, TDraw[2][ID]);
-
-	TextDrawShowForPlayer(playerid, TDraw[10][ID]);
-	TextDrawShowForPlayer(playerid, TDraw[11][ID]);
+    TextDrawShowForPlayer(playerid, TDrawG[0][ID]);
+    TextDrawShowForPlayer(playerid, TDrawG[1][ID]);
+    TextDrawShowForPlayer(playerid, TDrawG[2][ID]);
+    
+    TextDrawShowForPlayer(playerid, TDraw[playerid][ZONETEXT]);
+    TextDrawShowForPlayer(playerid, TDraw[playerid][INFO]);
     
     for(new i = 0; i <= 10; i++){
-        TextDrawShowForPlayer(playerid, TDraw[i][COMBO]);
+        TextDrawShowForPlayer(playerid, TDrawG[i][COMBO]);
 	}
 }
 stock isPlayerZone(playerid, zoneid){
@@ -1116,7 +1122,9 @@ stock checkZone(playerid){
 			if(INGAME[playerid][ENTER_ZONE] == z)return 0;
 			
             INGAME[playerid][ENTER_ZONE] = z;
-            formatMsg(playerid, COL_SYS, "%d¹ø Á¸", INGAME[playerid][ENTER_ZONE]);
+            new str[30];
+			format(str,sizeof(str),"%dZone",INGAME[playerid][ENTER_ZONE]);
+			TextDrawSetString(TDraw[playerid][INFO],str);
         }
 	}
 	return 0;
@@ -1193,85 +1201,87 @@ stock textLabel_init(){
 }
 
 stock textDraw_init(){
-    TDraw[0][ID] = TextDrawCreate(20.000000,428.000000,"SA:MP KOREA ~b~~h~WAR~w~ Server");
-	TextDrawAlignment(TDraw[0][ID],0);
-	TextDrawBackgroundColor(TDraw[0][ID],0x000000ff);
-	TextDrawFont(TDraw[0][ID],2);
-	TextDrawLetterSize(TDraw[0][ID],0.199999,0.899999);
-	TextDrawColor(TDraw[0][ID],0xffffffff);
-	TextDrawSetOutline(TDraw[0][ID],1);
-	TextDrawSetProportional(TDraw[0][ID],1);
-	TextDrawSetShadow(TDraw[0][ID],1);
+    TDrawG[0][ID] = TextDrawCreate(20.000000,428.000000,"SA:MP KOREA ~b~~h~WAR~w~ Server");
+	TextDrawAlignment(TDrawG[0][ID],0);
+	TextDrawBackgroundColor(TDrawG[0][ID],0x000000ff);
+	TextDrawFont(TDrawG[0][ID],2);
+	TextDrawLetterSize(TDrawG[0][ID],0.199999,0.899999);
+	TextDrawColor(TDrawG[0][ID],0xffffffff);
+	TextDrawSetOutline(TDrawG[0][ID],1);
+	TextDrawSetProportional(TDrawG[0][ID],1);
+	TextDrawSetShadow(TDrawG[0][ID],1);
 	
-    TDraw[1][ID] = TextDrawCreate(-0.500, 436.000, "LD_PLAN:tvbase");
-    TextDrawFont(TDraw[1][ID], 4);
-    TextDrawTextSize(TDraw[1][ID], 641.500, 13.000);
-    TextDrawColor(TDraw[1][ID], -1);
+    TDrawG[1][ID] = TextDrawCreate(-0.500, 436.000, "LD_PLAN:tvbase");
+    TextDrawFont(TDrawG[1][ID], 4);
+    TextDrawTextSize(TDrawG[1][ID], 641.500, 13.000);
+    TextDrawColor(TDrawG[1][ID], -1);
 
-	TDraw[2][ID] = TextDrawCreate(520,438.000,"~b~~h~S~w~hot:");
-	TextDrawLetterSize(TDraw[2][ID],0.199999,0.899999);
-	TextDrawFont(TDraw[2][ID],1);
-	TextDrawSetOutline(TDraw[2][ID],1);
+	TDrawG[2][ID] = TextDrawCreate(520,438.000,"~b~~h~S~w~hot:");
+	TextDrawLetterSize(TDrawG[2][ID],0.199999,0.899999);
+	TextDrawFont(TDrawG[2][ID],1);
+	TextDrawSetOutline(TDrawG[2][ID],1);
 
-	TDraw[10][ID] = TextDrawCreate(1,438.000,"ddddddddddddddddddddddd              ddddddddddddddddddddddddddddddd\tddddddddddddddddddddd");
-	TextDrawLetterSize(TDraw[10][ID], 0.199999,0.899999);
-	TextDrawFont(TDraw[10][ID], 1);
-	TextDrawSetOutline(TDraw[10][ID],1);
+    for(new i = 0; i <= GetMaxPlayers(); i++){
+		TDraw[i][ZONETEXT] = TextDrawCreate(1,438.000,"ddddddddddddddddddddddd              ddddddddddddddddddddddddddddddd\tddddddddddddddddddddd");
+		TextDrawLetterSize(TDraw[i][ZONETEXT], 0.199999,0.899999);
+		TextDrawFont(TDraw[i][ZONETEXT], 1);
+		TextDrawSetOutline(TDraw[i][ZONETEXT],1);
 
-	TDraw[11][ID] = TextDrawCreate(535.000000, 410.000,"746Zone");
-	TextDrawLetterSize(TDraw[11][ID],0.660000, 2.599999);
-	TextDrawFont(TDraw[11][ID],1);
-	TextDrawSetOutline(TDraw[11][ID],1);
+		TDraw[i][INFO] = TextDrawCreate(535.000000, 410.000,"746Zone");
+		TextDrawLetterSize(TDraw[i][INFO] ,0.660000, 2.599999);
+		TextDrawFont(TDraw[i][INFO] ,1);
+		TextDrawSetOutline(TDraw[i][INFO] ,1);
+    }
+    
+	TDrawG[0][COMBO] = TextDrawCreate(540.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[0][COMBO], 4);
+	TextDrawTextSize(TDrawG[0][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[0][COMBO], -1);
 
-	TDraw[0][COMBO] = TextDrawCreate(540.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[0][COMBO], 4);
-	TextDrawTextSize(TDraw[0][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[0][COMBO], -1);
+	TDrawG[1][COMBO] = TextDrawCreate(550.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[1][COMBO], 4);
+	TextDrawTextSize(TDrawG[1][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[1][COMBO], -1);
 
-	TDraw[1][COMBO] = TextDrawCreate(550.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[1][COMBO], 4);
-	TextDrawTextSize(TDraw[1][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[1][COMBO], -1);
+    TDrawG[2][COMBO] = TextDrawCreate(560.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[2][COMBO], 4);
+	TextDrawTextSize(TDrawG[2][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[2][COMBO], -1);
 
-    TDraw[2][COMBO] = TextDrawCreate(560.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[2][COMBO], 4);
-	TextDrawTextSize(TDraw[2][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[2][COMBO], -1);
+	TDrawG[3][COMBO] = TextDrawCreate(570.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[3][COMBO], 4);
+	TextDrawTextSize(TDrawG[3][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[3][COMBO], -1);
 
-	TDraw[3][COMBO] = TextDrawCreate(570.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[3][COMBO], 4);
-	TextDrawTextSize(TDraw[3][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[3][COMBO], -1);
+	TDrawG[4][COMBO] = TextDrawCreate(580.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[4][COMBO], 4);
+	TextDrawTextSize(TDrawG[4][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[4][COMBO], -1);
 
-	TDraw[4][COMBO] = TextDrawCreate(580.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[4][COMBO], 4);
-	TextDrawTextSize(TDraw[4][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[4][COMBO], -1);
+	TDrawG[5][COMBO] = TextDrawCreate(590.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[5][COMBO], 4);
+	TextDrawTextSize(TDrawG[5][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[5][COMBO], -1);
 
-	TDraw[5][COMBO] = TextDrawCreate(590.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[5][COMBO], 4);
-	TextDrawTextSize(TDraw[5][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[5][COMBO], -1);
+	TDrawG[6][COMBO] = TextDrawCreate(600.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[6][COMBO], 4);
+	TextDrawTextSize(TDrawG[6][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[6][COMBO], -1);
 
-	TDraw[6][COMBO] = TextDrawCreate(600.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[6][COMBO], 4);
-	TextDrawTextSize(TDraw[6][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[6][COMBO], -1);
+	TDrawG[7][COMBO] = TextDrawCreate(610.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[7][COMBO], 4);
+	TextDrawTextSize(TDrawG[7][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[7][COMBO], -1);
 
-	TDraw[7][COMBO] = TextDrawCreate(610.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[7][COMBO], 4);
-	TextDrawTextSize(TDraw[7][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[7][COMBO], -1);
+	TDrawG[8][COMBO] = TextDrawCreate(620.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[8][COMBO], 4);
+	TextDrawTextSize(TDrawG[8][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[8][COMBO], -1);
 
-	TDraw[8][COMBO] = TextDrawCreate(620.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[8][COMBO], 4);
-	TextDrawTextSize(TDraw[8][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[8][COMBO], -1);
-
-	TDraw[9][COMBO] = TextDrawCreate(630.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDraw[9][COMBO], 4);
-	TextDrawTextSize(TDraw[9][COMBO], 10.000, 8.500);
-	TextDrawColor(TDraw[9][COMBO], -1);
+	TDrawG[9][COMBO] = TextDrawCreate(630.000, 437.500, "ld_shtr:ex3");
+	TextDrawFont(TDrawG[9][COMBO], 4);
+	TextDrawTextSize(TDrawG[9][COMBO], 10.000, 8.500);
+	TextDrawColor(TDrawG[9][COMBO], -1);
       
 }
 
