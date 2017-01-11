@@ -227,6 +227,7 @@ enum INGAME_MODEL{
 	INVITE_CLAN_REQUEST_MEMBERID,
 	BUY_SKINID,
     EDIT_NAME,
+	COMBO,
     bool:SYNC,
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
@@ -300,6 +301,11 @@ public OnPlayerRequestClass(playerid, classid){
 	SetPlayerColor(playerid, 0x00000099);
     return 1;
 }
+public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
+    PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
+    return 1;
+}
+
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
     if(newkeys == 160 && GetPlayerWeapon(playerid) == 0 && !IsPlayerInAnyVehicle(playerid)){
         sync(playerid);
@@ -708,7 +714,6 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         giveMoney(playerid, 5000);
         return 1;
  	}
-    
     return 0;
 }
 
@@ -1102,10 +1107,6 @@ stock showTextDraw(playerid){
     
     TextDrawShowForPlayer(playerid, TDraw[playerid][ZONETEXT]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][INFO]);
-    
-    for(new i = 0; i <= 10; i++){
-        TextDrawShowForPlayer(playerid, TDrawG[i][COMBO]);
-	}
 }
 stock isPlayerZone(playerid, zoneid){
     new	Float:x, Float:y, Float:z;
@@ -1165,11 +1166,22 @@ stock death(playerid, killerid, reason){
 	USER[playerid][HP]      = 100.0;
 	USER[playerid][AM]      = 100.0;
 
+    for(new i=0; i < INGAME[playerid][COMBO]; i++){
+        TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
+    }
+    
     save(playerid);
 	spawn(playerid);
 	if(reason == 255) return 1;
 	USER[killerid][KILLS] += 1;
+	giveMoney(killerid, 500);
     save(killerid);
+
+	if(INGAME[killerid][COMBO] < 10){
+        TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
+        INGAME[killerid][COMBO]+=1;
+    }
+    
 	return 1;
 }
 
