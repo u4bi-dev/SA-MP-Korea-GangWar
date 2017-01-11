@@ -29,7 +29,6 @@
 #define DL_CLAN_SETUP_MEMBER_SETUP_KICK   104312
 
 #define DL_SHOP_WEAPON                    1050
-#define DL_SHOP_CAR                       1051
 #define DL_SHOP_SKIN                      1052
 #define DL_SHOP_ACC                       1053
 #define DL_SHOP_NAME                      1054
@@ -258,7 +257,6 @@ new TDrawG[USED_TEXTDRAW][TDrawG_MODEL];
 
 enum TDraw_MODEL{
 	Text:ZONETEXT,
-	Text:INFO,
 	Text:CP
 }
 new TDraw[MAX_PLAYERS][TDraw_MODEL];
@@ -269,7 +267,8 @@ new missonTick=0;
 /* static */
 static mysql;
 
-public OnGameModeExit(){return 1;}
+public OnGameModeExit(){return 1;
+}
 public OnGameModeInit(){
 	dbcon();
 	data();
@@ -351,7 +350,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_CLAN_SETUP_INVITE, DL_CLAN_SETUP_MEMBER : return showDialog(playerid, DL_CLAN_SETUP);
 			case DL_CLAN_SETUP_MEMBER_SETUP : return showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 			case DL_CLAN_SETUP_MEMBER_SETUP_RANK, DL_CLAN_SETUP_MEMBER_SETUP_KICK : return showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
-			case DL_SHOP_WEAPON, DL_SHOP_SKIN, DL_SHOP_CAR, DL_SHOP_ACC, DL_SHOP_NAME : return showMisson(playerid, 1);
+			case DL_SHOP_WEAPON, DL_SHOP_SKIN, DL_SHOP_ACC, DL_SHOP_NAME : return showMisson(playerid, 1);
 			case DL_SHOP_SKIN_BUY : return showDialog(playerid, DL_SHOP_SKIN);
 			case DL_SHOP_NAME_EDIT : return showDialog(playerid, DL_SHOP_NAME);
 		}
@@ -392,7 +391,6 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		
 		/* SHOP */
 		case DL_SHOP_WEAPON : shopWeapon(playerid, listitem);
-		case DL_SHOP_CAR    : shopCar(playerid, listitem);
 		case DL_SHOP_SKIN   : shopSkin(playerid, inputtext);
 		case DL_SHOP_ACC    : shopAcc(playerid, listitem);
 		case DL_SHOP_NAME   : shopName(playerid, inputtext);
@@ -438,10 +436,9 @@ stock clan(playerid,listitem){
 stock shop(playerid,listitem){
 	switch(listitem){
         case 0 : showDialog(playerid, DL_SHOP_WEAPON);
-        case 1 : showDialog(playerid, DL_SHOP_CAR);
-        case 2 : showDialog(playerid, DL_SHOP_SKIN);
-        case 3 : showDialog(playerid, DL_SHOP_ACC);
-        case 4 : showDialog(playerid, DL_SHOP_NAME);
+        case 1 : showDialog(playerid, DL_SHOP_SKIN);
+        case 2 : showDialog(playerid, DL_SHOP_ACC);
+        case 3 : showDialog(playerid, DL_SHOP_NAME);
 	}
 }
 stock notice(playerid,listitem){
@@ -608,16 +605,12 @@ stock clanMemberKick(playerid){
 
 /* SHOP
 	@ shopWeapon(playerid, listitem)
-	@ shopCar(playerid, listitem)
 	@ shopSkin(playerid, inputtext)
 	@ shopAcc(playerid, listitem)
 	@ shopName(playerid, inputtext)
 */
 stock shopWeapon(playerid, listitem){
     formatMsg(playerid, COL_SYS, "카푸치노샵 무기 %d - %d",playerid, listitem);
-}
-stock shopCar(playerid, listitem){
-    formatMsg(playerid, COL_SYS, "카푸치노샵 차량 %d - %d",playerid, listitem);
 }
 stock shopSkin(playerid, inputtext[]){
     new skin = strval(inputtext);
@@ -1056,6 +1049,8 @@ public ServerThread(){
 }
 
 /* stock
+   @ zoneInit()
+   @ zoneSave(id, owner_clan)
    @ zoneSetup()
    @ showZone(playerid)
    @ showTextDraw(playerid)
@@ -1080,10 +1075,25 @@ public ServerThread(){
    @ sync(playerid)
 */
 
+
+stock zoneInit(){
+	new query[400];
+	for(new i = 0; i < USED_ZONE; i++){
+	    mysql_format(mysql, query, sizeof(query), "INSERT INTO `zone_info` (OWNER_CLAN) VALUES (%d)",0);
+        mysql_query(mysql, query);
+	}
+}
+
+stock zoneSave(id, owner_clan){
+	new query[400];
+    mysql_format(mysql, query, sizeof(query), "UPDATE `zone_info` SET `OWNER_CLAN` = %d WHERE `ID` = %d",owner_clan, id);
+    mysql_query(mysql, query);
+}
+
 stock zoneSetup(){
 	new pos[4] = { -3000, 2800, -2800, 3000 };
 	new fix = 200, tick = 0;
-
+    
 	for(new i = 0; i < USED_ZONE; i++){
 		tick++;
 		if(tick == 31){
@@ -1093,6 +1103,7 @@ stock zoneSetup(){
 			pos[2] = -2800;
 			pos[3] = pos[3] - fix;
 		}
+        
 		ZONE[i][ID] = GangZoneCreate(pos[0], pos[1], pos[2], pos[3]);
 		ZONE[i][MIN_X] = pos[0];
 		ZONE[i][MIN_Y] = pos[1];
@@ -1107,6 +1118,10 @@ stock showZone(playerid){
 	new zoneCol[2] = { 0xFFFFFF99, 0xAFAFAF99};
 	new flag = 0, flag2 = 0, tick = 0;
 
+	new query[400];
+    mysql_format(mysql, query, sizeof(query), "SELECT OWNER_CLAN From `zone_info`");
+    mysql_query(mysql, query);
+    
 	for(new i = 0; i < USED_ZONE; i++){
 		tick++;
 		if(tick == 31){
@@ -1121,6 +1136,7 @@ stock showZone(playerid){
 		else if(!flag2)GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
 		else GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
         if(ZONE[i][OWNER_CLAN] != 0){
+            ZONE[i][OWNER_CLAN] = cache_get_field_content_int(i, "OWNER_CLAN");
             GangZoneShowForPlayer(playerid, ZONE[i][ID], CLAN[ZONE[i][OWNER_CLAN]-1][COLOR]);
 		}
 	}
@@ -1132,7 +1148,6 @@ stock showTextDraw(playerid){
     TextDrawShowForPlayer(playerid, TDrawG[2][ID]);
     
     TextDrawShowForPlayer(playerid, TDraw[playerid][ZONETEXT]);
-    TextDrawShowForPlayer(playerid, TDraw[playerid][INFO]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][CP]);
 }
 stock isPlayerZone(playerid, zoneid){
@@ -1147,6 +1162,10 @@ stock isPlayerZone(playerid, zoneid){
 stock checkZone(playerid){
 	for(new z = 0; z < USED_ZONE; z++){
         if(isPlayerZone(playerid, z)){
+            if(z == 714){
+                TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
+			    return 0;
+			}
 			if(INGAME[playerid][ENTER_ZONE] == z){
 				if(ZONE[z][OWNER_CLAN] == USER[playerid][CLANID]) return 0;
 				
@@ -1158,9 +1177,6 @@ stock checkZone(playerid){
 			ZONE[z][STAY_HUMAN]+=1;
 			
             INGAME[playerid][ENTER_ZONE] = z;
-            new str[30];
-			format(str,sizeof(str),"%dZone",INGAME[playerid][ENTER_ZONE]);
-			TextDrawSetString(TDraw[playerid][INFO],str);
 
 			INGAME[playerid][ZONE_TICK] = 0;
 			INGAME[playerid][CP_VALUE] = 0;
@@ -1173,7 +1189,7 @@ stock checkZone(playerid){
 stock tickZone(playerid){
     INGAME[playerid][ZONE_TICK] +=1;
     
-    if(INGAME[playerid][ZONE_TICK] == 3){
+    if(INGAME[playerid][ZONE_TICK] == 2){
         INGAME[playerid][ZONE_TICK] = 0;
         INGAME[playerid][CP_VALUE] += 1;
         PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
@@ -1196,6 +1212,7 @@ stock holdZone(playerid){
     GangZoneShowForAll(ZONE[zoneid][ID], CLAN[USER[playerid][CLANID]-1][COLOR]);
 
 	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLAN], USER[playerid][NAME]);
+    zoneSave(zoneid, ZONE[zoneid][OWNER_CLAN]);
 	return 0;
 }
 
@@ -1298,11 +1315,6 @@ stock textDraw_init(){
 		TextDrawFont(TDraw[i][ZONETEXT], 1);
 		TextDrawSetOutline(TDraw[i][ZONETEXT],1);
 
-		TDraw[i][INFO] = TextDrawCreate(535.000000, 410.000,"746Zone");
-		TextDrawLetterSize(TDraw[i][INFO] ,0.660000, 2.599999);
-		TextDrawFont(TDraw[i][INFO] ,1);
-		TextDrawSetOutline(TDraw[i][INFO] ,1);
-
 		TDraw[i][CP] = TextDrawCreate(302.500, 2.500,"~r~~h~NEAR ZONE IN ~w~HUMAN 6 ~r~~h~- CP : ~w~00%");
 		TextDrawAlignment(TDraw[i][CP],0);
 		TextDrawBackgroundColor(TDraw[i][CP],0x000000ff);
@@ -1379,7 +1391,7 @@ stock searchMissonRange(playerid){
 stock showMisson(playerid, type){
 	switch(type){
 		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 관리\n클랜 탈퇴","확인", "닫기");
-		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}무기\n차량\n스킨\n악세사리\n닉네임 변경","확인", "닫기");
+		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}무기\n스킨\n악세사리\n닉네임 변경","확인", "닫기");
 		case 2: ShowPlayerDialog(playerid, DL_MISSON_NOTICE, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}시즌 랭킹","확인", "닫기");
 	}
     ClearAnimations(playerid);
@@ -1429,8 +1441,7 @@ stock showDialog(playerid, type){
         case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}1등급\n2등급\n3등급", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 추방하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
 
-		case DL_SHOP_WEAPON : ShowPlayerDialog(playerid, DL_SHOP_WEAPON, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}데져트이글\n샷건", DIALOG_ENTER, DIALOG_PREV);
-		case DL_SHOP_CAR : ShowPlayerDialog(playerid, DL_SHOP_CAR, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}사바나\n헌틀리", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_WEAPON : ShowPlayerDialog(playerid, DL_SHOP_WEAPON, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}Desert Eagle\nShotgun\nSawnoff\nCombat\nUzi\nMP5\nAK-47\nM4\nTec-9\nCountryGun\nSniper Rifle", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 스킨번호를 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}모자\n마스크", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
