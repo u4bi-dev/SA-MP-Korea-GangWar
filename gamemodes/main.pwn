@@ -1043,7 +1043,7 @@ stock zone_data(){
 	cache_get_data(rows, fields);
 	
     for(new i=0; i < rows; i++){
-        ZONE[i][OWNER_CLAN]             = cache_get_field_content_int(i, "OWNER_CLAN");
+        ZONE[i][OWNER_CLAN] = cache_get_field_content_int(i, "OWNER_CLAN");
     }
 }
 
@@ -1086,7 +1086,7 @@ public ServerThread(){
 stock zoneInit(){
 	new query[400];
 	for(new i = 0; i < USED_ZONE; i++){
-	    mysql_format(mysql, query, sizeof(query), "INSERT INTO `zone_info` (OWNER_CLAN) VALUES (%d)",0);
+	    mysql_format(mysql, query, sizeof(query), "INSERT INTO `zone_info` (OWNER_CLAN) VALUES (%d)",-1);
         mysql_query(mysql, query);
 	}
 }
@@ -1142,7 +1142,7 @@ stock showZone(playerid){
 		}
 		else if(!flag2)GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[0]);
 		else GangZoneShowForPlayer(playerid, ZONE[i][ID], zoneCol[1]);
-        if(ZONE[i][OWNER_CLAN] != 0){
+        if(ZONE[i][OWNER_CLAN] != -1){
             ZONE[i][OWNER_CLAN] = cache_get_field_content_int(i, "OWNER_CLAN");
             GangZoneShowForPlayer(playerid, ZONE[i][ID], CLAN[ZONE[i][OWNER_CLAN]-1][COLOR]);
 		}
@@ -1198,15 +1198,15 @@ stock checkZone(playerid){
 }
 
 stock tickZone(playerid){
-    INGAME[playerid][ZONE_TICK] +=1;
-    
+
+    if(USER[playerid][CLANID])INGAME[playerid][ZONE_TICK] +=1;
+
     if(INGAME[playerid][ZONE_TICK] == 2){
         INGAME[playerid][ZONE_TICK] = 0;
 
         CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] +=1;
-        
-        PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
 
+        if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] > 80)PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
 			holdZone(playerid);
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
@@ -1214,7 +1214,7 @@ stock tickZone(playerid){
     }
     
 	new str[120];
-	if(USER[playerid][CLANID] == 0)format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+	if(!USER[playerid][CLANID])format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
 	else format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP]);
 	TextDrawSetString(TDraw[playerid][CP],str);
 }
