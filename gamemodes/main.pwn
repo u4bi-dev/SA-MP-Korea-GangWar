@@ -40,6 +40,9 @@
 
 #define DL_NOTICE_SEASON                  1060
 #define DL_MYWEP_SETUP                    1070
+#define DL_MYWEP_SETUP_OPTION             1071
+#define DL_MYWEP_SETUP_HOLD               1072
+#define DL_MYWEP_SETUP_PUT                1073
 
 #define COL_SYS  0xAFAFAF99
 #define DIALOG_TITLE "{8D8DFF}샘프워코리아"
@@ -257,7 +260,8 @@ enum INGAME_MODEL{
 	INVITE_CLAN_REQUEST_MEMBERID,
 	BUY_SKINID,
 	BUY_WEAPONID,
-	HOLD_WEPONID,
+	HOLD_WEPID,
+	HOLD_WEPLIST,
     WEPBAG_INDEX,
     EDIT_NAME,
 	COMBO,
@@ -337,6 +341,12 @@ public OnPlayerRequestClass(playerid, classid){
 	SetPlayerColor(playerid, 0x00000099);
     return 1;
 }
+public OnPlayerSpawn(playerid){
+    if(!isDeagle(playerid) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500),SendClientMessage(playerid,COL_SYS,"    레벨 10까지 데져트이글이 제공됩니다.");
+    
+    return 1;
+}
+
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
     return 1;
@@ -388,6 +398,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_SHOP_SKIN_BUY : return showDialog(playerid, DL_SHOP_SKIN);
 			case DL_SHOP_NAME_EDIT : return showDialog(playerid, DL_SHOP_NAME);
 			case DL_MYWEP_SETUP : return showDialog(playerid, DL_MYWEP);
+			case DL_MYWEP_SETUP_OPTION : return showDialog(playerid, DL_MYWEP_SETUP);
+			case DL_MYWEP_SETUP_HOLD, DL_MYWEP_SETUP_PUT: return showDialog(playerid, DL_MYWEP_SETUP_OPTION);
 		}
 	}
 	
@@ -444,7 +456,10 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_NOTICE_SEASON : noticeSeason(playerid);
 
 		/* MYWEP SETUP */
-		case DL_MYWEP_SETUP : holdWep(playerid,listitem);
+		case DL_MYWEP_SETUP        : setWep(playerid,listitem);
+		case DL_MYWEP_SETUP_OPTION : setWepOption(playerid,listitem);
+		case DL_MYWEP_SETUP_HOLD   : holdWep(playerid);
+		case DL_MYWEP_SETUP_PUT    : putWep(playerid);
         
     }
     return 1;
@@ -494,8 +509,8 @@ stock notice(playerid,listitem){
 stock mywep(playerid,listitem){
 	if(!WEPBAG[playerid][listitem][MODEL])return showDialog(playerid, DL_MYWEP);
 	
+    INGAME[playerid][HOLD_WEPID] = WEPBAG[playerid][listitem][MODEL];
     showDialog(playerid, DL_MYWEP_SETUP);
-    INGAME[playerid][HOLD_WEPONID] = WEPBAG[playerid][listitem][MODEL];
     return 0;
 }
 /* CLAN
@@ -735,7 +750,7 @@ stock shopWeaponBuy(playerid){
 	mysql_query(mysql, query);
 
 	INGAME[playerid][WEPBAG_INDEX] +=1;
-    WEPBAG[playerid][INGAME[playerid][WEPBAG_INDEX]][MODEL] = INGAME[playerid][BUY_WEAPONID];
+    WEPBAG[playerid][INGAME[playerid][WEPBAG_INDEX]-1][MODEL] = INGAME[playerid][BUY_WEAPONID];
     INGAME[playerid][BUY_WEAPONID] = 0;
 }
 
@@ -785,25 +800,53 @@ stock noticeSeason(playerid){
 }
 
 /* MYWEP SETUP
-   @ holdWep(playerid,listitem)
+   @ setWep(playerid, listitem)
+   @ setWepOption(playerid, listitem)
+   @ holdWep(playerid)
+   @ putWep(playerid)
 */
-stock holdWep(playerid,listitem){
-	if(isHoldWep(playerid, INGAME[playerid][HOLD_WEPONID])) return showDialog(playerid, DL_MYWEP_SETUP);
-
+stock setWep(playerid, listitem){
+    INGAME[playerid][HOLD_WEPLIST] = listitem;
+    showDialog(playerid, DL_MYWEP_SETUP_OPTION);
+}
+stock setWepOption(playerid, listitem){
 	switch(listitem){
-        case 0 : USER[playerid][WEP1] = INGAME[playerid][HOLD_WEPONID];
-        case 1 : USER[playerid][WEP2] = INGAME[playerid][HOLD_WEPONID];
-        case 2 : USER[playerid][WEP3] = INGAME[playerid][HOLD_WEPONID];
+        case 0 :{
+            if(isHoldWep(playerid, INGAME[playerid][HOLD_WEPID])) return showDialog(playerid, DL_MYWEP_SETUP);
+            showDialog(playerid, DL_MYWEP_SETUP_HOLD);
+		}
+        case 1 :{
+            if(isEmptyWep(playerid, INGAME[playerid][HOLD_WEPLIST])) return showDialog(playerid, DL_MYWEP_SETUP), SendClientMessage(playerid,COL_SYS,"    비어있는 슬롯입니다.");
+		    showDialog(playerid, DL_MYWEP_SETUP_PUT);
+		}
+    }
+    return 0;
+}
+stock holdWep(playerid){
+	switch(INGAME[playerid][HOLD_WEPLIST]){
+        case 0 : USER[playerid][WEP1] = INGAME[playerid][HOLD_WEPID];
+        case 1 : USER[playerid][WEP2] = INGAME[playerid][HOLD_WEPID];
+        case 2 : USER[playerid][WEP3] = INGAME[playerid][HOLD_WEPID];
+	}
+
+    syncWep(playerid);
+    formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯에 [%s] 무기를 장착합니다.",INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+    save(playerid);
+    showDialog(playerid, DL_MYWEP_SETUP);
+    return 0;
+}
+stock putWep(playerid){
+    formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯의 [%s] 무기를 탈착합니다.",INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+
+	switch(INGAME[playerid][HOLD_WEPLIST]){
+        case 0 : USER[playerid][WEP1] = 0;
+        case 1 : USER[playerid][WEP2] = 0;
+        case 2 : USER[playerid][WEP3] = 0;
 	}
 	
-    ResetPlayerWeapons(playerid);
-    GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
-    GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
-    GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
-    formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯에 [%s] 무기를 장착합니다.",listitem+1, wepName(INGAME[playerid][HOLD_WEPONID]));
+	syncWep(playerid);
     save(playerid);
-    INGAME[playerid][HOLD_WEPONID] = 0;
-    showDialog(playerid, DL_MYWEP);
+    showDialog(playerid, DL_MYWEP_SETUP);
     return 0;
 }
 
@@ -938,7 +981,7 @@ public regist(playerid, pass[]){
 
 	mysql_query(mysql, query);
 	GetPlayerName(playerid, USER[playerid][NAME], MAX_PLAYER_NAME);
-//ss
+
 	USER[playerid][ID] = cache_insert_id();
 
 	SendClientMessage(playerid,COL_SYS,"    회원가입을 하였습니다.");
@@ -1052,7 +1095,6 @@ public load(playerid){
 	cache_get_data(rows, fields);
 
 	INGAME[playerid][WEPBAG_INDEX] = rows;
-    
     for(new i=0; i < rows; i++){
         WEPBAG[playerid][i][MODEL] = cache_get_field_content_int(i, "MODEL");
 	}
@@ -1071,6 +1113,7 @@ stock spawn(playerid){
 
 	new ammo = 9999;
 	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
+    
 	SpawnPlayer(playerid);
 	ResetPlayerMoney(playerid);
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
@@ -1257,6 +1300,8 @@ public ServerThread(){
    @ isPlayerZone(playerid, zoneid)
    @ checkZone(playerid)
    @ holdZone(playerid)
+   @ isDeagle(playerid)
+   @ isEmptyWep(playerid, listitem)
    @ isHoldWep(playerid, model)
    @ isClan(playerid, type)
    @ isClanHangul(playerid, str[])
@@ -1264,6 +1309,7 @@ public ServerThread(){
    @ getPlayerId(name[]
    @ wepID(model)
    @ wepName(model)
+   @ syncWep(playerid)
    @ sync(playerid)
    @ kdRatio(playerid)
    @ kdTier(playerid)
@@ -1645,7 +1691,7 @@ stock showDialog(playerid, type){
 		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_WEAPON_BUY : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}무기 번호 :\t\t%s\n\n해당 무기를 정말로 구매하시겠습니까?\n", wepName(INGAME[playerid][BUY_WEAPONID]));
+            format(str, sizeof(str),"{FFFFFF}무기 모델명 :\t\t%s\n\n해당 무기를 정말로 구매하시겠습니까?\n", wepName(INGAME[playerid][BUY_WEAPONID]));
             ShowPlayerDialog(playerid, DL_SHOP_WEAPON_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_SHOP_SKIN_BUY : {
@@ -1660,29 +1706,40 @@ stock showDialog(playerid, type){
 		}
 		case DL_NOTICE_SEASON : ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}이번 시즌 랭킹", DIALOG_ENTER, DIALOG_PREV);
 		case DL_MYWEP_SETUP :{
-			new str[256], temp[20];
-			new slot[30] = {"주무기 슬롯"};
-			new none[5] = {"none"};
+			new str[256], temp[50];
+			new slot[20] = {"주무기 슬롯"};
+			new none[20] = {"(비어있음)"};
 
 			strcat(str, " {FFFFFF}");
 			/* HACK : 추후 코드리펙 : pawno enum에 배열 선언 불가? */
 			strcat(str, slot);
-			if(!USER[playerid][WEP1]) format(temp, sizeof(temp), "1 : %s\n", none);
-			else format(temp, sizeof(temp), "1 : %s\n", wepName(USER[playerid][WEP1]));
+			if(!USER[playerid][WEP1]) format(temp, sizeof(temp), "1\t\t%s\n", none);
+			else format(temp, sizeof(temp), "1\t\t(%s)\n", wepName(USER[playerid][WEP1]));
             strcat(str, temp);
 
 			strcat(str, slot);
-			if(!USER[playerid][WEP2]) format(temp, sizeof(temp), "2 : %s\n", none);
-			else format(temp, sizeof(temp), "2 : %s\n", wepName(USER[playerid][WEP2]));
+			if(!USER[playerid][WEP2]) format(temp, sizeof(temp), "2\t\t%s\n", none);
+			else format(temp, sizeof(temp), "2\t\t(%s)\n", wepName(USER[playerid][WEP2]));
             strcat(str, temp);
             
 			strcat(str, slot);
-			if(!USER[playerid][WEP3]) format(temp, sizeof(temp), "3 : %s\n", none);
-			else format(temp, sizeof(temp), "3 : %s\n", wepName(USER[playerid][WEP3]));
+			if(!USER[playerid][WEP3]) format(temp, sizeof(temp), "3\t\t%s\n", none);
+			else format(temp, sizeof(temp), "3\t\t(%s)\n", wepName(USER[playerid][WEP3]));
 			strcat(str, temp);
 			
 		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
         }
+        case DL_MYWEP_SETUP_OPTION : ShowPlayerDialog(playerid, DL_MYWEP_SETUP_OPTION, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}장착\n탈착\n", DIALOG_ENTER, DIALOG_PREV);
+		case DL_MYWEP_SETUP_HOLD   :{
+            new str[256];
+            format(str, sizeof(str),"{FFFFFF}%d번 슬롯 :\t\t%s\n\n선택하신 무기를 정말로 장착하시겠습니까?\n", INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP_HOLD, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
+		case DL_MYWEP_SETUP_PUT    :{
+            new str[256];
+            format(str, sizeof(str),"{FFFFFF}%d번 슬롯 :\t\t%s\n\n선택하신 무기를 정말로 탈착하시겠습니까?\n", INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP_PUT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
     }
     return 1;
 }
@@ -1691,6 +1748,21 @@ stock isHoldWep(playerid, model){
 	if(USER[playerid][WEP1] == model ||
        USER[playerid][WEP2] == model ||
        USER[playerid][WEP3] == model) return SendClientMessage(playerid,COL_SYS,"    이미 주무기로 설정하신 무기입니다.");
+	return 0;
+}
+
+stock isDeagle(playerid){
+    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
+	    if(WEPBAG[playerid][i][MODEL] == 24)return 1;
+	}
+	return 0;
+}
+stock isEmptyWep(playerid, listitem){
+	switch(listitem){
+		case 0: if(USER[playerid][WEP1] == 0) return 1;
+		case 1: if(USER[playerid][WEP2] == 0) return 1;
+		case 2: if(USER[playerid][WEP3] == 0) return 1;
+	}
 	return 0;
 }
 
@@ -1760,6 +1832,15 @@ stock wepName(model){
 		case 34 : format(wep, sizeof(wep), "%s", wepModel[10]);
 	}
 	return wep;
+}
+
+stock syncWep(playerid){
+    ResetPlayerWeapons(playerid);
+    GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
+    GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
+    GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
+    
+    if(!isDeagle(playerid) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500);
 }
 
 stock sync(playerid){
