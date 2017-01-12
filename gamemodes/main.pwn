@@ -29,11 +29,12 @@
 #define DL_CLAN_SETUP_MEMBER_SETUP_KICK   104312
 
 #define DL_SHOP_WEAPON                    1050
-#define DL_SHOP_SKIN                      1052
-#define DL_SHOP_ACC                       1053
-#define DL_SHOP_NAME                      1054
+#define DL_SHOP_SKIN                      1051
+#define DL_SHOP_ACC                       1052
+#define DL_SHOP_NAME                      1053
 
-#define DL_SHOP_SKIN_BUY                  10520
+#define DL_SHOP_WEAPON_BUY                10500
+#define DL_SHOP_SKIN_BUY                  10510
 #define DL_SHOP_NAME_EDIT                 10540
 
 #define DL_NOTICE_SEASON                  1060
@@ -50,11 +51,12 @@
 #define IS_CLEN_INSERT_MONEY  503
 
 /*ZONE BASE */
-#define USED_ZONE 932
+#define USED_ZONE     932
 #define USED_TEXTDRAW 200
-#define USED_VEHICLE 500
-#define USED_HOUSE 500
-#define USED_CLAN 100
+#define USED_WEAPON   5000
+#define USED_VEHICLE  500
+#define USED_HOUSE    500
+#define USED_CLAN     100
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -173,9 +175,9 @@ enum USER_MODEL{
 	KILLS,
 	DEATHS,
 	SKIN,
-	WEP1, AMMO1,
-	WEP2, AMMO2,
-	WEP3, AMMO3,
+	WEP1,
+	WEP2,
+	WEP3,
 	INTERIOR,
 	WORLD,
 	Float:POS_X,
@@ -186,6 +188,12 @@ enum USER_MODEL{
  	Float:AM
 }
 new USER[MAX_PLAYERS][USER_MODEL];
+
+enum WEAPON_MODEL{
+	USER_ID,
+	MODEL
+}
+new WEAPON[USED_WEAPON][WEAPON_MODEL];
 
 enum VEHICLE_MODEL{
  	ID,
@@ -234,6 +242,7 @@ enum INGAME_MODEL{
 	INVITE_CLANID,
 	INVITE_CLAN_REQUEST_MEMBERID,
 	BUY_SKINID,
+	BUY_WEAPONID,
     EDIT_NAME,
 	COMBO,
     bool:SYNC,
@@ -359,6 +368,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_CLAN_SETUP_MEMBER_SETUP : return showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 			case DL_CLAN_SETUP_MEMBER_SETUP_RANK, DL_CLAN_SETUP_MEMBER_SETUP_KICK : return showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
 			case DL_SHOP_WEAPON, DL_SHOP_SKIN, DL_SHOP_ACC, DL_SHOP_NAME : return showMisson(playerid, 1);
+			case DL_SHOP_WEAPON_BUY : return showDialog(playerid, DL_SHOP_WEAPON);
 			case DL_SHOP_SKIN_BUY : return showDialog(playerid, DL_SHOP_SKIN);
 			case DL_SHOP_NAME_EDIT : return showDialog(playerid, DL_SHOP_NAME);
 		}
@@ -402,6 +412,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_SHOP_SKIN   : shopSkin(playerid, inputtext);
 		case DL_SHOP_ACC    : shopAcc(playerid, listitem);
 		case DL_SHOP_NAME   : shopName(playerid, inputtext);
+
+		/* SHOP WEAPON BUY */
+		case DL_SHOP_WEAPON_BUY : shopWeaponBuy(playerid);
 		
 		/* SHOP SKIN BUY */
 		case DL_SHOP_SKIN_BUY : shopSkinBuy(playerid);
@@ -618,8 +631,23 @@ stock clanMemberKick(playerid){
 	@ shopAcc(playerid, listitem)
 	@ shopName(playerid, inputtext)
 */
+
 stock shopWeapon(playerid, listitem){
     formatMsg(playerid, COL_SYS, "카푸치노샵 무기 %d - %d",playerid, listitem);
+	switch(listitem){
+        case 0 : INGAME[playerid][BUY_WEAPONID] = 24;
+        case 1 : INGAME[playerid][BUY_WEAPONID] = 25;
+        case 2 : INGAME[playerid][BUY_WEAPONID] = 26;
+        case 3 : INGAME[playerid][BUY_WEAPONID] = 27;
+        case 4 : INGAME[playerid][BUY_WEAPONID] = 28;
+        case 5 : INGAME[playerid][BUY_WEAPONID] = 29;
+        case 6 : INGAME[playerid][BUY_WEAPONID] = 30;
+        case 7 : INGAME[playerid][BUY_WEAPONID] = 31;
+        case 8 : INGAME[playerid][BUY_WEAPONID] = 32;
+        case 9 : INGAME[playerid][BUY_WEAPONID] = 33;
+        case 10 : INGAME[playerid][BUY_WEAPONID] = 34;
+	}
+	showDialog(playerid, DL_SHOP_WEAPON_BUY);
 }
 stock shopSkin(playerid, inputtext[]){
     new skin = strval(inputtext);
@@ -653,6 +681,14 @@ stock shopName(playerid, inputtext[]){
     showDialog(playerid, DL_SHOP_NAME_EDIT);
 	return 0;
 }
+
+/* SHOP WEAPON BUY
+   @ shopWeaponBuy(playerid)
+*/
+stock shopWeaponBuy(playerid){
+    formatMsg(playerid, COL_SYS, "    당신은 %d번 무기를 구매하였습니다.",INGAME[playerid][BUY_WEAPONID]);
+}
+
 /* SHOP SKIN BUY
    @ shopSkinBuy(playerid)
 */
@@ -801,7 +837,7 @@ public regist(playerid, pass[]){
     GetPlayerIp(playerid, USER[playerid][USERIP], 16);
 	format(USER[playerid][PASS],24, "%s",pass);
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "INSERT INTO `user_info` (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`,`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`,`SKIN`,`WEP1`,`AMMO1`,`WEP2`,`AMMO2`,`WEP3`,`AMMO3`,`INTERIOR`,`WORLD`,`POS_X`,`POS_Y`,`POS_Z`,`ANGLE`,`HP`,`AM`) VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)",
+	mysql_format(mysql, query, sizeof(query), "INSERT INTO `user_info` (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`,`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`,`SKIN`,`WEP1`,`WEP2`,`WEP3`,`INTERIOR`,`WORLD`,`POS_X`,`POS_Y`,`POS_Z`,`ANGLE`,`HP`,`AM`) VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)",
 	USER[playerid][NAME], USER[playerid][PASS], USER[playerid][USERIP],
 	USER[playerid][ADMIN] = 0,
 	USER[playerid][CLANID] = 0,
@@ -811,9 +847,9 @@ public regist(playerid, pass[]){
 	USER[playerid][KILLS] = 0,
 	USER[playerid][DEATHS] = 0,
 	USER[playerid][SKIN] = 250,
-	USER[playerid][WEP1] = 24, USER[playerid][AMMO1] = 500,
-	USER[playerid][WEP2] = 0, USER[playerid][AMMO2] = 0,
-	USER[playerid][WEP3] = 0, USER[playerid][AMMO3] = 0,
+	USER[playerid][WEP1] = 0,
+	USER[playerid][WEP2] = 0,
+	USER[playerid][WEP3] = 0,
 	USER[playerid][INTERIOR] = 0,
     USER[playerid][WORLD] = 0,
 	USER[playerid][POS_X] = 1913.1345,
@@ -837,7 +873,7 @@ public save(playerid){
 	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
 
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `ADMIN`=%d,`CLANID`=%d,`MONEY`=%d,`LEVEL`=%d,`EXP`=%d,`KILLS`=%d,`DEATHS`=%d,`SKIN`=%d,`WEP1`=%d,`AMMO1`=%d,`WEP2`=%d,`AMMO2`=%d,`WEP3`=%d,`AMMO3`=%d, `INTERIOR`=%d, `WORLD`=%d, `POS_X`=%f,`POS_Y`=%f,`POS_Z`=%f,`ANGLE`=%f,`HP`=%f,`AM`=%f WHERE `ID`=%d",
+	mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `ADMIN`=%d,`CLANID`=%d,`MONEY`=%d,`LEVEL`=%d,`EXP`=%d,`KILLS`=%d,`DEATHS`=%d,`SKIN`=%d,`WEP1`=%d,`WEP2`=%d,`WEP3`=%d,`INTERIOR`=%d, `WORLD`=%d, `POS_X`=%f,`POS_Y`=%f,`POS_Z`=%f,`ANGLE`=%f,`HP`=%f,`AM`=%f WHERE `ID`=%d",
 	USER[playerid][ADMIN],
 	USER[playerid][CLANID],
 	USER[playerid][MONEY],
@@ -846,9 +882,9 @@ public save(playerid){
 	USER[playerid][KILLS],
 	USER[playerid][DEATHS],
 	USER[playerid][SKIN],
-	USER[playerid][WEP1], USER[playerid][AMMO1],
-	USER[playerid][WEP2], USER[playerid][AMMO2],
-	USER[playerid][WEP3], USER[playerid][AMMO3],
+	USER[playerid][WEP1],
+	USER[playerid][WEP2],
+	USER[playerid][WEP3],
 	USER[playerid][INTERIOR],
     USER[playerid][WORLD],
 	USER[playerid][POS_X],
@@ -893,11 +929,8 @@ public load(playerid){
 	USER[playerid][DEATHS]  = cache_get_field_content_int(0, "DEATHS");
 	USER[playerid][SKIN]    = cache_get_field_content_int(0, "SKIN");
 	USER[playerid][WEP1]    = cache_get_field_content_int(0, "WEP1");
-	USER[playerid][AMMO1]    = cache_get_field_content_int(0, "AMMO1");
 	USER[playerid][WEP2]    = cache_get_field_content_int(0, "WEP2");
-	USER[playerid][AMMO2]    = cache_get_field_content_int(0, "AMMO2");
 	USER[playerid][WEP3]    = cache_get_field_content_int(0, "WEP3");
-	USER[playerid][AMMO3]    = cache_get_field_content_int(0, "AMMO3");
 	USER[playerid][POS_X]   = cache_get_field_content_float(0, "POS_X");
 	USER[playerid][POS_Y]   = cache_get_field_content_float(0, "POS_Y");
 	USER[playerid][POS_Z]   = cache_get_field_content_float(0, "POS_Z");
@@ -915,7 +948,8 @@ stock escape(str[]){
    @ spawn(playerid)
 */
 stock spawn(playerid){
-	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], USER[playerid][AMMO1], USER[playerid][WEP2], USER[playerid][AMMO2], USER[playerid][WEP3], USER[playerid][AMMO3]);
+
+	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], 0, USER[playerid][WEP2], 0, USER[playerid][WEP3], 0);
 	SpawnPlayer(playerid);
 	ResetPlayerMoney(playerid);
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
@@ -1454,6 +1488,11 @@ stock showDialog(playerid, type){
 		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 스킨번호를 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}모자\n마스크", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_WEAPON_BUY : {
+            new str[256];
+            format(str, sizeof(str),"{FFFFFF}무기 번호 :\t\t%d\n\n해당 무기를 정말로 구매하시겠습니까?\n", INGAME[playerid][BUY_WEAPONID]);
+            ShowPlayerDialog(playerid, DL_SHOP_WEAPON_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
 		case DL_SHOP_SKIN_BUY : {
             new str[256];
             format(str, sizeof(str),"{FFFFFF}스킨 번호 :\t\t%d\n\n해당 스킨을 정말로 구매하시겠습니까?\n(차감액 : 5000원)", INGAME[playerid][BUY_SKINID]);
