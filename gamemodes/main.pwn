@@ -77,11 +77,12 @@ forward regist(playerid, pass[]);
 forward save(playerid);
 forward load(playerid);
 forward ServerThread();
+forward Float:kdRatio(playerid);
 
 /* variable */
 new infoMessege[3][502] = {
 	"{8D8DFF}모드설명{FFFFFF}\n\n샘프워 코리아 모드입니다.\n세력을 넑혀가는 갱전쟁 형식의 모드입니다.\n\n{8D8DFF}게임방법{FFFFFF}\n\n샘프워코리아 전쟁 규정을 따릅니다.",
-	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d",
+	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%",
 	"{FFFFFF}github.com/u4bi\n하이오"
 };
 
@@ -425,7 +426,7 @@ stock info(playerid, listitem){
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), "미소속");
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS]);
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(playerid));
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
 }
@@ -726,6 +727,12 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		}
         return 1;
  	}
+ 	if(!strcmp("/kd", cmdtext)){
+		USER[playerid][KILLS] = 130;
+		USER[playerid][DEATHS] = 78;
+        return 1;
+ 	}
+
     return 0;
 }
 
@@ -858,14 +865,15 @@ public save(playerid){
 	else format(clanName,sizeof(clanName),"NONE");
 	
 	new str[120];
-	format(str,sizeof(str),"NAME : %s   CLAN : %s   LEVEL : %d   EXP : %d   MONEY : %d   KILLS : %d   DEATHS : %d",
+	format(str,sizeof(str),"NAME : %s   CLAN : %s   LEVEL : %d   EXP : %d   MONEY : %d   KILLS : %d   DEATHS : %d   K/D : %.01f%",
 	USER[playerid][NAME],
 	clanName,
 	USER[playerid][LEVEL],
 	USER[playerid][EXP],
 	USER[playerid][MONEY],
 	USER[playerid][KILLS],
-	USER[playerid][DEATHS]);
+	USER[playerid][DEATHS],
+	kdRatio(playerid));
 	
 	TextDrawSetString(TDraw[playerid][ZONETEXT],str);
 }
@@ -1527,4 +1535,8 @@ stock sync(playerid){
 	SetPlayerVirtualWorld(playerid, world);
     SetPlayerArmedWeapon(playerid, 0);
 	INGAME[playerid][SYNC] = false;
+}
+
+public Float:kdRatio(playerid){
+    return float(USER[playerid][KILLS]*100) / float(USER[playerid][KILLS]+USER[playerid][DEATHS]);
 }
