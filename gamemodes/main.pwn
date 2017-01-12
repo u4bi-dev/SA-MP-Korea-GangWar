@@ -87,6 +87,19 @@ new infoMessege[3][502] = {
 	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%\n랭크\t\t%s",
 	"{FFFFFF}github.com/u4bi\n하이오"
 };
+new weaponName[11][50] = {
+    {"데져트이글"},
+    {"샷건"},
+    {"손오브샷건"},
+    {"SPAS 샷건"},
+    {"UZI 머신건"},
+    {"MP-5 라이플"},
+    {"AK-47 자동소총"},
+    {"M4카빈 자동소총"},
+    {"TEC-9 머신건"},
+    {"컨트리 라이플"},
+    {"스나이퍼 라이플"}
+};
 
 new Float:SPAWN_MODEL[54][3] = {
 {966.1048,-989.9128,37.2340},
@@ -190,6 +203,7 @@ enum USER_MODEL{
 new USER[MAX_PLAYERS][USER_MODEL];
 
 enum WEAPON_MODEL{
+    ID,
 	USER_ID,
 	MODEL
 }
@@ -634,20 +648,31 @@ stock clanMemberKick(playerid){
 
 stock shopWeapon(playerid, listitem){
     formatMsg(playerid, COL_SYS, "카푸치노샵 무기 %d - %d",playerid, listitem);
+
 	switch(listitem){
-        case 0 : INGAME[playerid][BUY_WEAPONID] = 24;
-        case 1 : INGAME[playerid][BUY_WEAPONID] = 25;
-        case 2 : INGAME[playerid][BUY_WEAPONID] = 26;
-        case 3 : INGAME[playerid][BUY_WEAPONID] = 27;
-        case 4 : INGAME[playerid][BUY_WEAPONID] = 28;
-        case 5 : INGAME[playerid][BUY_WEAPONID] = 29;
-        case 6 : INGAME[playerid][BUY_WEAPONID] = 30;
-        case 7 : INGAME[playerid][BUY_WEAPONID] = 31;
-        case 8 : INGAME[playerid][BUY_WEAPONID] = 32;
-        case 9 : INGAME[playerid][BUY_WEAPONID] = 33;
-        case 10 : INGAME[playerid][BUY_WEAPONID] = 34;
+		case 0 : INGAME[playerid][BUY_WEAPONID] = 24;
+		case 1 : INGAME[playerid][BUY_WEAPONID] = 25;
+		case 2 : INGAME[playerid][BUY_WEAPONID] = 26;
+		case 3 : INGAME[playerid][BUY_WEAPONID] = 27;
+		case 4 : INGAME[playerid][BUY_WEAPONID] = 28;
+		case 5 : INGAME[playerid][BUY_WEAPONID] = 29;
+		case 6 : INGAME[playerid][BUY_WEAPONID] = 30;
+		case 7 : INGAME[playerid][BUY_WEAPONID] = 31;
+		case 8 : INGAME[playerid][BUY_WEAPONID] = 32;
+		case 9 : INGAME[playerid][BUY_WEAPONID] = 33;
+		case 10 : INGAME[playerid][BUY_WEAPONID] = 34;
 	}
-	showDialog(playerid, DL_SHOP_WEAPON_BUY);
+
+	new query[400],row;
+    mysql_format(mysql, query, sizeof(query), "SELECT USER_ID FROM `weapon_info` WHERE `USER_ID` = %d AND `MODEL` = %d LIMIT 1", USER[playerid][ID], INGAME[playerid][BUY_WEAPONID]);
+    mysql_query(mysql, query);
+
+    row = cache_num_rows();
+	if(row){
+        formatMsg(playerid, COL_SYS, "    [%s]를 이미 보유하고 있습니다.", weaponName[listitem]);
+        showDialog(playerid, DL_SHOP_WEAPON);
+    }
+    else showDialog(playerid, DL_SHOP_WEAPON_BUY);
 }
 stock shopSkin(playerid, inputtext[]){
     new skin = strval(inputtext);
@@ -687,6 +712,16 @@ stock shopName(playerid, inputtext[]){
 */
 stock shopWeaponBuy(playerid){
     formatMsg(playerid, COL_SYS, "    당신은 %d번 무기를 구매하였습니다.",INGAME[playerid][BUY_WEAPONID]);
+
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "INSERT INTO `weapon_info` (`USER_ID`,`MODEL`) VALUES (%d,%d)",
+        USER[playerid][ID],
+        INGAME[playerid][BUY_WEAPONID]
+	);
+
+	mysql_query(mysql, query);
+	
+    weapon_data();
 }
 
 /* SHOP SKIN BUY
@@ -1012,6 +1047,7 @@ stock dbcon(){
 stock data(){
 	house_data();
 	vehicle_data();
+	weapon_data();
 	zone_data();
 	clan_data();
 }
@@ -1066,6 +1102,20 @@ stock vehicle_data(){
 	    VEHICLE[i][COLOR1]       = cache_get_field_content_int(i, "COLOR1");
 	    VEHICLE[i][COLOR2]       = cache_get_field_content_int(i, "COLOR2");
     }
+}
+stock weapon_data(){
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `weapon_info`");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("무기 DB 정상");
+	new rows, fields;
+	cache_get_data(rows, fields);
+
+    for(new i=0; i < rows; i++){
+	    WEAPON[i][ID]           = cache_get_field_content_int(i, "ID");
+	    WEAPON[i][USER_ID]      = cache_get_field_content_int(i, "USER_ID");
+	    WEAPON[i][MODEL]        = cache_get_field_content_int(i, "MODEL");
+	}
 }
 stock clan_data(){
 	new query[400];
@@ -1484,7 +1534,18 @@ stock showDialog(playerid, type){
         case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}1등급\n2등급\n3등급", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 추방하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
 
-		case DL_SHOP_WEAPON : ShowPlayerDialog(playerid, DL_SHOP_WEAPON, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}Desert Eagle\nShotgun\nSawnoff\nCombat\nUzi\nMP5\nAK-47\nM4\nTec-9\nCountryGun\nSniper Rifle", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_WEAPON :{
+			new str[256];
+			strcat(str, " {FFFFFF}");
+			
+			for(new i=0; i < sizeof(weaponName); i++){
+				new temp[20];
+				format(temp, sizeof(temp), "%s\n", weaponName[i]);
+                strcat(str, temp);
+			}
+            
+			ShowPlayerDialog(playerid, DL_SHOP_WEAPON, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+        }
 		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 스킨번호를 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}모자\n마스크", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
