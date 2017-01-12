@@ -82,7 +82,7 @@ forward Float:kdRatio(playerid);
 /* variable */
 new infoMessege[3][502] = {
 	"{8D8DFF}모드설명{FFFFFF}\n\n샘프워 코리아 모드입니다.\n세력을 넑혀가는 갱전쟁 형식의 모드입니다.\n\n{8D8DFF}게임방법{FFFFFF}\n\n샘프워코리아 전쟁 규정을 따릅니다.",
-	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%",
+	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%\n랭크\t\t%s",
 	"{FFFFFF}github.com/u4bi\n하이오"
 };
 
@@ -426,7 +426,7 @@ stock info(playerid, listitem){
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), "미소속");
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(playerid));
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(playerid),showRank(playerid));
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
 }
@@ -1075,6 +1075,7 @@ public ServerThread(){
    @ zoneSave(id, owner_clan)
    @ zoneSetup()
    @ showZone(playerid)
+   @ showRank(playerid)
    @ showTextDraw(playerid)
    @ fixPos(playerid)
    @ eventMoney(playerid)
@@ -1165,6 +1166,22 @@ stock showZone(playerid){
 	}
 	return 0;
 }
+
+stock showRank(playerid){
+    new rank[30];
+	new Float:kd = kdRatio(playerid);
+	
+    switch(floatround(kd, floatround_round)){
+        case 0..49   : rank = "{804040}◎Bronze";
+        case 50..54  : rank = "{C0C0C0}▼Sliver";
+        case 55..59  : rank = "{FFFF00}▣Gold";
+        case 60..69  : rank = "{00FFFF}⊙Platinum";
+        case 70..79  : rank = "{1229FA}◈Diamond";
+        case 80..100 : rank = "{FF0000}▩Challenger";
+    }
+    return rank;
+}
+
 stock showTextDraw(playerid){
     TextDrawShowForPlayer(playerid, TDrawG[0][ID]);
     TextDrawShowForPlayer(playerid, TDrawG[1][ID]);
