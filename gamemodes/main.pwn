@@ -1376,57 +1376,15 @@ stock textDraw_init(){
 		TextDrawSetProportional(TDraw[i][CP],1);
 		TextDrawSetShadow(TDraw[i][CP],1);
     }
+
+	new comboWidth = 540;
+    for(new i = 0; i < 10; i++){
+        TDrawG[i][COMBO] = TextDrawCreate(comboWidth*i, 437.500, "ld_shtr:ex3");
+        TextDrawFont(TDrawG[i][COMBO], 4);
+        TextDrawTextSize(TDrawG[i][COMBO], 10, 8.5);
+        TextDrawColor(TDrawG[i][COMBO], -1);
+    }
     
-	TDrawG[0][COMBO] = TextDrawCreate(540.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[0][COMBO], 4);
-	TextDrawTextSize(TDrawG[0][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[0][COMBO], -1);
-
-	TDrawG[1][COMBO] = TextDrawCreate(550.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[1][COMBO], 4);
-	TextDrawTextSize(TDrawG[1][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[1][COMBO], -1);
-
-    TDrawG[2][COMBO] = TextDrawCreate(560.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[2][COMBO], 4);
-	TextDrawTextSize(TDrawG[2][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[2][COMBO], -1);
-
-	TDrawG[3][COMBO] = TextDrawCreate(570.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[3][COMBO], 4);
-	TextDrawTextSize(TDrawG[3][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[3][COMBO], -1);
-
-	TDrawG[4][COMBO] = TextDrawCreate(580.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[4][COMBO], 4);
-	TextDrawTextSize(TDrawG[4][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[4][COMBO], -1);
-
-	TDrawG[5][COMBO] = TextDrawCreate(590.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[5][COMBO], 4);
-	TextDrawTextSize(TDrawG[5][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[5][COMBO], -1);
-
-	TDrawG[6][COMBO] = TextDrawCreate(600.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[6][COMBO], 4);
-	TextDrawTextSize(TDrawG[6][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[6][COMBO], -1);
-
-	TDrawG[7][COMBO] = TextDrawCreate(610.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[7][COMBO], 4);
-	TextDrawTextSize(TDrawG[7][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[7][COMBO], -1);
-
-	TDrawG[8][COMBO] = TextDrawCreate(620.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[8][COMBO], 4);
-	TextDrawTextSize(TDrawG[8][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[8][COMBO], -1);
-
-	TDrawG[9][COMBO] = TextDrawCreate(630.000, 437.500, "ld_shtr:ex3");
-	TextDrawFont(TDrawG[9][COMBO], 4);
-	TextDrawTextSize(TDrawG[9][COMBO], 10.000, 8.500);
-	TextDrawColor(TDrawG[9][COMBO], -1);
-      
 }
 
 stock searchMissonRange(playerid){
