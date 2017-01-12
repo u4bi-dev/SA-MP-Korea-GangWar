@@ -465,7 +465,7 @@ stock notice(playerid,listitem){
 */
 stock clanInsert(playerid, inputtext[]){
     if(!strlen(inputtext))return showDialog(playerid, DL_CLAN_INSERT);
-    if(isHangul(playerid,inputtext)) return showDialog(playerid, DL_CLAN_INSERT);
+    if(isClanHangul(playerid,inputtext)) return showDialog(playerid, DL_CLAN_INSERT);
     
     format(CLAN_SETUP[playerid][NAME], 50, "%s", escape(inputtext));
 
@@ -1079,7 +1079,7 @@ public ServerThread(){
    @ checkZone(playerid)
    @ holdZone(playerid)
    @ isClan(playerid, type)
-   @ isHangul(playerid, str[])
+   @ isClanHangul(playerid, str[])
    @ randomColor()
    @ getPlayerId(name[]
    @ sync(playerid)
@@ -1485,10 +1485,10 @@ stock isClan(playerid, type){
     return 0;
 }
 
-stock isHangul(playerid, str[]){
+stock isClanHangul(playerid, str[]){
     for (new i=0, j=strlen(str); i<j; i++){
         if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
-        if(str[i] > '9' || str[i] < '0')return SendClientMessage(playerid,COL_SYS,"    한글이 포함되어 있습니다.");
+        if(str[i] > '9' || str[i] < '0')return SendClientMessage(playerid,COL_SYS,"    클랜명에 한글이 포함되어 있습니다.");
     }
     return 0;
 }
