@@ -39,6 +39,7 @@
 #define DL_SHOP_NAME_EDIT                 10540
 
 #define DL_NOTICE_SEASON                  1060
+#define DL_MYWEP_SETUP                    1070
 
 #define COL_SYS  0xAFAFAF99
 #define DIALOG_TITLE "{8D8DFF}»ùÇÁ¿öÄÚ¸®¾Æ"
@@ -203,10 +204,10 @@ enum USER_MODEL{
 }
 new USER[MAX_PLAYERS][USER_MODEL];
 
-enum WEAPON_MODEL{
-	HAVE
+enum WEPBAG_MODEL{
+	MODEL
 }
-new WEAPON[MAX_PLAYERS][USED_WEAPON][WEAPON_MODEL];
+new WEPBAG[MAX_PLAYERS][USED_WEAPON][WEPBAG_MODEL];
 
 enum VEHICLE_MODEL{
  	ID,
@@ -256,6 +257,8 @@ enum INGAME_MODEL{
 	INVITE_CLAN_REQUEST_MEMBERID,
 	BUY_SKINID,
 	BUY_WEAPONID,
+	HOLD_WEPONID,
+    WEPBAG_INDEX,
     EDIT_NAME,
 	COMBO,
     bool:SYNC,
@@ -371,7 +374,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MYWEP :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
@@ -384,6 +387,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_SHOP_WEAPON_BUY : return showDialog(playerid, DL_SHOP_WEAPON);
 			case DL_SHOP_SKIN_BUY : return showDialog(playerid, DL_SHOP_SKIN);
 			case DL_SHOP_NAME_EDIT : return showDialog(playerid, DL_SHOP_NAME);
+			case DL_MYWEP_SETUP : return showDialog(playerid, DL_MYWEP);
 		}
 	}
 	
@@ -438,6 +442,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		
 		/* NOTICE */
 		case DL_NOTICE_SEASON : noticeSeason(playerid);
+
+		/* MYWEP SETUP */
+		case DL_MYWEP_SETUP : holdWep(playerid,listitem);
         
     }
     return 1;
@@ -485,7 +492,8 @@ stock notice(playerid,listitem){
 }
 
 stock mywep(playerid,listitem){
-    formatMsg(playerid, COL_SYS, "³» ¹«±â %d - %d",playerid, listitem);
+    showDialog(playerid, DL_MYWEP_SETUP);
+    INGAME[playerid][HOLD_WEPONID] = WEPBAG[playerid][listitem][MODEL];
 }
 /* CLAN
    @ clanInsert(playerid, inputtext)
@@ -723,7 +731,8 @@ stock shopWeaponBuy(playerid){
 	);
 	mysql_query(mysql, query);
 
-    WEAPON[playerid][wepID(INGAME[playerid][BUY_WEAPONID])][HAVE] = true;
+	INGAME[playerid][WEPBAG_INDEX] +=1;
+    WEPBAG[playerid][INGAME[playerid][WEPBAG_INDEX]][MODEL] = INGAME[playerid][BUY_WEAPONID];
     INGAME[playerid][BUY_WEAPONID] = 0;
 }
 
@@ -770,6 +779,19 @@ stock shopNameEdit(playerid){
 */
 stock noticeSeason(playerid){
     formatMsg(playerid, COL_SYS, "¸¸³²ÀÇ±¤Àå ½ÃÁð·©Å· %d",playerid);
+}
+
+/* MYWEP SETUP
+   @ holdWep(playerid,listitem)
+*/
+stock holdWep(playerid,listitem){
+    showDialog(playerid, DL_MYWEP);
+	switch(listitem){
+        case 0 : USER[playerid][WEP1] = INGAME[playerid][HOLD_WEPONID];
+        case 1 : USER[playerid][WEP2] = INGAME[playerid][HOLD_WEPONID];
+        case 2 : USER[playerid][WEP3] = INGAME[playerid][HOLD_WEPONID];
+	}
+    save(playerid);
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -1016,8 +1038,10 @@ public load(playerid){
 	new rows, fields;
 	cache_get_data(rows, fields);
 
+	INGAME[playerid][WEPBAG_INDEX] = rows;
+    
     for(new i=0; i < rows; i++){
-	    WEAPON[playerid][wepID(cache_get_field_content_int(i, "MODEL"))][HAVE] = true;
+        WEPBAG[playerid][i][MODEL] = cache_get_field_content_int(i, "MODEL");
 	}
 	
 	spawn(playerid);
@@ -1103,13 +1127,13 @@ stock cleaning(playerid){
 	temp1[USER_MODEL],
 	temp2[INGAME_MODEL],
 	temp3[CLAN_SETUP_MODEL],
-	temp4[WEAPON_MODEL];
+	temp4[WEPBAG_MODEL];
     
     USER[playerid] = temp1;
     INGAME[playerid] = temp2;
     CLAN_SETUP[playerid] = temp3;
-    for(new i=0; i < USED_WEAPON; i++){
-        WEAPON[playerid][i] = temp4;
+    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
+        WEPBAG[playerid][i] = temp4;
     }
 }
 
@@ -1544,12 +1568,10 @@ stock showDialog(playerid, type){
         case DL_MYWEP :{
             new str[256];
             strcat(str, " {FFFFFF}");
-		    for(new i=0; i < USED_WEAPON; i++){
+		    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
 				new temp[20];
-				if(WEAPON[playerid][i][HAVE]){
-                    format(temp, sizeof(temp), "%s\n", wepModel[i]);
-				    strcat(str, temp);
-				}
+                format(temp, sizeof(temp), "%s\n", wepModel[i]);
+                strcat(str, temp);
 			}
 			
 		    ShowPlayerDialog(playerid, DL_MYWEP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
@@ -1622,6 +1644,7 @@ stock showDialog(playerid, type){
             ShowPlayerDialog(playerid, DL_SHOP_NAME_EDIT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_NOTICE_SEASON : ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}ÀÌ¹ø ½ÃÁð ·©Å·", DIALOG_ENTER, DIALOG_PREV);
+		case DL_MYWEP_SETUP : ShowPlayerDialog(playerid, DL_MYWEP_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}ÁÖ¹«±â ½½·Ô1 : none\nÁÖ¹«±â ½½·Ô2 : none\nÁÖ¹«±â ½½·Ô3 : none", DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
 }
