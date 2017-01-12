@@ -237,6 +237,7 @@ enum INGAME_MODEL{
     EDIT_NAME,
 	COMBO,
     bool:SYNC,
+	EVENT_TICK
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -426,7 +427,7 @@ stock info(playerid, listitem){
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), "¹Ì¼Ò¼Ó");
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(playerid),showRank(playerid));
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(playerid),kdTier(playerid));
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "´Ý±â", "");
 }
@@ -1065,7 +1066,7 @@ stock zone_data(){
 /* SERVER THREAD*/
 public ServerThread(){
     foreach (new i : Player){
-	    eventMoney(i);
+	    event(i);
 	    checkZone(i);
     }
 }
@@ -1078,7 +1079,7 @@ public ServerThread(){
    @ showRank(playerid)
    @ showTextDraw(playerid)
    @ fixPos(playerid)
-   @ eventMoney(playerid)
+   @ event(playerid)
    @ giveMoney(playerid,money)
    @ death(playerid, killerid, reason)
    @ loadMisson()
@@ -1097,6 +1098,8 @@ public ServerThread(){
    @ randomColor()
    @ getPlayerId(name[]
    @ sync(playerid)
+   @ kdRatio(playerid)
+   @ kdTier(playerid)
 */
 
 
@@ -1167,19 +1170,10 @@ stock showZone(playerid){
 	return 0;
 }
 
-stock showRank(playerid){
-    new rank[30];
-	new Float:kd = kdRatio(playerid);
-	
-    switch(floatround(kd, floatround_round)){
-        case 0..49   : rank = "{804040}¡ÝBronze";
-        case 50..54  : rank = "{C0C0C0}¡åSliver";
-        case 55..59  : rank = "{FFFF00}¢ÃGold";
-        case 60..69  : rank = "{00FFFF}¢ÁPlatinum";
-        case 70..79  : rank = "{1229FA}¢ÂDiamond";
-        case 80..100 : rank = "{FF0000}¢ÌChallenger";
-    }
-    return rank;
+showRank(playerid){
+	new str[50];
+    format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(playerid));
+    SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
 }
 
 stock showTextDraw(playerid){
@@ -1270,7 +1264,17 @@ stock fixPos(playerid){
 	INGAME[playerid][SPAWN_ANGLE] = 89.3591;
 }
 
-stock eventMoney(playerid){ giveMoney(playerid, 1);
+stock event(playerid){
+	INGAME[playerid][EVENT_TICK] +=1;
+	
+    giveMoney(playerid, 1);
+    
+    switch(INGAME[playerid][EVENT_TICK]){
+		case 10:{
+            showRank(playerid);
+            INGAME[playerid][EVENT_TICK] = 0;
+		}
+    }
 }
 stock giveMoney(playerid,money){
     ResetPlayerMoney(playerid);
@@ -1556,4 +1560,20 @@ stock sync(playerid){
 
 public Float:kdRatio(playerid){
     return float(USER[playerid][KILLS]*100) / float(USER[playerid][KILLS]+USER[playerid][DEATHS]);
+}
+
+stock kdTier(playerid){
+    new rank[30];
+	new Float:kd = kdRatio(playerid);
+
+    switch(floatround(kd, floatround_round)){
+        case 0..9    : rank = "unrank";
+        case 10..49  : rank = "{804040}¡ÝBronze";
+        case 50..54  : rank = "{C0C0C0}¡åSliver";
+        case 55..59  : rank = "{FFFF00}¢ÃGold";
+        case 60..69  : rank = "{00FFFF}¢ÁPlatinum";
+        case 70..79  : rank = "{1229FA}¢ÂDiamond";
+        case 80..100 : rank = "{FF0000}¢ÌChallenger";
+    }
+    return rank;
 }
