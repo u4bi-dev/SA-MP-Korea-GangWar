@@ -84,7 +84,7 @@ forward regist(playerid, pass[]);
 forward save(playerid);
 forward load(playerid);
 forward ServerThread();
-forward Float:kdRatio(playerid);
+forward Float:kdRatio(kill, death);
 
 /* variable */
 new infoMessege[3][502] = {
@@ -477,7 +477,7 @@ stock info(playerid, listitem){
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), "미소속");
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(playerid),kdTier(playerid));
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
 }
@@ -500,7 +500,6 @@ stock shop(playerid,listitem){
 	}
 }
 stock notice(playerid,listitem){
-    formatMsg(playerid, COL_SYS, "만남의 광장 %d - %d",playerid, listitem);
 	switch(listitem){
         case 0 : showDialog(playerid, DL_NOTICE_SEASON);
 	}
@@ -1053,7 +1052,7 @@ public save(playerid){
 	USER[playerid][MONEY],
 	USER[playerid][KILLS],
 	USER[playerid][DEATHS],
-	kdRatio(playerid));
+	kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]));
 	
 	TextDrawSetString(TDraw[playerid][ZONETEXT],str);
 }
@@ -1311,8 +1310,8 @@ public ServerThread(){
    @ wepName(model)
    @ syncWep(playerid)
    @ sync(playerid)
-   @ kdRatio(playerid)
-   @ kdTier(playerid)
+   @ kdRatio(kill, death)
+   @ kdTier(kill, death)
 */
 
 
@@ -1385,7 +1384,7 @@ stock showZone(playerid){
 
 showRank(playerid){
 	new str[50];
-    format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(playerid));
+    format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
 }
 
@@ -1628,7 +1627,7 @@ stock showDialog(playerid, type){
         case DL_INFO  : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, "서버 규정\n내 프로필\n문의\n", DIALOG_ENTER, DIALOG_PREV);
         case DL_MYWEP :{
             new str[256];
-            strcat(str, " {FFFFFF}");
+            strcat(str, "{FFFFFF}");
 		    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
 				new temp[20];
                 format(temp, sizeof(temp), "%s\n", wepName(WEPBAG[playerid][i][MODEL]));
@@ -1672,24 +1671,31 @@ stock showDialog(playerid, type){
 		    ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}초대하실분의 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_SETUP_MEMBER :{
-			new query[400], str[256];
-			mysql_format(mysql, query, sizeof(query), "SELECT ID , NAME, LEVEL, KILLS, DEATHS FROM `user_info` WHERE CLANID = %d",USER[playerid][CLANID]);
+			new query[400], sql[400], str[256];
+			
+			strcat(sql, "SELECT ID , NAME, LEVEL, KILLS, DEATHS");
+			strcat(sql, " FROM`user_info`");
+			strcat(sql, " WHERE CLANID = %d");
+			
+			mysql_format(mysql, query, sizeof(query), sql,USER[playerid][CLANID]);
 			mysql_query(mysql, query);
 
 			new rows, fields;
 			cache_get_data(rows, fields);
-			strcat(str, " {FFFFFF}");
+			strcat(str, "{FFFFFF}");
 			
 		    for(new i=0; i < rows; i++){
                 new temp[128], name[24];
                 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 				
-				format(temp, sizeof(temp), "이름 : %s\t레벨 : %d\t\t킬 : %d 데쓰 : %d\n",
+				format(temp, sizeof(temp), "이름 : %s\t\t레벨 %d\t킬 - %d 데쓰 - %d K/D - %.01f% 랭크 - %s\n",
 					name,
 					cache_get_field_content_int(i, "LEVEL"),
 					cache_get_field_content_int(i, "KILLS"),
-					cache_get_field_content_int(i, "DEATHS"));
+					cache_get_field_content_int(i, "DEATHS"),
+					kdRatio(cache_get_field_content_int(i, "KILLS"), cache_get_field_content_int(i, "DEATHS")),
+					kdTier(cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
                 strcat(str, temp);
 		    }
 
@@ -1704,7 +1710,7 @@ stock showDialog(playerid, type){
 
 		case DL_SHOP_WEAPON :{
 			new str[256];
-			strcat(str, " {FFFFFF}");
+			strcat(str, "{FFFFFF}");
 			
 			for(new i=0; i < sizeof(wepModel); i++){
 				new temp[20];
@@ -1732,13 +1738,44 @@ stock showDialog(playerid, type){
             format(str, sizeof(str),"{FFFFFF}변경하실 닉네임 :\t\t%s\n\n해당 닉네임으로 정말로 변경하시겠습니까?\n(차감액 : 20000원)", INGAME[playerid][EDIT_NAME]);
             ShowPlayerDialog(playerid, DL_SHOP_NAME_EDIT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-		case DL_NOTICE_SEASON : ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}이번 시즌 랭킹", DIALOG_ENTER, DIALOG_PREV);
+		case DL_NOTICE_SEASON :{
+            new query[400], sql[400], str[1286];
+                
+            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
+            strcat(sql," FROM `user_info` ");
+            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
+            
+			mysql_format(mysql, query, sizeof(query), sql);
+			mysql_query(mysql, query);
+
+			new rows, fields;
+			cache_get_data(rows, fields);
+			strcat(str, "{8D8DFF}\t\t이번 시즌 랭킹 - 총 10인{FFFFFF}\n\n");
+
+		    for(new i=0; i < rows; i++){
+                new temp[128], name[24];
+
+				cache_get_field_content(i, "NAME", name, mysql, 24);
+
+				format(temp, sizeof(temp), "%d위\t\t이름 : %s\t레벨 : %d\t킬 : %d 데쓰 : %d K/D %.01f% 랭크 %s\n\n",
+					i+1,
+					name,
+					cache_get_field_content_int(i, "LEVEL"),
+					cache_get_field_content_int(i, "KILLS"),
+					cache_get_field_content_int(i, "DEATHS"),
+					kdRatio(cache_get_field_content_int(i, "KILLS"), cache_get_field_content_int(i, "DEATHS")),
+					kdTier(cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
+                strcat(str, temp);
+		    }
+		    
+            ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+        }
 		case DL_MYWEP_SETUP :{
 			new str[256], temp[50];
 			new slot[20] = {"주무기 슬롯"};
 			new none[20] = {"(비어있음)"};
 
-			strcat(str, " {FFFFFF}");
+			strcat(str, "{FFFFFF}");
 			/* HACK : 추후 코드리펙 : pawno enum에 배열 선언 불가? */
 			strcat(str, slot);
 			if(!USER[playerid][WEP1]) format(temp, sizeof(temp), "1\t\t%s\n", none);
@@ -1889,13 +1926,13 @@ stock sync(playerid){
 	INGAME[playerid][SYNC] = false;
 }
 
-public Float:kdRatio(playerid){
-    return float(USER[playerid][KILLS]*100) / float(USER[playerid][KILLS]+USER[playerid][DEATHS]);
+public Float:kdRatio(kill, death){
+    return float(kill*100) / float(kill+death);
 }
 
-stock kdTier(playerid){
+stock kdTier(kill, death){
     new rank[30];
-	new Float:kd = kdRatio(playerid);
+	new Float:kd = kdRatio(kill, death);
 
     switch(floatround(kd, floatround_round)){
         case 0..9    : rank = "unrank";
