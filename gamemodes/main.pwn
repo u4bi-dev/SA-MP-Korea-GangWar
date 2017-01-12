@@ -785,13 +785,19 @@ stock noticeSeason(playerid){
    @ holdWep(playerid,listitem)
 */
 stock holdWep(playerid,listitem){
-    showDialog(playerid, DL_MYWEP);
+	if(isHoldWep(playerid, INGAME[playerid][HOLD_WEPONID])) return showDialog(playerid, DL_MYWEP);
+
 	switch(listitem){
         case 0 : USER[playerid][WEP1] = INGAME[playerid][HOLD_WEPONID];
         case 1 : USER[playerid][WEP2] = INGAME[playerid][HOLD_WEPONID];
         case 2 : USER[playerid][WEP3] = INGAME[playerid][HOLD_WEPONID];
 	}
+    GivePlayerWeapon(playerid, INGAME[playerid][HOLD_WEPONID], 9999);
+    formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯에 [%s] 무기를 장착합니다.",listitem+1, wepName(INGAME[playerid][HOLD_WEPONID]));
     save(playerid);
+    INGAME[playerid][HOLD_WEPONID] = 0;
+    showDialog(playerid, DL_MYWEP);
+    return 0;
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -1056,7 +1062,8 @@ stock escape(str[]){
 */
 stock spawn(playerid){
 
-	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], 0, USER[playerid][WEP2], 0, USER[playerid][WEP3], 0);
+	new ammo = 9999;
+	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
 	SpawnPlayer(playerid);
 	ResetPlayerMoney(playerid);
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
@@ -1243,6 +1250,7 @@ public ServerThread(){
    @ isPlayerZone(playerid, zoneid)
    @ checkZone(playerid)
    @ holdZone(playerid)
+   @ isHoldWep(playerid, model)
    @ isClan(playerid, type)
    @ isClanHangul(playerid, str[])
    @ randomColor()
@@ -1644,10 +1652,41 @@ stock showDialog(playerid, type){
             ShowPlayerDialog(playerid, DL_SHOP_NAME_EDIT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_NOTICE_SEASON : ShowPlayerDialog(playerid, DL_NOTICE_SEASON, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}이번 시즌 랭킹", DIALOG_ENTER, DIALOG_PREV);
-		case DL_MYWEP_SETUP : ShowPlayerDialog(playerid, DL_MYWEP_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}주무기 슬롯1 : none\n주무기 슬롯2 : none\n주무기 슬롯3 : none", DIALOG_ENTER, DIALOG_PREV);
+		case DL_MYWEP_SETUP :{
+			new str[256], temp[20];
+			new slot[30] = {"주무기 슬롯"};
+			new none[5] = {"none"};
+
+			strcat(str, " {FFFFFF}");
+			/* HACK : 추후 코드리펙 : pawno enum에 배열 선언 불가? */
+			strcat(str, slot);
+			if(!USER[playerid][WEP1]) format(temp, sizeof(temp), "1 : %s\n", none);
+			else format(temp, sizeof(temp), "1 : %s\n", wepName(USER[playerid][WEP1]));
+            strcat(str, temp);
+
+			strcat(str, slot);
+			if(!USER[playerid][WEP2]) format(temp, sizeof(temp), "2 : %s\n", none);
+			else format(temp, sizeof(temp), "2 : %s\n", wepName(USER[playerid][WEP2]));
+            strcat(str, temp);
+            
+			strcat(str, slot);
+			if(!USER[playerid][WEP3]) format(temp, sizeof(temp), "3 : %s\n", none);
+			else format(temp, sizeof(temp), "3 : %s\n", wepName(USER[playerid][WEP3]));
+			strcat(str, temp);
+			
+		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+        }
     }
     return 1;
 }
+/* HACK : 추후 코드리펙 : pawno enum에 배열 선언 불가? */
+stock isHoldWep(playerid, model){
+	if(USER[playerid][WEP1] == model ||
+       USER[playerid][WEP2] == model ||
+       USER[playerid][WEP3] == model) return SendClientMessage(playerid,COL_SYS,"    이미 주무기로 설정하신 무기입니다.");
+	return 0;
+}
+
 stock isClan(playerid, type){
 	switch(type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
