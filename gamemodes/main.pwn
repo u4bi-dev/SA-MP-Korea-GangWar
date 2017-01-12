@@ -492,8 +492,11 @@ stock notice(playerid,listitem){
 }
 
 stock mywep(playerid,listitem){
+	if(!WEPBAG[playerid][listitem][MODEL])return showDialog(playerid, DL_MYWEP);
+	
     showDialog(playerid, DL_MYWEP_SETUP);
     INGAME[playerid][HOLD_WEPONID] = WEPBAG[playerid][listitem][MODEL];
+    return 0;
 }
 /* CLAN
    @ clanInsert(playerid, inputtext)
@@ -785,14 +788,18 @@ stock noticeSeason(playerid){
    @ holdWep(playerid,listitem)
 */
 stock holdWep(playerid,listitem){
-	if(isHoldWep(playerid, INGAME[playerid][HOLD_WEPONID])) return showDialog(playerid, DL_MYWEP);
+	if(isHoldWep(playerid, INGAME[playerid][HOLD_WEPONID])) return showDialog(playerid, DL_MYWEP_SETUP);
 
 	switch(listitem){
         case 0 : USER[playerid][WEP1] = INGAME[playerid][HOLD_WEPONID];
         case 1 : USER[playerid][WEP2] = INGAME[playerid][HOLD_WEPONID];
         case 2 : USER[playerid][WEP3] = INGAME[playerid][HOLD_WEPONID];
 	}
-    GivePlayerWeapon(playerid, INGAME[playerid][HOLD_WEPONID], 9999);
+	
+    ResetPlayerWeapons(playerid);
+    GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
+    GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
+    GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
     formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯에 [%s] 무기를 장착합니다.",listitem+1, wepName(INGAME[playerid][HOLD_WEPONID]));
     save(playerid);
     INGAME[playerid][HOLD_WEPONID] = 0;
@@ -1578,7 +1585,7 @@ stock showDialog(playerid, type){
             strcat(str, " {FFFFFF}");
 		    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
 				new temp[20];
-                format(temp, sizeof(temp), "%s\n", wepModel[i]);
+                format(temp, sizeof(temp), "%s\n", wepName(WEPBAG[playerid][i][MODEL]));
                 strcat(str, temp);
 			}
 			
