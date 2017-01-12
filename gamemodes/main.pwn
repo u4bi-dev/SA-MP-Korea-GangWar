@@ -1,7 +1,7 @@
 #include <a_samp>
 #include <a_mysql>
 #include <foreach>
-
+	
 #define DL_LOGIN                          100
 #define DL_REGIST                         101
 #define DL_INFO                           102
@@ -275,6 +275,7 @@ static mysql;
 public OnGameModeExit(){return 1;
 }
 public OnGameModeInit(){
+
 	dbcon();
 	data();
     mode();
@@ -464,6 +465,7 @@ stock notice(playerid,listitem){
 */
 stock clanInsert(playerid, inputtext[]){
     if(!strlen(inputtext))return showDialog(playerid, DL_CLAN_INSERT);
+    if(isHangul(playerid,inputtext)) return showDialog(playerid, DL_CLAN_INSERT);
     
     format(CLAN_SETUP[playerid][NAME], 50, "%s", escape(inputtext));
 
@@ -1077,6 +1079,7 @@ public ServerThread(){
    @ checkZone(playerid)
    @ holdZone(playerid)
    @ isClan(playerid, type)
+   @ isHangul(playerid, str[])
    @ randomColor()
    @ getPlayerId(name[]
    @ sync(playerid)
@@ -1481,6 +1484,15 @@ stock isClan(playerid, type){
 	}
     return 0;
 }
+
+stock isHangul(playerid, str[]){
+    for (new i=0, j=strlen(str); i<j; i++){
+        if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
+        if(str[i] > '9' || str[i] < '0')return SendClientMessage(playerid,COL_SYS,"    한글이 포함되어 있습니다.");
+    }
+    return 0;
+}
+
 stock randomColor(){
 	new code[3];
     for(new i=0; i < sizeof(code); i++)code[i] = random(256);
