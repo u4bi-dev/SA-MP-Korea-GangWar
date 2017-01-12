@@ -1270,12 +1270,13 @@ stock event(playerid){
     giveMoney(playerid, 1);
     
     switch(INGAME[playerid][EVENT_TICK]){
-		case 10:{
+		case 20:{
             showRank(playerid);
             INGAME[playerid][EVENT_TICK] = 0;
 		}
     }
 }
+
 stock giveMoney(playerid,money){
     ResetPlayerMoney(playerid);
     GivePlayerMoney(playerid, USER[playerid][MONEY]+=money);
