@@ -1379,7 +1379,7 @@ stock textDraw_init(){
 
 	new comboWidth = 540;
     for(new i = 0; i < 10; i++){
-        TDrawG[i][COMBO] = TextDrawCreate(comboWidth*i, 437.500, "ld_shtr:ex3");
+        TDrawG[i][COMBO] = TextDrawCreate(comboWidth+(i*10), 437.500, "ld_shtr:ex3");
         TextDrawFont(TDrawG[i][COMBO], 4);
         TextDrawTextSize(TDrawG[i][COMBO], 10, 8.5);
         TextDrawColor(TDrawG[i][COMBO], -1);
