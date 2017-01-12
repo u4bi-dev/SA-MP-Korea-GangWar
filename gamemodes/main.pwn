@@ -9,6 +9,7 @@
 #define DL_MISSON_CLAN                    104
 #define DL_MISSON_SHOP                    105
 #define DL_MISSON_NOTICE                  106
+#define DL_MYWEP                          107
 
 #define DL_CLAN_INSERT                    1040
 #define DL_CLAN_INSERT_COLOR              10400
@@ -53,7 +54,7 @@
 /*ZONE BASE */
 #define USED_ZONE     932
 #define USED_TEXTDRAW 200
-#define USED_WEAPON   5000
+#define USED_WEAPON   11
 #define USED_VEHICLE  500
 #define USED_HOUSE    500
 #define USED_CLAN     100
@@ -87,7 +88,7 @@ new infoMessege[3][502] = {
 	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%\n랭크\t\t%s",
 	"{FFFFFF}github.com/u4bi\n하이오"
 };
-new weaponName[11][50] = {
+new wepModel[11][50] = {
     {"데져트이글"},
     {"샷건"},
     {"손오브샷건"},
@@ -203,11 +204,9 @@ enum USER_MODEL{
 new USER[MAX_PLAYERS][USER_MODEL];
 
 enum WEAPON_MODEL{
-    ID,
-	USER_ID,
-	MODEL
+	HAVE
 }
-new WEAPON[USED_WEAPON][WEAPON_MODEL];
+new WEAPON[MAX_PLAYERS][USED_WEAPON][WEAPON_MODEL];
 
 enum VEHICLE_MODEL{
  	ID,
@@ -393,6 +392,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_LOGIN  : checked(playerid, inputtext);
         case DL_REGIST : regist(playerid, inputtext);
         case DL_INFO   : info(playerid,listitem);
+        case DL_MYWEP  : mywep(playerid,listitem);
 
         /* MISSON */
         case DL_MISSON_CLAN    : clan(playerid,listitem);
@@ -447,6 +447,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
    @ clan(playerid,listitem)
    @ shop(playerid,listitem)
    @ notice(playerid,listitem)
+   @ mywep(playerid,listitem)
 */
 stock info(playerid, listitem){
 	new result[502], clanName[50];
@@ -483,6 +484,9 @@ stock notice(playerid,listitem){
 	}
 }
 
+stock mywep(playerid,listitem){
+    formatMsg(playerid, COL_SYS, "내 무기 %d - %d",playerid, listitem);
+}
 /* CLAN
    @ clanInsert(playerid, inputtext)
    @ clanList(playerid);
@@ -647,7 +651,6 @@ stock clanMemberKick(playerid){
 */
 
 stock shopWeapon(playerid, listitem){
-    formatMsg(playerid, COL_SYS, "카푸치노샵 무기 %d - %d",playerid, listitem);
 
 	switch(listitem){
 		case 0 : INGAME[playerid][BUY_WEAPONID] = 24;
@@ -669,7 +672,7 @@ stock shopWeapon(playerid, listitem){
 
     row = cache_num_rows();
 	if(row){
-        formatMsg(playerid, COL_SYS, "    [%s]를 이미 보유하고 있습니다.", weaponName[listitem]);
+        formatMsg(playerid, COL_SYS, "    [%s]를 이미 보유하고 있습니다.", wepModel[listitem]);
         showDialog(playerid, DL_SHOP_WEAPON);
     }
     else showDialog(playerid, DL_SHOP_WEAPON_BUY);
@@ -711,17 +714,17 @@ stock shopName(playerid, inputtext[]){
    @ shopWeaponBuy(playerid)
 */
 stock shopWeaponBuy(playerid){
-    formatMsg(playerid, COL_SYS, "    당신은 %d번 무기를 구매하였습니다.",INGAME[playerid][BUY_WEAPONID]);
+    formatMsg(playerid, COL_SYS, "    당신은 [%s] 무기를 구매하였습니다.",wepName(INGAME[playerid][BUY_WEAPONID]));
 
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "INSERT INTO `weapon_info` (`USER_ID`,`MODEL`) VALUES (%d,%d)",
         USER[playerid][ID],
         INGAME[playerid][BUY_WEAPONID]
 	);
-
 	mysql_query(mysql, query);
-	
-    weapon_data();
+
+    WEAPON[playerid][wepID(INGAME[playerid][BUY_WEAPONID])][HAVE] = true;
+    INGAME[playerid][BUY_WEAPONID] = 0;
 }
 
 /* SHOP SKIN BUY
@@ -780,6 +783,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
     }
    	if(!strcmp("/help", cmdtext)){
 		showDialog(playerid, DL_INFO);
+        return 1;
+ 	}
+   	if(!strcmp("/mywep", cmdtext)){
+		showDialog(playerid, DL_MYWEP);
         return 1;
  	}
     if(!strcmp("/hold", cmdtext)){
@@ -907,8 +914,31 @@ public save(playerid){
 	GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
 	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
 
+	new sql[400];
+	strcat(sql, "UPDATE `user_info` SET");
+	strcat(sql, " ADMIN=%d");
+	strcat(sql, ",CLANID=%d");
+	strcat(sql, ",MONEY=%d");
+	strcat(sql, ",LEVEL=%d");
+	strcat(sql, ",EXP=%d");
+	strcat(sql, ",KILLS=%d");
+	strcat(sql, ",DEATHS=%d");
+	strcat(sql, ",SKIN=%d");
+	strcat(sql, ",WEP1=%d");
+	strcat(sql, ",WEP2=%d");
+	strcat(sql, ",WEP3=%d");
+	strcat(sql, ",INTERIOR=%d");
+	strcat(sql, ",WORLD=%d");
+	strcat(sql, ",POS_X=%f");
+	strcat(sql, ",POS_Y=%f");
+	strcat(sql, ",POS_Z=%f");
+	strcat(sql, ",ANGLE=%f");
+	strcat(sql, ",HP=%f");
+	strcat(sql, ",AM=%f");
+	strcat(sql, " WHERE `ID`=%d");
+	
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `ADMIN`=%d,`CLANID`=%d,`MONEY`=%d,`LEVEL`=%d,`EXP`=%d,`KILLS`=%d,`DEATHS`=%d,`SKIN`=%d,`WEP1`=%d,`WEP2`=%d,`WEP3`=%d,`INTERIOR`=%d, `WORLD`=%d, `POS_X`=%f,`POS_Y`=%f,`POS_Z`=%f,`ANGLE`=%f,`HP`=%f,`AM`=%f WHERE `ID`=%d",
+	mysql_format(mysql, query, sizeof(query), sql,
 	USER[playerid][ADMIN],
 	USER[playerid][CLANID],
 	USER[playerid][MONEY],
@@ -972,6 +1002,24 @@ public load(playerid){
 	USER[playerid][ANGLE]   = cache_get_field_content_float(0, "ANGLE");
 	USER[playerid][HP]      = cache_get_field_content_float(0, "HP");
 	USER[playerid][AM]      = cache_get_field_content_float(0, "AM");
+
+	new sql[400];
+	strcat(sql, "SELECT weapon.MODEL FROM");
+	strcat(sql, " `user_info` as user INNER JOIN");
+	strcat(sql, " `weapon_info` as weapon");
+	strcat(sql, " on user.ID = weapon.USER_ID");
+	strcat(sql, " WHERE user.ID = %d");
+
+	mysql_format(mysql, query, sizeof(query), sql, USER[playerid][ID]);
+	mysql_query(mysql, query);
+
+	new rows, fields;
+	cache_get_data(rows, fields);
+
+    for(new i=0; i < rows; i++){
+	    WEAPON[playerid][wepID(cache_get_field_content_int(i, "MODEL"))][HAVE] = true;
+	}
+	
 	spawn(playerid);
 }
 stock escape(str[]){
@@ -1047,15 +1095,22 @@ stock dbcon(){
 stock data(){
 	house_data();
 	vehicle_data();
-	weapon_data();
 	zone_data();
 	clan_data();
 }
 stock cleaning(playerid){
-    new temp[USER_MODEL], temp2[INGAME_MODEL], temp3[CLAN_SETUP_MODEL];
-    USER[playerid] = temp;
+    new
+	temp1[USER_MODEL],
+	temp2[INGAME_MODEL],
+	temp3[CLAN_SETUP_MODEL],
+	temp4[WEAPON_MODEL];
+    
+    USER[playerid] = temp1;
     INGAME[playerid] = temp2;
     CLAN_SETUP[playerid] = temp3;
+    for(new i=0; i < USED_WEAPON; i++){
+        WEAPON[playerid][i] = temp4;
+    }
 }
 
 /* DB DATA
@@ -1103,20 +1158,7 @@ stock vehicle_data(){
 	    VEHICLE[i][COLOR2]       = cache_get_field_content_int(i, "COLOR2");
     }
 }
-stock weapon_data(){
-	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `weapon_info`");
-	mysql_query(mysql, query);
-	if(!mysql_errno(mysql))print("무기 DB 정상");
-	new rows, fields;
-	cache_get_data(rows, fields);
 
-    for(new i=0; i < rows; i++){
-	    WEAPON[i][ID]           = cache_get_field_content_int(i, "ID");
-	    WEAPON[i][USER_ID]      = cache_get_field_content_int(i, "USER_ID");
-	    WEAPON[i][MODEL]        = cache_get_field_content_int(i, "MODEL");
-	}
-}
 stock clan_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `clan_info`");
@@ -1181,6 +1223,8 @@ public ServerThread(){
    @ isClanHangul(playerid, str[])
    @ randomColor()
    @ getPlayerId(name[]
+   @ wepID(model)
+   @ wepName(model)
    @ sync(playerid)
    @ kdRatio(playerid)
    @ kdTier(playerid)
@@ -1496,7 +1540,20 @@ stock showDialog(playerid, type){
         case DL_LOGIN : ShowPlayerDialog(playerid, DL_LOGIN, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, "{FFFFFF}로그인을 해주세요", DIALOG_ENTER, "나가기");
         case DL_REGIST : ShowPlayerDialog(playerid, DL_REGIST, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, "{FFFFFF}회원가입을 해주세요.", DIALOG_ENTER, "나가기");
 
-        case DL_INFO : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, "서버 규정\n내 프로필\n문의\n", DIALOG_ENTER, DIALOG_PREV);
+        case DL_INFO  : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, "서버 규정\n내 프로필\n문의\n", DIALOG_ENTER, DIALOG_PREV);
+        case DL_MYWEP :{
+            new str[256];
+            strcat(str, " {FFFFFF}");
+		    for(new i=0; i < USED_WEAPON; i++){
+				new temp[20];
+				if(WEAPON[playerid][i][HAVE]){
+                    format(temp, sizeof(temp), "%s\n", wepModel[i]);
+				    strcat(str, temp);
+				}
+			}
+			
+		    ShowPlayerDialog(playerid, DL_MYWEP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
         case DL_CLAN_LIST : ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 목록", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_RANK : ShowPlayerDialog(playerid, DL_CLAN_RANK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 랭킹", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP :{
@@ -1538,9 +1595,9 @@ stock showDialog(playerid, type){
 			new str[256];
 			strcat(str, " {FFFFFF}");
 			
-			for(new i=0; i < sizeof(weaponName); i++){
+			for(new i=0; i < sizeof(wepModel); i++){
 				new temp[20];
-				format(temp, sizeof(temp), "%s\n", weaponName[i]);
+				format(temp, sizeof(temp), "%s\n", wepModel[i]);
                 strcat(str, temp);
 			}
             
@@ -1551,7 +1608,7 @@ stock showDialog(playerid, type){
 		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_WEAPON_BUY : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}무기 번호 :\t\t%d\n\n해당 무기를 정말로 구매하시겠습니까?\n", INGAME[playerid][BUY_WEAPONID]);
+            format(str, sizeof(str),"{FFFFFF}무기 번호 :\t\t%s\n\n해당 무기를 정말로 구매하시겠습니까?\n", wepName(INGAME[playerid][BUY_WEAPONID]));
             ShowPlayerDialog(playerid, DL_SHOP_WEAPON_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_SHOP_SKIN_BUY : {
@@ -1599,6 +1656,43 @@ stock getPlayerId(name[]){
   }
   return INVALID_PLAYER_ID;
 }
+
+stock wepID(model){
+	new wep;
+    switch(model){
+        case 24 : wep = 0;
+        case 25 : wep = 1;
+        case 26 : wep = 2;
+        case 27 : wep = 3;
+        case 28 : wep = 4;
+        case 29 : wep = 5;
+        case 30 : wep = 6;
+        case 31 : wep = 7;
+        case 32 : wep = 8;
+        case 33 : wep = 9;
+        case 34 : wep = 10;
+	}
+	return wep;
+}
+
+stock wepName(model){
+    new wep[30];
+	switch(model){
+		case 24 : format(wep, sizeof(wep), "%s", wepModel[0]);
+		case 25 : format(wep, sizeof(wep), "%s", wepModel[1]);
+		case 26 : format(wep, sizeof(wep), "%s", wepModel[2]);
+		case 27 : format(wep, sizeof(wep), "%s", wepModel[3]);
+		case 28 : format(wep, sizeof(wep), "%s", wepModel[4]);
+		case 29 : format(wep, sizeof(wep), "%s", wepModel[5]);
+		case 30 : format(wep, sizeof(wep), "%s", wepModel[6]);
+		case 31 : format(wep, sizeof(wep), "%s", wepModel[7]);
+		case 32 : format(wep, sizeof(wep), "%s", wepModel[8]);
+		case 33 : format(wep, sizeof(wep), "%s", wepModel[9]);
+		case 34 : format(wep, sizeof(wep), "%s", wepModel[10]);
+	}
+	return wep;
+}
+
 stock sync(playerid){
 	INGAME[playerid][SYNC] = true;
 	new Float:pos[4],world, inter;
