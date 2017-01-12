@@ -465,9 +465,9 @@ stock notice(playerid,listitem){
 */
 stock clanInsert(playerid, inputtext[]){
     if(!strlen(inputtext))return showDialog(playerid, DL_CLAN_INSERT);
-    if(isClanHangul(playerid,inputtext)) return showDialog(playerid, DL_CLAN_INSERT);
     
     format(CLAN_SETUP[playerid][NAME], 50, "%s", escape(inputtext));
+    if(isClanHangul(playerid, CLAN_SETUP[playerid][NAME])) return showDialog(playerid, DL_CLAN_INSERT);
 
 	new query[400],row;
     mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `clan_info` WHERE `NAME` = '%s' LIMIT 1", CLAN_SETUP[playerid][NAME]);
@@ -560,12 +560,12 @@ stock clanInsertSuccess(playerid){
 	mysql_query(mysql, query);
 	new num = cache_insert_id();
 	CLAN[num-1][COLOR] = CLAN_SETUP[playerid][COLOR];
-	clanJoin(playerid, cache_insert_id());
+    clan_data();
+    
+	clanJoin(playerid, num);
 	
     new temp[CLAN_SETUP_MODEL];
     CLAN_SETUP[playerid] = temp;
-    
-    clan_data();
     return 0;
 }
 
@@ -852,10 +852,15 @@ public save(playerid){
 	USER[playerid][ID]);
 
 	mysql_query(mysql, query);
-
+    
+	new clanName[50];
+	if(USER[playerid][CLANID])format(clanName,sizeof(clanName),"%s",CLAN[USER[playerid][CLANID]-1][NAME]);
+	else format(clanName,sizeof(clanName),"NONE");
+	
 	new str[120];
-	format(str,sizeof(str),"NAME : %s  LEVEL : %d  EXP : %d  MONEY : %d  KILLS : %d  DEATHS : %d",
+	format(str,sizeof(str),"NAME : %s   CLAN : %s   LEVEL : %d   EXP : %d   MONEY : %d   KILLS : %d   DEATHS : %d",
 	USER[playerid][NAME],
+	clanName,
 	USER[playerid][LEVEL],
 	USER[playerid][EXP],
 	USER[playerid][MONEY],
