@@ -244,7 +244,8 @@ enum CLAN_MODEL{
  	LEADER_NAME[MAX_PLAYER_NAME],
  	KILLS,
  	DEATHS,
-    COLOR
+    COLOR,
+    ZONE_LENGTH,
 }
 new CLAN[USED_CLAN][CLAN_MODEL];
 
@@ -610,7 +611,7 @@ stock clanInsertSuccess(playerid){
     giveMoney(playerid, -20000);
 	
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "INSERT INTO `clan_info` (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`) VALUES ('%s','%s',0,0,%d)",
+	mysql_format(mysql, query, sizeof(query), "INSERT INTO `clan_info` (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`,`ZONE_LENGTH`) VALUES ('%s','%s',0,0,%d,0)",
         CLAN_SETUP[playerid][NAME],
         USER[playerid][NAME],
         CLAN_SETUP[playerid][COLOR]
@@ -1255,6 +1256,7 @@ stock clan_data(){
 	    CLAN[i][KILLS]          = cache_get_field_content_int(i, "KILLS");
 	    CLAN[i][DEATHS]         = cache_get_field_content_int(i, "DEATHS");
 	    CLAN[i][COLOR]          = cache_get_field_content_int(i, "COLOR");
+	    CLAN[i][ZONE_LENGTH]    = cache_get_field_content_int(i, "ZONE_LENGTH");
     }
 }
 stock zone_data(){
@@ -1460,8 +1462,17 @@ stock tickZone(playerid){
 }
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
+	new query[400];
 
-    ZONE[zoneid][OWNER_CLAN] = USER[playerid][CLANID];
+    CLAN[ZONE[zoneid][OWNER_CLAN]-1][ZONE_LENGTH] -=1;
+	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[ZONE[zoneid][OWNER_CLAN]-1][ZONE_LENGTH], ZONE[zoneid][OWNER_CLAN]-1);
+	mysql_query(mysql, query);
+	
+    CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH] +=1;
+	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH], USER[playerid][CLANID]-1);
+	mysql_query(mysql, query);
+    
+	ZONE[zoneid][OWNER_CLAN] = USER[playerid][CLANID];
     GangZoneShowForAll(ZONE[zoneid][ID], CLAN[USER[playerid][CLANID]-1][COLOR]);
 
 	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLAN], USER[playerid][NAME]);
