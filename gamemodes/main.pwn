@@ -543,6 +543,7 @@ stock clanInsert(playerid, inputtext[]){
 stock clanList(playerid){
     formatMsg(playerid, COL_SYS, "클랜 리스트 %d",playerid);
 }
+
 stock clanRank(playerid){
     formatMsg(playerid, COL_SYS, "클랜 랭킹 %d",playerid);
 }
@@ -1636,8 +1637,56 @@ stock showDialog(playerid, type){
 			
 		    ShowPlayerDialog(playerid, DL_MYWEP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-        case DL_CLAN_LIST : ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 목록", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_RANK : ShowPlayerDialog(playerid, DL_CLAN_RANK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}클랜 랭킹", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_LIST :{
+            new query[400], sql[400], str[1286];
+
+            strcat(sql,"SELECT NAME");
+            strcat(sql," FROM `clan_info` ");
+            strcat(sql," LIMIT 10");
+
+			mysql_format(mysql, query, sizeof(query), sql);
+			mysql_query(mysql, query);
+
+			new rows, fields;
+			cache_get_data(rows, fields);
+			strcat(str, "{8D8DFF}\t\t클랜 목록{FFFFFF}\n\n");
+
+		    for(new i=0; i < rows; i++){
+                new temp[128], name[24];
+
+				cache_get_field_content(i, "NAME", name, mysql, 24);
+
+				format(temp, sizeof(temp), "클랜이름 \t\t %s\n\n", name);
+                strcat(str, temp);
+		    }
+		    
+            ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
+        case DL_CLAN_RANK :{
+            new query[400], sql[400], str[1286];
+
+            strcat(sql,"SELECT NAME");
+            strcat(sql," FROM `clan_info` ");
+            strcat(sql," LIMIT 10");
+
+			mysql_format(mysql, query, sizeof(query), sql);
+			mysql_query(mysql, query);
+
+			new rows, fields;
+			cache_get_data(rows, fields);
+			strcat(str, "{8D8DFF}\t\t클랜 랭킹{FFFFFF}\n\n");
+
+		    for(new i=0; i < rows; i++){
+                new temp[128], name[24];
+
+				cache_get_field_content(i, "NAME", name, mysql, 24);
+
+				format(temp, sizeof(temp), "%d위 클랜이름 \t %s\n\n", i+1, name);
+                strcat(str, temp);
+		    }
+		    
+            ShowPlayerDialog(playerid, DL_CLAN_RANK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+        }
         case DL_CLAN_SETUP :{
             if(isClan(playerid, IS_CLEN_NOT)) return 0;
             
