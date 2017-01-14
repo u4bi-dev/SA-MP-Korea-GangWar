@@ -11,6 +11,7 @@
 #define DL_MISSON_NOTICE                  106
 #define DL_MYWEP                          107
 #define DL_MYCAR                          108
+#define DL_GARAGE                         109
 
 #define DL_CLAN_INSERT                    1040
 #define DL_CLAN_INSERT_COLOR              10400
@@ -49,6 +50,10 @@
 #define DL_MYCAR_SETUP                    1080
 #define DL_MYCAR_SETUP_SPAWN              1081
 
+#define DL_GARAGE_REPAIR                  1090
+#define DL_GARAGE_PAINT                   1091
+#define DL_GARAGE_TURNING                 1092
+
 #define COL_SYS  0xAFAFAF99
 #define DIALOG_TITLE "{8D8DFF}샘프워코리아"
 #define DIALOG_ENTER "확인"
@@ -68,7 +73,7 @@
 #define USED_HOUSE    500
 #define USED_CLAN     100
 #define USED_MISSON   3
-#define USED_GARAGE   4
+#define USED_GARAGE   5
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -228,7 +233,7 @@ enum MISSON_MODEL{
 new MISSON[USED_MISSON][MISSON_MODEL];
 
 enum GARAGE_MODEL{
-	NAME[40],
+	NAME[50],
 	Float:POS_Y,
 	Float:POS_X,
 	Float:POS_Z
@@ -358,7 +363,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MYWEP,DL_MYCAR :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
@@ -376,6 +381,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MYWEP_SETUP_HOLD, DL_MYWEP_SETUP_PUT: return showDialog(playerid, DL_MYWEP_SETUP_OPTION);
 			case DL_MYCAR_SETUP : return showDialog(playerid, DL_MYCAR);
 			case DL_MYCAR_SETUP_SPAWN : return showDialog(playerid, DL_MYCAR_SETUP);
+			case DL_GARAGE_REPAIR, DL_GARAGE_PAINT, DL_GARAGE_TURNING : return showDialog(playerid, DL_GARAGE);
 		}
 	}
 	
@@ -386,6 +392,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_INFO   : info(playerid,listitem);
         case DL_MYWEP  : mywep(playerid,listitem);
         case DL_MYCAR  : mycar(playerid,listitem);
+        case DL_GARAGE : garage(playerid,listitem);
 
         /* MISSON */
         case DL_MISSON_CLAN    : clan(playerid,listitem);
@@ -441,6 +448,11 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		/* MYCAR SETUP */
 		case DL_MYCAR_SETUP        : setCar(playerid,listitem);
 		case DL_MYCAR_SETUP_SPAWN  : spawnCar(playerid);
+		
+		/* GARAGE */
+		case DL_GARAGE_REPAIR      : repairCar(playerid);
+		case DL_GARAGE_PAINT       : paintCar(playerid);
+		case DL_GARAGE_TURNING     : turnCar(playerid);
     }
     return 1;
 }
@@ -451,6 +463,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
    @ notice(playerid,listitem)
    @ mywep(playerid,listitem)
    @ mycar(playerid,listitem)
+   @ garage(playerid,listitem)
 */
 stock info(playerid, listitem){
 	new result[502], clanName[50];
@@ -497,6 +510,13 @@ stock mycar(playerid,listitem){
     INGAME[playerid][HOLD_CARID] = CARBAG[playerid][listitem][ID];
     showDialog(playerid, DL_MYCAR_SETUP);
     return 0;
+}
+stock garage(playerid,listitem){
+	switch(listitem){
+        case 0 : showDialog(playerid, DL_GARAGE_REPAIR);
+        case 1 : showDialog(playerid, DL_GARAGE_PAINT);
+        case 2 : showDialog(playerid, DL_GARAGE_TURNING);
+	}
 }
 /* CLAN
    @ clanInsert(playerid, inputtext)
@@ -873,6 +893,25 @@ stock spawnCar(playerid){
 	formatMsg(playerid, COL_SYS, "    [%s] 차량을 자신의 앞으로 소환합니다.", vehicleName[model - 400]);
     giveMoney(playerid,-2000);
 }
+/* GARAGE
+   @ repairCar(playerid)
+   @ paintCar(playerid)
+   @ turnCar(playerid)
+*/
+stock repairCar(playerid){
+    new vehicleid = GetPlayerVehicleID(playerid);
+   	new model = GetVehicleModel(vehicleid);
+   	
+	formatMsg(playerid, COL_SYS, "    [%s] 차량을 수리합니다.", vehicleName[model - 400]);
+    RepairVehicle(vehicleid);
+    giveMoney(playerid,-100);
+}
+stock paintCar(playerid){
+    formatMsg(playerid, COL_SYS, "주유소 도색 %d",playerid);
+}
+stock turnCar(playerid){
+    formatMsg(playerid, COL_SYS, "주유소 튜닝 %d",playerid);
+}
 
 public OnPlayerCommandText(playerid, cmdtext[]){
     if(!strcmp("/sav", cmdtext)){
@@ -914,6 +953,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
     }
     if(!strcmp("/carbuy", cmdtext)){
         if(!IsPlayerInAnyVehicle(playerid))return 1;
+        if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,"    차량을 구매할 자금이 부족합니다. (입찰가 : 30000원)");
+        
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
 		return 1;
     }
@@ -1210,6 +1251,7 @@ stock server(){
 	UsePlayerPedAnims();
 	EnableStuntBonusForAll(0);
 	DisableInteriorEnterExits();
+	DisableNameTagLOS();
 	ShowPlayerMarkers(PLAYER_MARKERS_MODE_GLOBAL);
 	AddPlayerClass(0,0,0,0,0,0,0,0,0,0,0);
 }
@@ -1628,7 +1670,7 @@ stock event(playerid){
 stock giveMoney(playerid,money){
     ResetPlayerMoney(playerid);
     GivePlayerMoney(playerid, USER[playerid][MONEY]+=money);
-	formatMsg(playerid, 0xFFFF0099,"%d원",money);
+	formatMsg(playerid, COL_SYS,"%d원",money);
 }
 
 stock death(playerid, killerid, reason){
@@ -1663,6 +1705,7 @@ stock death(playerid, killerid, reason){
 
 stock loadGarage(){
     garageInit("남부 주유소",1936.2174,-1774.7317,13.0537);
+    garageInit("남부 주유소 2층",1941.7302,-1772.3066,19.5250);
     garageInit("카워셔 정비소",2454.6113,-1461.0303,23.7785);
     garageInit("북부 주유소",1002.5181,-941.1222,41.8907);
     garageInit("플린트 카운티 주유소",-91.1692,-1169.8002,2.1782);
@@ -1699,13 +1742,13 @@ stock textLabel_init(){
 	for(new i = 0;i<USED_GARAGE;i++){
 		new str[60];
 		format(str, sizeof(str),"%s (경적(Caps Lock))",GARAGE[i][NAME]);
-		Create3DTextLabel(str, 0x8D8DFFFF, GARAGE[i][POS_X], GARAGE[i][POS_Y], GARAGE[i][POS_Z], 25.0, 0, 0);
+		Create3DTextLabel(str, 0x8D8DFFFF, GARAGE[i][POS_X], GARAGE[i][POS_Y], GARAGE[i][POS_Z], 25.0, 0, 1);
 	}
 	
 	for(new i = 0;i<USED_MISSON;i++){
 		new str[40];
 		format(str, sizeof(str),"%s (F키)",MISSON[i][NAME]);
-		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[i][POS_X], MISSON[i][POS_Y], MISSON[i][POS_Z], 7.0, 0, 0);
+		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[i][POS_X], MISSON[i][POS_Y], MISSON[i][POS_Z], 7.0, 0, 1);
 	}
 }
 
@@ -1788,7 +1831,8 @@ stock showMisson(playerid, type){
 }
 
 stock showGarage(playerid){
-	formatMsg(playerid, COL_SYS, "주유소");
+	showDialog(playerid, DL_GARAGE);
+	
 }
 
 stock showDialog(playerid, type){
@@ -1836,6 +1880,7 @@ stock showDialog(playerid, type){
 		    
             ShowPlayerDialog(playerid, DL_MYCAR, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
+        case DL_GARAGE :ShowPlayerDialog(playerid, DL_GARAGE, DIALOG_STYLE_LIST, DIALOG_TITLE, "수리\n도색\n튜닝", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_LIST :{
             new query[400], sql[400], str[1286];
 
@@ -2070,6 +2115,9 @@ stock showDialog(playerid, type){
 	        format(str, sizeof(str),"{FFFFFF}차량 모델명 :\t\t%s\n\n해당 차량을 정말로 소환하시겠습니까?\n\n(차감액 : 2000원)",vehicleName[model - 400]);
 	        ShowPlayerDialog(playerid, DL_MYCAR_SETUP_SPAWN, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
+		case DL_GARAGE_REPAIR  : ShowPlayerDialog(playerid, DL_GARAGE_REPAIR, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}탑승하신 차량을 정말로 소환하시겠습니까?\n\n(차감액 : 100원)", DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_PAINT   : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}컬러1\n컬러2\n페인트잡", DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_TURNING : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}휠\n본넷\n범퍼", DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
 }
