@@ -267,6 +267,10 @@ public OnGameModeInit(){
     mode();
 	server();
 	thread();
+	
+    for(new vehicleid=1; vehicleid<=230; vehicleid++){
+        vehicleSapwn(vehicleid);
+    }
     return 1;
 }
 
@@ -1900,7 +1904,7 @@ stock showDialog(playerid, type){
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "클랜이름 \t\t %s\n\n", name);
+				format(temp, sizeof(temp), "클랜이름 \t\t {%06x}%s{FFFFFF}\n\n", CLAN[i][COLOR] >>> 8, name);
                 strcat(str, temp);
 		    }
 		    
@@ -1925,7 +1929,7 @@ stock showDialog(playerid, type){
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "%d위 \t 총 점령구역 : %d\t\t%s\n\n", i+1, cache_get_field_content_int(i, "ZONE_LENGTH"), name);
+				format(temp, sizeof(temp), "%d위 \t 총 점령구역 : %d\t\t{%06x}%s{FFFFFF}\n\n", i+1, cache_get_field_content_int(i, "ZONE_LENGTH"), CLAN[i][COLOR] >>> 8, name);
                 strcat(str, temp);
 		    }
 		    
