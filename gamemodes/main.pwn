@@ -10,6 +10,7 @@
 #define DL_MISSON_SHOP                    105
 #define DL_MISSON_NOTICE                  106
 #define DL_MYWEP                          107
+#define DL_MYCAR                          108
 
 #define DL_CLAN_INSERT                    1040
 #define DL_CLAN_INSERT_COLOR              10400
@@ -79,6 +80,8 @@ new FALSE = false;
 
 main(){}
 
+forward MyHttpResponse(playerid, response_code, data[]);
+
 forward check(playerid);
 forward regist(playerid, pass[]);
 forward save(playerid);
@@ -87,83 +90,14 @@ forward ServerThread();
 forward Float:kdRatio(kill, death);
 forward vehicleSapwn(vehicleid);
 
-/* variable */
-new infoMessege[3][502] = {
-	"{8D8DFF}모드설명{FFFFFF}\n\n샘프워 코리아 모드입니다.\n세력을 넑혀가는 갱전쟁 형식의 모드입니다.\n\n{8D8DFF}게임방법{FFFFFF}\n\n샘프워코리아 전쟁 규정을 따릅니다.",
-	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%\n랭크\t\t%s",
-	"{FFFFFF}github.com/u4bi\n하이오"
-};
-new wepModel[11][50] = {
-    {"데져트이글"},
-    {"샷건"},
-    {"손오브샷건"},
-    {"SPAS 샷건"},
-    {"UZI 머신건"},
-    {"MP-5 라이플"},
-    {"AK-47 자동소총"},
-    {"M4카빈 자동소총"},
-    {"TEC-9 머신건"},
-    {"컨트리 라이플"},
-    {"스나이퍼 라이플"}
-};
 
-new Float:SPAWN_MODEL[54][3] = {
-{966.1048,-989.9128,37.2340},
-{962.3964,-1116.9700,23.2486},
-{950.3869,-1300.3815,13.6064},
-{920.7906,-1455.4015,12.9489},
-{924.9973,-1625.6708,13.1147},
-{927.0760,-1721.5812,13.1130},
-{971.6392,-1783.2766,13.6663},
-{1055.4865,-1827.3129,13.1389},
-{1156.0485,-1842.3470,13.1321},
-{1290.2769,-1654.4058,13.1165},
-{1339.3270,-1405.3234,12.8955},
-{1342.7333,-1144.6208,23.0736},
-{1455.6702,-931.4559,36.4865},
-{1731.4502,-996.1880,37.0469},
-{2003.4839,-997.8493,30.4699},
-{2167.6299,-1008.4839,62.3470},
-{2318.4614,-1081.1084,48.7639},
-{2478.3054,-1041.4218,65.4280},
-{2559.4429,-1046.9205,68.9830},
-{2639.7302,-1105.1461,68.2334},
-{2643.7573,-1265.6605,49.4164},
-{2646.8152,-1648.6918,10.2685},
-{2762.2893,-1899.5236,10.6282},
-{2781.6448,-1955.9955,13.1126},
-{2866.5471,-2002.4600,10.6712},
-{2541.8572,-2048.5984,24.6788},
-{2264.0598,-2059.6448,12.9434},
-{2217.0745,-1908.1469,12.9306},
-{2197.6003,-1720.4226,12.9003},
-{2214.3330,-1496.7076,23.3969},
-{2224.3547,-1338.9926,23.5501},
-{2346.3220,-1300.1836,23.5530},
-{2050.4668,-1510.7344,2.9247},
-{1738.6357,-1519.4613,16.4589},
-{1622.8074,-1879.1394,24.7065},
-{1878.2582,-2101.2280,13.1126},
-{1962.1466,-2162.7034,12.9478},
-{2529.6860,-2359.3992,13.1846},
-{2709.0210,-2403.9048,13.0419},
-{2759.2827,-2450.5840,13.0941},
-{2450.6238,-2658.6941,13.1995},
-{2220.2039,-2527.2659,12.9367},
-{2431.5249,-1571.0193,23.3151},
-{1928.6094,-1339.6660,16.7498},
-{1645.4243,-1296.1215,15.0287},
-{1499.8965,-1302.9801,13.5986},
-{1433.9067,-1548.1550,12.9369},
-{1478.5696,-1722.9683,13.1144},
-{2039.7603,-1707.0786,13.1175},
-{2292.6577,-1485.3090,22.5775},
-{2242.8240,-1142.7300,25.3468},
-{2032.0940,-1063.1873,24.3020},
-{1685.1388,-1062.4604,23.4700},
-{1188.4440,-1331.1532,13.5488}
-};
+/* global variable */
+new missonTick=0;
+#include "module/resource.pwn"
 
+/* static */
+static mysql;
+	
 enum CLAN_CP_MODEL{
    CP,
    INDEX
@@ -298,12 +232,6 @@ enum TDraw_MODEL{
 }
 new TDraw[MAX_PLAYERS][TDraw_MODEL];
 
-/* global variable */
-new missonTick=0;
-
-/* static */
-static mysql;
-
 public OnGameModeExit(){return 1;
 }
 public OnGameModeInit(){
@@ -314,6 +242,7 @@ public OnGameModeInit(){
 	thread();
     return 1;
 }
+
 public OnPlayerText(playerid, text[]){
     new send[256];
     if(text[0] == '!'){
@@ -408,7 +337,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MYWEP :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MYWEP,DL_MYCAR :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
@@ -433,6 +362,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_REGIST : regist(playerid, inputtext);
         case DL_INFO   : info(playerid,listitem);
         case DL_MYWEP  : mywep(playerid,listitem);
+        case DL_MYCAR  : mycar(playerid,listitem);
 
         /* MISSON */
         case DL_MISSON_CLAN    : clan(playerid,listitem);
@@ -494,6 +424,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
    @ shop(playerid,listitem)
    @ notice(playerid,listitem)
    @ mywep(playerid,listitem)
+   @ mycar(playerid,listitem)
 */
 stock info(playerid, listitem){
 	new result[502], clanName[50];
@@ -534,6 +465,10 @@ stock mywep(playerid,listitem){
 	
     INGAME[playerid][HOLD_WEPID] = WEPBAG[playerid][listitem][MODEL];
     showDialog(playerid, DL_MYWEP_SETUP);
+    return 0;
+}
+stock mycar(playerid,listitem){
+    formatMsg(playerid, COL_SYS, "내 차량 %d - %d",playerid, listitem);
     return 0;
 }
 /* CLAN
@@ -894,6 +829,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
  	}
    	if(!strcmp("/wep", cmdtext)){
 		showDialog(playerid, DL_MYWEP);
+        return 1;
+ 	}
+   	if(!strcmp("/car", cmdtext)){
+		showDialog(playerid, DL_MYCAR);
         return 1;
  	}
     if(!strcmp("/carinit", cmdtext)){
@@ -1769,10 +1708,36 @@ stock showDialog(playerid, type){
 			
 		    ShowPlayerDialog(playerid, DL_MYWEP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
+		case DL_MYCAR :{
+            new query[400], sql[400], str[600];
+
+            strcat(sql,"SELECT ID");
+            strcat(sql," FROM `vehicle_info` ");
+            strcat(sql," WHERE NAME='%s'");
+
+			mysql_format(mysql, query, sizeof(query), sql, USER[playerid][NAME]);
+			mysql_query(mysql, query);
+
+			new rows, fields;
+			cache_get_data(rows, fields);
+			strcat(str, "{FFFFFF}");
+
+		    for(new i=0; i < rows; i++){
+                new temp[60];
+                
+				new vehicleid = cache_get_field_content_int(i, "ID");
+                new model = GetVehicleModel(vehicleid);
+                
+				format(temp, sizeof(temp), "번호판 : %d번\t\t모델명 : %s\n\n", vehicleid, vehicleName[model - 400]);
+                strcat(str, temp);
+		    }
+		    
+            ShowPlayerDialog(playerid, DL_MYCAR, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
         case DL_CLAN_LIST :{
             new query[400], sql[400], str[1286];
 
-            strcat(sql,"SELECT NAME, LEADER_NAME");
+            strcat(sql,"SELECT NAME");
             strcat(sql," FROM `clan_info` ");
             strcat(sql," LIMIT 10");
 
@@ -1784,12 +1749,11 @@ stock showDialog(playerid, type){
 			strcat(str, "{8D8DFF}\t\t클랜 목록{FFFFFF}\n\n");
 
 		    for(new i=0; i < rows; i++){
-                new temp[128], name[24], leader[24];
+                new temp[128], name[24];
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
-				cache_get_field_content(i, "LEADER_NAME", leader, mysql, 24);
 
-				format(temp, sizeof(temp), "클랜이름 \t\t %s\t\t 마스터 : %s\n\n", name, leader);
+				format(temp, sizeof(temp), "클랜이름 \t\t %s\n\n", name);
                 strcat(str, temp);
 		    }
 		    
@@ -1814,7 +1778,7 @@ stock showDialog(playerid, type){
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "%d위 \t %s\t\t총 점령구역 : %d\n\n", i+1, name, cache_get_field_content_int(i, "ZONE_LENGTH"));
+				format(temp, sizeof(temp), "%d위 \t 총 점령구역 : %d\t\t%s\n\n", i+1, cache_get_field_content_int(i, "ZONE_LENGTH"), name);
                 strcat(str, temp);
 		    }
 		    
@@ -1871,7 +1835,7 @@ stock showDialog(playerid, type){
                 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 				
-				format(temp, sizeof(temp), "이름 : %s\t\t레벨 %d\t킬 - %d 데쓰 - %d K/D - %.01f% 랭크 - %s\n",
+				format(temp, sizeof(temp), "이름 : %20s\t\t레벨 %d\t킬 - %d 데쓰 - %d K/D - %.01f% 랭크 - %s\n{FFFFFF}",
 					name,
 					cache_get_field_content_int(i, "LEVEL"),
 					cache_get_field_content_int(i, "KILLS"),
@@ -1939,7 +1903,7 @@ stock showDialog(playerid, type){
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "%d위\t\t이름 : %s\t레벨 : %d\t킬 : %d 데쓰 : %d K/D %.01f% 랭크 %s\n\n",
+				format(temp, sizeof(temp), "%d위\t\t이름 : %s\t레벨 : %d\t킬 : %d 데쓰 : %d K/D %.01f% 랭크 %s{FFFFFF}\n\n",
 					i+1,
 					name,
 					cache_get_field_content_int(i, "LEVEL"),
