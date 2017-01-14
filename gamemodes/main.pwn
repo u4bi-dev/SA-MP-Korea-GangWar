@@ -77,6 +77,8 @@
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
+#define RELEASED(%0) \
+	(((newkeys & (%0)) != (%0)) && ((oldkeys & (%0)) == (%0)))
 
 new FALSE = false;
 #define formatMsg(%0,%1,%2)\
@@ -336,11 +338,12 @@ public OnPlayerStateChange(playerid, newstate, oldstate){
 }
 
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
-
+    if(!isBike(GetPlayerVehicleID(playerid)) && PRESSED(KEY_FIRE) && GetPlayerState(playerid)==PLAYER_STATE_DRIVER)AddVehicleComponent(GetPlayerVehicleID(playerid),1010);
+    if(RELEASED(KEY_FIRE) && GetPlayerState(playerid)==PLAYER_STATE_DRIVER)RemoveVehicleComponent(GetPlayerVehicleID(playerid),1010);
+    
     if(newkeys == 160 && GetPlayerWeapon(playerid) == 0 && !IsPlayerInAnyVehicle(playerid)){
         sync(playerid);
 	}
-    
 	if(PRESSED(KEY_YES)){
 		if(INGAME[playerid][INVITE_CLANID]){
             clanJoin(playerid, INGAME[playerid][INVITE_CLANID]);
@@ -957,6 +960,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
     }
     if(!strcmp("/carbuy", cmdtext)){
         if(!IsPlayerInAnyVehicle(playerid))return 1;
+        if(!strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return 1;
         if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,"    차량을 구매할 자금이 부족합니다. (입찰가 : 30000원)");
         
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
@@ -1540,8 +1544,10 @@ stock showZone(playerid){
 
 stock vehicleBuy(playerid, vehicleid){
     new query[400],sql[400];
+    new model = GetVehicleModel(vehicleid);
+    
     format(VEHICLE[vehicleid][NAME], 24, "%s",USER[playerid][NAME]);
-    formatMsg(playerid, COL_SYS, "    당신은 [%d]번 차량을 구매하였습니다.", vehicleid);
+    formatMsg(playerid, COL_SYS, "    당신은 [%s] 차량을 구매하였습니다.", vehicleName[model - 400]);
     
 	strcat(sql, "UPDATE `vehicle_info`");
 	strcat(sql, " SET NAME = '%s' WHERE ID = %d");
@@ -2169,7 +2175,11 @@ stock isClanHangul(playerid, str[]){
     }
     return 0;
 }
-
+stock isBike(vehicleid){
+	new bikeModel[13] ={522,481,441,468,448,446,513,521,510,430,520,476,463};
+    for(new i = 0; i < 13; i++)if(GetVehicleModel(vehicleid) == bikeModel[i]) return 1;
+    return 0;
+}
 stock randomColor(){
 	new code[3];
     for(new i=0; i < sizeof(code); i++)code[i] = random(256);
