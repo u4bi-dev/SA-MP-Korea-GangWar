@@ -40,10 +40,14 @@
 #define DL_SHOP_NAME_EDIT                 10540
 
 #define DL_NOTICE_SEASON                  1060
+
 #define DL_MYWEP_SETUP                    1070
 #define DL_MYWEP_SETUP_OPTION             1071
 #define DL_MYWEP_SETUP_HOLD               1072
 #define DL_MYWEP_SETUP_PUT                1073
+
+#define DL_MYCAR_SETUP                    1080
+#define DL_MYCAR_SETUP_SPAWN              1081
 
 #define COL_SYS  0xAFAFAF99
 #define DIALOG_TITLE "{8D8DFF}샘프워코리아"
@@ -147,6 +151,11 @@ enum WEPBAG_MODEL{
 }
 new WEPBAG[MAX_PLAYERS][USED_WEAPON][WEPBAG_MODEL];
 
+enum CARBAG_MODEL{
+	ID
+}
+new CARBAG[MAX_PLAYERS][USED_WEAPON][CARBAG_MODEL];
+
 enum VEHICLE_MODEL{
  	ID,
 	NAME[MAX_PLAYER_NAME],
@@ -198,6 +207,7 @@ enum INGAME_MODEL{
 	HOLD_WEPID,
 	HOLD_WEPLIST,
     WEPBAG_INDEX,
+    HOLD_CARID,
     EDIT_NAME,
 	COMBO,
     bool:SYNC,
@@ -353,6 +363,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MYWEP_SETUP : return showDialog(playerid, DL_MYWEP);
 			case DL_MYWEP_SETUP_OPTION : return showDialog(playerid, DL_MYWEP_SETUP);
 			case DL_MYWEP_SETUP_HOLD, DL_MYWEP_SETUP_PUT: return showDialog(playerid, DL_MYWEP_SETUP_OPTION);
+			case DL_MYCAR_SETUP : return showDialog(playerid, DL_MYCAR);
+			case DL_MYCAR_SETUP_SPAWN : return showDialog(playerid, DL_MYCAR_SETUP);
 		}
 	}
 	
@@ -414,7 +426,10 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_MYWEP_SETUP_OPTION : setWepOption(playerid,listitem);
 		case DL_MYWEP_SETUP_HOLD   : holdWep(playerid);
 		case DL_MYWEP_SETUP_PUT    : putWep(playerid);
-        
+
+		/* MYCAR SETUP */
+		case DL_MYCAR_SETUP        : setCar(playerid,listitem);
+		case DL_MYCAR_SETUP_SPAWN  : spawnCar(playerid);
     }
     return 1;
 }
@@ -468,7 +483,8 @@ stock mywep(playerid,listitem){
     return 0;
 }
 stock mycar(playerid,listitem){
-    formatMsg(playerid, COL_SYS, "내 차량 %d - %d",playerid, listitem);
+    INGAME[playerid][HOLD_CARID] = CARBAG[playerid][listitem][ID];
+    showDialog(playerid, DL_MYCAR_SETUP);
     return 0;
 }
 /* CLAN
@@ -565,7 +581,7 @@ stock clanInsertColorChoice(playerid, inputtext[]){
 stock clanInsertSuccess(playerid){
     if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
     
-	formatMsg(playerid, COL_SYS, "    당신은 [{%06x}%s{AFAFAF}]클랜을 창설하였습니다. (차감액 : 20000원)", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
+	formatMsg(playerid, COL_SYS, "    당신은 [{%06x}%s{AFAFAF}]클랜을 창설하였습니다.", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
     giveMoney(playerid, -20000);
 	
 	new query[400],sql[400];
@@ -720,7 +736,7 @@ stock shopWeaponBuy(playerid){
    @ shopSkinBuy(playerid)
 */
 stock shopSkinBuy(playerid){
-    formatMsg(playerid, COL_SYS, "    당신은 %d번 스킨을 구매하였습니다. (차감액 : 5000원)",INGAME[playerid][BUY_SKINID]);
+    formatMsg(playerid, COL_SYS, "    당신은 %d번 스킨을 구매하였습니다.",INGAME[playerid][BUY_SKINID]);
     giveMoney(playerid, -5000);
 
     USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
@@ -735,7 +751,7 @@ stock shopSkinBuy(playerid){
    @ shopNameEdit(playerid)
 */
 stock shopNameEdit(playerid){
-    formatMsg(playerid, COL_SYS, "    당신은 %s로 닉네임을 변경하였습니다. (차감액 : 20000원)",INGAME[playerid][EDIT_NAME]);
+    formatMsg(playerid, COL_SYS, "    당신은 %s로 닉네임을 변경하였습니다.",INGAME[playerid][EDIT_NAME]);
     giveMoney(playerid, -20000);
 
 	new query[400];
@@ -810,6 +826,36 @@ stock putWep(playerid){
     save(playerid);
     showDialog(playerid, DL_MYWEP_SETUP);
     return 0;
+}
+
+/* MYCAR SETUP
+   @ setCar(playerid, listitem)
+   @ spawnCar(playerid)
+*/
+stock setCar(playerid, listitem){
+	switch(listitem){
+		case 0 :{
+            if(IsPlayerInAnyVehicle(playerid)) return SendClientMessage(playerid,COL_SYS,"    차량에 탑승하신 상태에서는 소환이 불가능합니다.");
+            if(USER[playerid][MONEY] < 2000) return SendClientMessage(playerid,COL_SYS,"    차량을 소환할 자금이 부족합니다. (가액 : 5000원)");
+            showDialog(playerid, DL_MYCAR_SETUP_SPAWN);
+		}
+	}
+    return 0;
+}
+stock spawnCar(playerid){
+    new vehicleid = INGAME[playerid][HOLD_CARID];
+	new model = GetVehicleModel(vehicleid);
+	
+	GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
+	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+    
+    SetVehiclePos(vehicleid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+    SetVehicleZAngle(vehicleid, USER[playerid][ANGLE]);
+    PutPlayerInVehicle(playerid, vehicleid, 0);
+	
+	vehicleSave(vehicleid);
+	formatMsg(playerid, COL_SYS, "    [%s] 차량을 자신의 앞으로 소환합니다.", vehicleName[model - 400]);
+    giveMoney(playerid,-2000);
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -1564,6 +1610,7 @@ stock event(playerid){
 stock giveMoney(playerid,money){
     ResetPlayerMoney(playerid);
     GivePlayerMoney(playerid, USER[playerid][MONEY]+=money);
+	formatMsg(playerid, 0xFFFF0099,"%d원",money);
 }
 
 stock death(playerid, killerid, reason){
@@ -1726,8 +1773,10 @@ stock showDialog(playerid, type){
                 new temp[60];
                 
 				new vehicleid = cache_get_field_content_int(i, "ID");
-                new model = GetVehicleModel(vehicleid);
+                CARBAG[playerid][i][ID] = vehicleid;
                 
+                new model = GetVehicleModel(vehicleid);
+
 				format(temp, sizeof(temp), "번호판 : %d번\t\t모델명 : %s\n\n", vehicleid, vehicleName[model - 400]);
                 strcat(str, temp);
 		    }
@@ -1808,7 +1857,7 @@ stock showDialog(playerid, type){
 //        case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜 색상을 지정해주세요.", DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_SUCCESS :{
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t{%06x}%06x{FFFFFF}\n\n위 조건으로 클랜을 창설하시겠습니까?\n(차감액 : 20000원)", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
+            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t{%06x}%06x{FFFFFF}\n\n위 조건으로 클랜을 창설하시겠습니까?\n\n(차감액 : 20000원)", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
             ShowPlayerDialog(playerid, DL_CLAN_INSERT_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 
@@ -1876,12 +1925,12 @@ stock showDialog(playerid, type){
 		}
 		case DL_SHOP_SKIN_BUY : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}스킨 번호 :\t\t%d\n\n해당 스킨을 정말로 구매하시겠습니까?\n(차감액 : 5000원)", INGAME[playerid][BUY_SKINID]);
+            format(str, sizeof(str),"{FFFFFF}스킨 번호 :\t\t%d\n\n해당 스킨을 정말로 구매하시겠습니까?\n\n(차감액 : 5000원)", INGAME[playerid][BUY_SKINID]);
             ShowPlayerDialog(playerid, DL_SHOP_SKIN_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_SHOP_NAME_EDIT : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}변경하실 닉네임 :\t\t%s\n\n해당 닉네임으로 정말로 변경하시겠습니까?\n(차감액 : 20000원)", INGAME[playerid][EDIT_NAME]);
+            format(str, sizeof(str),"{FFFFFF}변경하실 닉네임 :\t\t%s\n\n해당 닉네임으로 정말로 변경하시겠습니까?\n\n(차감액 : 20000원)", INGAME[playerid][EDIT_NAME]);
             ShowPlayerDialog(playerid, DL_SHOP_NAME_EDIT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_NOTICE_SEASON :{
@@ -1950,6 +1999,13 @@ stock showDialog(playerid, type){
             new str[256];
             format(str, sizeof(str),"{FFFFFF}%d번 슬롯 :\t\t%s\n\n선택하신 무기를 정말로 탈착하시겠습니까?\n", INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
 		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP_PUT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
+		case DL_MYCAR_SETUP : ShowPlayerDialog(playerid, DL_MYCAR_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}스폰", DIALOG_ENTER, DIALOG_PREV);
+		case DL_MYCAR_SETUP_SPAWN :{
+	        new str[256];
+            new model = GetVehicleModel(INGAME[playerid][HOLD_CARID]);
+	        format(str, sizeof(str),"{FFFFFF}차량 모델명 :\t\t%s\n\n해당 차량을 정말로 소환하시겠습니까?\n\n(차감액 : 2000원)",vehicleName[model - 400]);
+	        ShowPlayerDialog(playerid, DL_MYCAR_SETUP_SPAWN, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
     }
     return 1;
