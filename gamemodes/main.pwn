@@ -211,7 +211,8 @@ enum INGAME_MODEL{
     EDIT_NAME,
 	COMBO,
     bool:SYNC,
-	EVENT_TICK
+	EVENT_TICK,
+	SEASON
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -685,7 +686,7 @@ stock shopSkin(playerid, inputtext[]){
     new skin = strval(inputtext);
     if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, "    1번부터 299번까지 스킨이 존재합니다.");
     if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, "    CJ 스킨은 규정상 선택하실 수 없습니다.");
-    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,"    스킨을 구매할 자금이 부족합니다. (가액 : 5000원)");
+    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,"    스킨을 구매할 자금이 부족합니다.");
 
     INGAME[playerid][BUY_SKINID] = skin;
 	showDialog(playerid, DL_SHOP_SKIN_BUY);
@@ -696,7 +697,7 @@ stock shopAcc(playerid, listitem){
 }
 
 stock shopName(playerid, inputtext[]){
-    if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    닉네임을 변경할 자금이 부족합니다. (가액 : 20000원)");
+    if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    닉네임을 변경할 자금이 부족합니다.");
 
 	new query[400],row;
     mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `user_info` WHERE `NAME` = '%s' LIMIT 1", inputtext);
@@ -718,6 +719,8 @@ stock shopName(playerid, inputtext[]){
    @ shopWeaponBuy(playerid)
 */
 stock shopWeaponBuy(playerid){
+	if(isBuyWepMoney(INGAME[playerid][BUY_WEAPONID], USER[playerid][MONEY]))return SendClientMessage(playerid,COL_SYS,"    무기를 구매할 자금이 부족합니다.");
+
     formatMsg(playerid, COL_SYS, "    당신은 [%s] 무기를 구매하였습니다.",wepName(INGAME[playerid][BUY_WEAPONID]));
 
 	new query[400];
@@ -730,6 +733,7 @@ stock shopWeaponBuy(playerid){
 	INGAME[playerid][WEPBAG_INDEX] +=1;
     WEPBAG[playerid][INGAME[playerid][WEPBAG_INDEX]-1][MODEL] = INGAME[playerid][BUY_WEAPONID];
     INGAME[playerid][BUY_WEAPONID] = 0;
+    return 0;
 }
 
 /* SHOP SKIN BUY
@@ -774,7 +778,9 @@ stock shopNameEdit(playerid){
     @ noticeSeason(playerid)
 */
 stock noticeSeason(playerid){
-    formatMsg(playerid, COL_SYS, "만남의광장 시즌랭킹 %d",playerid);
+    if(INGAME[playerid][SEASON] == 2) return 0;
+    showDialog(playerid, DL_NOTICE_SEASON);
+    return 0;
 }
 
 /* MYWEP SETUP
@@ -836,7 +842,7 @@ stock setCar(playerid, listitem){
 	switch(listitem){
 		case 0 :{
             if(IsPlayerInAnyVehicle(playerid)) return SendClientMessage(playerid,COL_SYS,"    차량에 탑승하신 상태에서는 소환이 불가능합니다.");
-            if(USER[playerid][MONEY] < 2000) return SendClientMessage(playerid,COL_SYS,"    차량을 소환할 자금이 부족합니다. (가액 : 5000원)");
+            if(USER[playerid][MONEY] < 2000) return SendClientMessage(playerid,COL_SYS,"    차량을 소환할 자금이 부족합니다.");
             showDialog(playerid, DL_MYCAR_SETUP_SPAWN);
 		}
 	}
@@ -1354,6 +1360,7 @@ public ServerThread(){
    @ holdZone(playerid)
    @ isDeagle(playerid)
    @ isEmptyWep(playerid, listitem)
+   @ isBuyWepMoney(weponid, money)
    @ isHoldWep(playerid, model)
    @ isClan(playerid, type)
    @ isClanHangul(playerid, str[])
@@ -1596,8 +1603,6 @@ stock fixPos(playerid){
 
 stock event(playerid){
 	INGAME[playerid][EVENT_TICK] +=1;
-	
-    giveMoney(playerid, 1);
     
     switch(INGAME[playerid][EVENT_TICK]){
 		case 20:{
@@ -1920,7 +1925,7 @@ stock showDialog(playerid, type){
 		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_WEAPON_BUY : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}무기 모델명 :\t\t%s\n\n해당 무기를 정말로 구매하시겠습니까?\n", wepName(INGAME[playerid][BUY_WEAPONID]));
+            format(str, sizeof(str),"{FFFFFF}무기 모델명 :\t\t%s\n\n해당 무기를 정말로 구매하시겠습니까?\n\n(차감액 : %d원)", wepName(INGAME[playerid][BUY_WEAPONID]), wepPrice(INGAME[playerid][BUY_WEAPONID]));
             ShowPlayerDialog(playerid, DL_SHOP_WEAPON_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_SHOP_SKIN_BUY : {
@@ -1935,17 +1940,27 @@ stock showDialog(playerid, type){
 		}
 		case DL_NOTICE_SEASON :{
             new query[400], sql[400], str[1286];
-                
-            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
-            strcat(sql," FROM `user_info` ");
-            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
             
+			switch(INGAME[playerid][SEASON]){
+				case 0:{
+		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
+		            strcat(sql," FROM `user_info` ");
+		            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
+		            strcat(str, "{8D8DFF}\t\t샘프워 레벨 랭킹 - 총 10인{FFFFFF}\n\n");
+	            }
+	            case 1:{
+		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
+		            strcat(sql," FROM `user_info` ");
+		            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
+		            strcat(str, "{8D8DFF}\t\t샘프워 최다킬수 랭킹 - 총 10인{FFFFFF}\n\n");
+	            }
+            }
+            INGAME[playerid][SEASON] +=1;
 			mysql_format(mysql, query, sizeof(query), sql);
 			mysql_query(mysql, query);
 
 			new rows, fields;
 			cache_get_data(rows, fields);
-			strcat(str, "{8D8DFF}\t\t이번 시즌 랭킹 - 총 10인{FFFFFF}\n\n");
 
 		    for(new i=0; i < rows; i++){
                 new temp[128], name[24];
@@ -2000,7 +2015,7 @@ stock showDialog(playerid, type){
             format(str, sizeof(str),"{FFFFFF}%d번 슬롯 :\t\t%s\n\n선택하신 무기를 정말로 탈착하시겠습니까?\n", INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
 		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP_PUT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-		case DL_MYCAR_SETUP : ShowPlayerDialog(playerid, DL_MYCAR_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}스폰", DIALOG_ENTER, DIALOG_PREV);
+		case DL_MYCAR_SETUP : ShowPlayerDialog(playerid, DL_MYCAR_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}소환", DIALOG_ENTER, DIALOG_PREV);
 		case DL_MYCAR_SETUP_SPAWN :{
 	        new str[256];
             new model = GetVehicleModel(INGAME[playerid][HOLD_CARID]);
@@ -2032,13 +2047,17 @@ stock isEmptyWep(playerid, listitem){
 	}
 	return 0;
 }
+stock isBuyWepMoney(weponid, money){
+    if(money < wepPrice(weponid))return 1;
+    return 0;
+}
 
 stock isClan(playerid, type){
 	switch(type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
 		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,"    당신은 클랜에 소속되어 있지 않습니다.");
 		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,"    클랜 리더가 아닙니다.");
-        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    클랜을 창설할 만큼의 자금이 부족합니다. (가액 : 20000원)");
+        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    클랜을 창설할 만큼의 자금이 부족합니다.");
 	}
     return 0;
 }
@@ -2099,6 +2118,24 @@ stock wepName(model){
 		case 34 : format(wep, sizeof(wep), "%s", wepModel[10]);
 	}
 	return wep;
+}
+
+stock wepPrice(model){
+	new price;
+    switch(model){
+        case 24 : price = 10000;
+        case 25 : price = 10000;
+        case 26 : price = 10000;
+        case 27 : price = 10000;
+        case 28 : price = 60000;
+        case 29 : price = 10000;
+        case 30 : price = 10000;
+        case 31 : price = 30000;
+        case 32 : price = 10000;
+        case 33 : price = 10000;
+        case 34 : price = 50000;
+	}
+	return price;
 }
 
 stock syncWep(playerid){
