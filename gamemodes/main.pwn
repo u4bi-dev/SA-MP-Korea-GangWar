@@ -67,6 +67,8 @@
 #define USED_VEHICLE  500
 #define USED_HOUSE    500
 #define USED_CLAN     100
+#define USED_MISSON   3
+#define USED_GARAGE   4
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -97,6 +99,7 @@ forward vehicleSapwn(vehicleid);
 
 /* global variable */
 new missonTick=0;
+new garageTick=0;
 #include "module/resource.pwn"
 
 /* static */
@@ -222,7 +225,15 @@ enum MISSON_MODEL{
 	Float:POS_X,
 	Float:POS_Z
 }
-new MISSON[3][MISSON_MODEL];
+new MISSON[USED_MISSON][MISSON_MODEL];
+
+enum GARAGE_MODEL{
+	NAME[40],
+	Float:POS_Y,
+	Float:POS_X,
+	Float:POS_Z
+}
+new GARAGE[USED_GARAGE][GARAGE_MODEL];
 
 enum CLAN_SETUP_MODEL{
 	NAME[50],
@@ -338,9 +349,8 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
             INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
 		}
 	}
-	if(PRESSED(KEY_SECONDARY_ATTACK)){
-	    searchMissonRange(playerid);
-	}
+	if(PRESSED(KEY_SECONDARY_ATTACK))searchMissonRange(playerid);
+	if(PRESSED(KEY_CROUCH) && IsPlayerInAnyVehicle(playerid))searchGarageRange(playerid);
     return 1;
 }
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
@@ -1187,6 +1197,7 @@ stock spawn(playerid){
 stock mode(){
 	zoneSetup();
 	loadMisson();
+    loadGarage();
 	#include "module/vehicles.pwn"
 	textLabel_init();
 	textDraw_init();
@@ -1353,7 +1364,9 @@ public ServerThread(){
    @ textLabel_init()
    @ textDraw_init();
    @ searchMissonRange(playerid)
+   @ searchGarageRange(playerid)
    @ showMisson(playerid, type)
+   @ showGarage(playerid)
    @ showDialog(playerid, type)
    @ isPlayerZone(playerid, zoneid)
    @ checkZone(playerid)
@@ -1648,17 +1661,31 @@ stock death(playerid, killerid, reason){
 	return 1;
 }
 
+stock loadGarage(){
+    garageInit("남부 주유소",1936.2174,-1774.7317,13.0537);
+    garageInit("카워셔 정비소",2454.6113,-1461.0303,23.7785);
+    garageInit("북부 주유소",1002.5181,-941.1222,41.8907);
+    garageInit("플린트 카운티 주유소",-91.1692,-1169.8002,2.1782);
+}
 stock loadMisson(){
 	missonInit("대한 전쟁 협회",1910.2273,-1714.3197,13.3307);
 	missonInit("카푸치노 상점",1909.9907,-1707.3611,13.3251);
 	missonInit("만남의 광장",1909.9747,-1700.0070,13.3236);
 }
-stock missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z){
+stock missonInit(name[],Float:pos_x,Float:pos_y,Float:pos_z){
 	new num = missonTick++;
-	format(MISSON[num][NAME], 24,"%s",name);
+	format(MISSON[num][NAME], 50,"%s",name);
 	MISSON[num][POS_X]=pos_x;
 	MISSON[num][POS_Y]=pos_y;
 	MISSON[num][POS_Z]=pos_z;
+}
+
+stock garageInit(name[],Float:pos_x,Float:pos_y,Float:pos_z){
+	new num = garageTick++;
+	format(GARAGE[num][NAME], 50,"%s",name);
+	GARAGE[num][POS_X]=pos_x;
+	GARAGE[num][POS_Y]=pos_y;
+	GARAGE[num][POS_Z]=pos_z;
 }
 
 stock object_init(){
@@ -1668,10 +1695,17 @@ stock object_init(){
 }
 
 stock textLabel_init(){
-	for(new a = 0;a<3;a++){
+
+	for(new i = 0;i<USED_GARAGE;i++){
+		new str[60];
+		format(str, sizeof(str),"%s (경적(Caps Lock))",GARAGE[i][NAME]);
+		Create3DTextLabel(str, 0x8D8DFFFF, GARAGE[i][POS_X], GARAGE[i][POS_Y], GARAGE[i][POS_Z], 25.0, 0, 0);
+	}
+	
+	for(new i = 0;i<USED_MISSON;i++){
 		new str[40];
-		format(str, sizeof(str),"%s (F키)",MISSON[a][NAME]);
-		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[a][POS_X], MISSON[a][POS_Y], MISSON[a][POS_Z], 7.0, 0, 0);
+		format(str, sizeof(str),"%s (F키)",MISSON[i][NAME]);
+		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[i][POS_X], MISSON[i][POS_Y], MISSON[i][POS_Z], 7.0, 0, 0);
 	}
 }
 
@@ -1726,11 +1760,21 @@ stock textDraw_init(){
 stock searchMissonRange(playerid){
 	new Float:x,Float:y,Float:z;
 
-	for(new i=0; i < sizeof(MISSON); i++){
+	for(new i=0; i < USED_MISSON; i++){
 	    x=MISSON[i][POS_X];
 	    y=MISSON[i][POS_Y];
 	    z=MISSON[i][POS_Z];
 		if(IsPlayerInRangeOfPoint(playerid,3.0,x,y,z)) showMisson(playerid, i);
+	}
+}
+stock searchGarageRange(playerid){
+	new Float:x,Float:y,Float:z;
+
+	for(new i=0; i < USED_GARAGE; i++){
+	    x=GARAGE[i][POS_X];
+	    y=GARAGE[i][POS_Y];
+	    z=GARAGE[i][POS_Z];
+		if(IsPlayerInRangeOfPoint(playerid,10.0,x,y,z)) showGarage(playerid);
 	}
 }
 stock showMisson(playerid, type){
@@ -1741,6 +1785,10 @@ stock showMisson(playerid, type){
 	}
     ClearAnimations(playerid);
 	return 1;
+}
+
+stock showGarage(playerid){
+	formatMsg(playerid, COL_SYS, "주유소");
 }
 
 stock showDialog(playerid, type){
