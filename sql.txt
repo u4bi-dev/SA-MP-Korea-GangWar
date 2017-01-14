@@ -1,3 +1,10 @@
+drop table user_info;
+drop table clan_info;
+drop table zone_info;
+drop table vehicle_info;
+drop table house_info;
+drop table weapon_info;
+
 CREATE TABLE user_info(
 ID INT PRIMARY KEY AUTO_INCREMENT,
 NAME VARCHAR(24) NOT NULL,
@@ -42,9 +49,12 @@ OWNER_CLAN INT(3) NOT NULL
 CREATE TABLE vehicle_info(
 ID INT PRIMARY KEY AUTO_INCREMENT,
 NAME VARCHAR(24) NOT NULL,
-MODEL INT(3) NOT NULL,
-COLOR1 INT(10) NOT NULL,
-COLOR2 INT(10) NOT NULL
+POS_X DECIMAL (10,5) NOT NULL,
+POS_Y DECIMAL (10,5) NOT NULL,
+POS_Z DECIMAL (10,5) NOT NULL,
+ANGLE DECIMAL (10,5) NOT NULL,
+COLOR1 INT(3) NOT NULL,
+COLOR2 INT(3) NOT NULL
 ) ENGINE=INNODB;
 
 CREATE TABLE house_info(

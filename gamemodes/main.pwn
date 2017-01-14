@@ -85,6 +85,7 @@ forward save(playerid);
 forward load(playerid);
 forward ServerThread();
 forward Float:kdRatio(kill, death);
+forward vehicleSapwn(vehicleid);
 
 /* variable */
 new infoMessege[3][502] = {
@@ -215,7 +216,6 @@ new WEPBAG[MAX_PLAYERS][USED_WEAPON][WEPBAG_MODEL];
 enum VEHICLE_MODEL{
  	ID,
 	NAME[MAX_PLAYER_NAME],
-	MODEL,
  	COLOR1,
  	COLOR2,
 	Float:POS_X,
@@ -307,7 +307,6 @@ static mysql;
 public OnGameModeExit(){return 1;
 }
 public OnGameModeInit(){
-
 	dbcon();
 	data();
     mode();
@@ -348,12 +347,36 @@ public OnPlayerSpawn(playerid){
     return 1;
 }
 
+public OnVehicleSpawn(vehicleid){
+	vehicleSapwn(vehicleid);
+    return 1;
+}
+public OnVehicleDeath(vehicleid, killerid){
+    return 1;
+}
+public OnPlayerExitVehicle(playerid, vehicleid){
+	vehicleSave(vehicleid);
+    SetTimerEx("vehicleSapwn", 1500, false, "i", vehicleid);
+    return 1;
+}
+
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
     return 1;
 }
 
+public OnPlayerStateChange(playerid, newstate, oldstate){
+
+    if(newstate == PLAYER_STATE_DRIVER){
+        new vehicleid = GetPlayerVehicleID(playerid);
+	    if(!strcmp("N", VEHICLE[vehicleid][NAME])) SendClientMessage(playerid,COL_SYS,"    소유자가 없는 차량입니다.");
+	    else formatMsg(playerid, COL_SYS, "    탑승하신 차량은 [%s] 유저분의 소유입니다.", VEHICLE[vehicleid][NAME]);
+	}
+    return 1;
+}
+
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
+
     if(newkeys == 160 && GetPlayerWeapon(playerid) == 0 && !IsPlayerInAnyVehicle(playerid)){
         sync(playerid);
 	}
@@ -610,8 +633,11 @@ stock clanInsertSuccess(playerid){
 	formatMsg(playerid, COL_SYS, "    당신은 [{%06x}%s{AFAFAF}]클랜을 창설하였습니다. (차감액 : 20000원)", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
     giveMoney(playerid, -20000);
 	
-	new query[400];
-	mysql_format(mysql, query, sizeof(query), "INSERT INTO `clan_info` (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`,`ZONE_LENGTH`) VALUES ('%s','%s',0,0,%d,0)",
+	new query[400],sql[400];
+	strcat(sql, "INSERT INTO `clan_info`");
+	strcat(sql, " (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`,`ZONE_LENGTH`)");
+	strcat(sql, " VALUES ('%s','%s',0,0,%d,0)");
+	mysql_format(mysql, query, sizeof(query), sql,
         CLAN_SETUP[playerid][NAME],
         USER[playerid][NAME],
         CLAN_SETUP[playerid][COLOR]
@@ -857,6 +883,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(!INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    로그인후에 사용 가능합니다.");
 
         save(playerid);
+		if(IsPlayerInAnyVehicle(playerid)) vehicleSave(GetPlayerVehicleID(playerid));
+
         SendClientMessage(playerid,COL_SYS,"    저장되었습니다.");
         return 1;
     }
@@ -868,6 +896,26 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		showDialog(playerid, DL_MYWEP);
         return 1;
  	}
+    if(!strcmp("/carinit", cmdtext)){
+	 	vehicleInit();
+        return 1;
+	}
+    if(!strcmp("/zoneinit", cmdtext)){
+        zoneInit();
+	 	return 1;
+ 	}
+    if(!strcmp("/carspawn", cmdtext)){
+        for(new vehicleid=1; vehicleid<=230; vehicleid++){
+            vehicleSapwn(vehicleid);
+        }
+        SendClientMessage(playerid,COL_SYS,"    모든 차량이 스폰되었습니다.");
+		return 1;
+    }
+    if(!strcmp("/carbuy", cmdtext)){
+        if(!IsPlayerInAnyVehicle(playerid))return 1;
+		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
+		return 1;
+    }
     if(!strcmp("/hold", cmdtext)){
         if(isClan(playerid, IS_CLEN_NOT)) return 1;
  	    holdZone(playerid);
@@ -897,6 +945,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 public OnPlayerDisconnect(playerid, reason){
 
     if(INGAME[playerid][LOGIN]) save(playerid);
+    
+    if(IsPlayerInAnyVehicle(playerid)) vehicleSave(GetPlayerVehicleID(playerid));
     
     ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
     CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
@@ -957,8 +1007,16 @@ public check(playerid){
 public regist(playerid, pass[]){
     GetPlayerIp(playerid, USER[playerid][USERIP], 16);
 	format(USER[playerid][PASS],24, "%s",pass);
-	new query[400];
-	mysql_format(mysql, query, sizeof(query), "INSERT INTO `user_info` (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`,`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`,`SKIN`,`WEP1`,`WEP2`,`WEP3`,`INTERIOR`,`WORLD`,`POS_X`,`POS_Y`,`POS_Z`,`ANGLE`,`HP`,`AM`) VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)",
+	new query[400], sql[400];
+    strcat(sql, "INSERT INTO `user_info`");
+    strcat(sql, " (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`");
+    strcat(sql, ",`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`");
+    strcat(sql, ",`SKIN`,`WEP1`,`WEP2`,`WEP3`,`INTERIOR`");
+    strcat(sql, ",`WORLD`,`POS_X`,`POS_Y`,`POS_Z`");
+    strcat(sql, ",`ANGLE`,`HP`,`AM`)");
+    strcat(sql, " VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)");
+    
+	mysql_format(mysql, query, sizeof(query), sql,
 	USER[playerid][NAME], USER[playerid][PASS], USER[playerid][USERIP],
 	USER[playerid][ADMIN] = 0,
 	USER[playerid][CLANID] = 0,
@@ -1233,11 +1291,14 @@ stock vehicle_data(){
 	cache_get_data(rows, fields);
 	
     for(new i=0; i < rows; i++){
-	    VEHICLE[i][ID]           = cache_get_field_content_int(i, "ID");
-		cache_get_field_content(i, "NAME", VEHICLE[i][NAME], mysql, 24);
-	    VEHICLE[i][MODEL]        = cache_get_field_content_int(i, "MODEL");
-	    VEHICLE[i][COLOR1]       = cache_get_field_content_int(i, "COLOR1");
-	    VEHICLE[i][COLOR2]       = cache_get_field_content_int(i, "COLOR2");
+	    VEHICLE[i+1][ID]           = cache_get_field_content_int(i, "ID");
+		cache_get_field_content(i, "NAME", VEHICLE[i+1][NAME], mysql, 24);
+	    VEHICLE[i+1][POS_X]        = cache_get_field_content_float(i, "POS_X");
+	    VEHICLE[i+1][POS_Y]        = cache_get_field_content_float(i, "POS_Y");
+	    VEHICLE[i+1][POS_Z]        = cache_get_field_content_float(i, "POS_Z");
+	    VEHICLE[i+1][ANGLE]        = cache_get_field_content_float(i, "ANGLE");
+	    VEHICLE[i+1][COLOR1]       = cache_get_field_content_int(i, "COLOR1");
+	    VEHICLE[i+1][COLOR2]       = cache_get_field_content_int(i, "COLOR2");
     }
 }
 
@@ -1283,8 +1344,12 @@ public ServerThread(){
 /* stock
    @ zoneInit()
    @ zoneSave(id, owner_clan)
+   @ vehicleInit()
+   @ vehicleSave(vehicleid)
+   @ vehicleSapwn(vehicleid)
    @ zoneSetup()
    @ showZone(playerid)
+   @ vehicleBuy(playerid, carid)
    @ showRank(playerid)
    @ showTextDraw(playerid)
    @ fixPos(playerid)
@@ -1317,7 +1382,25 @@ public ServerThread(){
    @ kdTier(kill, death)
 */
 
-
+stock vehicleInit(){
+	for(new vehicleid=1; vehicleid<=230; vehicleid++){
+	    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
+	    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
+	//	ChangeVehicleColor(vehicleid, 0, 1);
+		new query[400],sql[400];
+		strcat(sql, "INSERT INTO `vehicle_info`");
+		strcat(sql, " (NAME, POS_X, POS_Y, POS_Z, ANGLE, COLOR1, COLOR2)");
+		strcat(sql, " VALUES ('N', %f, %f, %f, %f, 0, 0)");
+	//	USER[playerid][NAME],
+		mysql_format(mysql, query, sizeof(query), sql,
+		VEHICLE[vehicleid][POS_X],
+		VEHICLE[vehicleid][POS_Y],
+		VEHICLE[vehicleid][POS_Z],
+		VEHICLE[vehicleid][ANGLE]
+		);
+		mysql_query(mysql, query);
+	}
+}
 stock zoneInit(){
 	new query[400];
 	for(new i = 0; i < USED_ZONE; i++){
@@ -1331,7 +1414,26 @@ stock zoneSave(id, owner_clan){
     mysql_format(mysql, query, sizeof(query), "UPDATE `zone_info` SET `OWNER_CLAN` = %d WHERE `ID` = %d",owner_clan, id);
     mysql_query(mysql, query);
 }
-
+stock vehicleSave(vehicleid){
+	    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
+	    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
+		new query[400],sql[400];
+		strcat(sql, "UPDATE `vehicle_info`");
+		strcat(sql, " SET POS_X = %f, POS_Y = %f, POS_Z = %f, ANGLE = %f WHERE ID = %d");
+		mysql_format(mysql, query, sizeof(query), sql,
+		VEHICLE[vehicleid][POS_X],
+		VEHICLE[vehicleid][POS_Y],
+		VEHICLE[vehicleid][POS_Z],
+		VEHICLE[vehicleid][ANGLE],
+		vehicleid
+		);
+		mysql_query(mysql, query);
+}
+public vehicleSapwn(vehicleid){
+    SetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
+    SetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
+    ChangeVehicleColor(vehicleid, VEHICLE[vehicleid][COLOR1], VEHICLE[vehicleid][COLOR2]);
+}
 stock zoneSetup(){
 	new pos[4] = { -3000, 2800, -2800, 3000 };
 	new fix = 200, tick = 0;
@@ -1385,7 +1487,20 @@ stock showZone(playerid){
 	return 0;
 }
 
-showRank(playerid){
+stock vehicleBuy(playerid, vehicleid){
+    new query[400],sql[400];
+    format(VEHICLE[vehicleid][NAME], 24, "%s",USER[playerid][NAME]);
+    formatMsg(playerid, COL_SYS, "    당신은 [%d]번 차량을 구매하였습니다.", vehicleid);
+    
+	strcat(sql, "UPDATE `vehicle_info`");
+	strcat(sql, " SET NAME = '%s' WHERE ID = %d");
+	mysql_format(mysql, query, sizeof(query), sql,
+	USER[playerid][NAME],
+    vehicleid
+	);
+	mysql_query(mysql, query);
+}
+stock showRank(playerid){
 	new str[50];
     format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
@@ -1462,20 +1577,26 @@ stock tickZone(playerid){
 }
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
-	new query[400];
-
-    CLAN[ZONE[zoneid][OWNER_CLAN]-1][ZONE_LENGTH] -=1;
-	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[ZONE[zoneid][OWNER_CLAN]-1][ZONE_LENGTH], ZONE[zoneid][OWNER_CLAN]-1);
-	mysql_query(mysql, query);
+    if(ZONE[zoneid][OWNER_CLAN] == USER[playerid][CLANID]) return 0;
+    new zoneOwner;
+    new query[400];
+    
+    if(ZONE[zoneid][OWNER_CLAN] == -1)zoneOwner = ZONE[zoneid][OWNER_CLAN]+1;
+	else zoneOwner = ZONE[zoneid][OWNER_CLAN]-1;
+	
+	if(ZONE[zoneid][OWNER_CLAN] != -1){
+        CLAN[zoneOwner][ZONE_LENGTH] -=1;
+        mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[zoneOwner][ZONE_LENGTH], zoneOwner);
+        mysql_query(mysql, query);
+	}
 	
     CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH] +=1;
-	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH], USER[playerid][CLANID]-1);
-	mysql_query(mysql, query);
-    
+    mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH], USER[playerid][CLANID]);
+    mysql_query(mysql, query);
+
 	ZONE[zoneid][OWNER_CLAN] = USER[playerid][CLANID];
     GangZoneShowForAll(ZONE[zoneid][ID], CLAN[USER[playerid][CLANID]-1][COLOR]);
 
-	formatMsg(playerid, COL_SYS, "%d번 존 - %d번 클랜 - 유저 이름 : %s",zoneid, ZONE[zoneid][OWNER_CLAN], USER[playerid][NAME]);
     zoneSave(zoneid, ZONE[zoneid][OWNER_CLAN]);
 	return 0;
 }
@@ -1651,7 +1772,7 @@ stock showDialog(playerid, type){
         case DL_CLAN_LIST :{
             new query[400], sql[400], str[1286];
 
-            strcat(sql,"SELECT NAME");
+            strcat(sql,"SELECT NAME, LEADER_NAME");
             strcat(sql," FROM `clan_info` ");
             strcat(sql," LIMIT 10");
 
@@ -1663,11 +1784,12 @@ stock showDialog(playerid, type){
 			strcat(str, "{8D8DFF}\t\t클랜 목록{FFFFFF}\n\n");
 
 		    for(new i=0; i < rows; i++){
-                new temp[128], name[24];
+                new temp[128], name[24], leader[24];
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
+				cache_get_field_content(i, "LEADER_NAME", leader, mysql, 24);
 
-				format(temp, sizeof(temp), "클랜이름 \t\t %s\n\n", name);
+				format(temp, sizeof(temp), "클랜이름 \t\t %s\t\t 마스터 : %s\n\n", name, leader);
                 strcat(str, temp);
 		    }
 		    
@@ -1676,9 +1798,9 @@ stock showDialog(playerid, type){
         case DL_CLAN_RANK :{
             new query[400], sql[400], str[1286];
 
-            strcat(sql,"SELECT NAME");
+            strcat(sql,"SELECT NAME, ZONE_LENGTH");
             strcat(sql," FROM `clan_info` ");
-            strcat(sql," LIMIT 10");
+            strcat(sql," ORDER BY ZONE_LENGTH DESC LIMIT 10");
 
 			mysql_format(mysql, query, sizeof(query), sql);
 			mysql_query(mysql, query);
@@ -1692,7 +1814,7 @@ stock showDialog(playerid, type){
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "%d위 클랜이름 \t %s\n\n", i+1, name);
+				format(temp, sizeof(temp), "%d위 \t %s\t\t총 점령구역 : %d\n\n", i+1, name, cache_get_field_content_int(i, "ZONE_LENGTH"));
                 strcat(str, temp);
 		    }
 		    
