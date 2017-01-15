@@ -26,10 +26,14 @@
 
 #define DL_CLAN_SETUP_INVITE              10430
 #define DL_CLAN_SETUP_MEMBER              10431
+#define DL_CLAN_SETUP_SKIN                10432
 
 #define DL_CLAN_SETUP_MEMBER_SETUP        104310
 #define DL_CLAN_SETUP_MEMBER_SETUP_RANK   104311
 #define DL_CLAN_SETUP_MEMBER_SETUP_KICK   104312
+
+#define DL_CLAN_SETUP_SKIN_SETUP          104320
+#define DL_CLAN_SETUP_SKIN_UPDATE         104321
 
 #define DL_SHOP_WEAPON                    1050
 #define DL_SHOP_SKIN                      1051
@@ -201,6 +205,7 @@ enum CLAN_MODEL{
  	DEATHS,
     COLOR,
     ZONE_LENGTH,
+    SKIN
 }
 new CLAN[USED_CLAN][CLAN_MODEL];
 
@@ -335,8 +340,8 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
         CreateExplosion(pos[0], pos[1], pos[2], 16, 32.0);
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
 
-		SetPlayerHealth(playerid, USER[playerid][HP]);
-		SetPlayerArmour(playerid, USER[playerid][AM]);
+		SetPlayerHealth(playerid, 100);
+		SetPlayerArmour(playerid, 100);
 	    GetPlayerHealth(playerid, USER[playerid][HP]);
 	    GetPlayerArmour(playerid, USER[playerid][AM]);
     }
@@ -406,6 +411,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MYCAR_SETUP : return showDialog(playerid, DL_MYCAR);
 			case DL_MYCAR_SETUP_SPAWN : return showDialog(playerid, DL_MYCAR_SETUP);
 			case DL_GARAGE_REPAIR, DL_GARAGE_PAINT, DL_GARAGE_TURNING : return showDialog(playerid, DL_GARAGE);
+			case DL_CLAN_SETUP_SKIN_SETUP, DL_CLAN_SETUP_SKIN_UPDATE : return showDialog(playerid, DL_CLAN_SETUP_SKIN);
 		}
 	}
 	
@@ -439,11 +445,16 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         /* CLAN SETUP */
         case DL_CLAN_SETUP_INVITE : clanInvite(playerid, inputtext);
         case DL_CLAN_SETUP_MEMBER : clanMember(playerid, listitem);
+        case DL_CLAN_SETUP_SKIN : clanSkin(playerid,listitem);
         
         /* CLAN MEMBER SETUP */
         case DL_CLAN_SETUP_MEMBER_SETUP      : clanMemberSetup(playerid,listitem);
 		case DL_CLAN_SETUP_MEMBER_SETUP_RANK : clanMemberRank(playerid,listitem);
 		case DL_CLAN_SETUP_MEMBER_SETUP_KICK : clanMemberKick(playerid);
+		
+		/* CLAN SKIN */
+		case DL_CLAN_SETUP_SKIN_SETUP        : clanSkinSetup(playerid, inputtext);
+		case DL_CLAN_SETUP_SKIN_UPDATE       : clanSkinUpdate(playerid);
 		
 		/* SHOP */
 		case DL_SHOP_WEAPON : shopWeapon(playerid, listitem);
@@ -581,6 +592,7 @@ stock clanSetup(playerid, listitem){
 	switch(listitem){
         case 0 : showDialog(playerid, DL_CLAN_SETUP_INVITE);
         case 1 : showDialog(playerid, DL_CLAN_SETUP_MEMBER);
+        case 2 : showDialog(playerid, DL_CLAN_SETUP_SKIN);
 	}
 	return 0;
 }
@@ -642,8 +654,8 @@ stock clanInsertSuccess(playerid){
 	
 	new query[400],sql[400];
 	strcat(sql, "INSERT INTO `clan_info`");
-	strcat(sql, " (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`,`ZONE_LENGTH`)");
-	strcat(sql, " VALUES ('%s','%s',0,0,%d,0)");
+	strcat(sql, " (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`,`ZONE_LENGTH`,`SKIN`)");
+	strcat(sql, " VALUES ('%s','%s',0,0,%d,0,0)");
 	mysql_format(mysql, query, sizeof(query), sql,
         CLAN_SETUP[playerid][NAME],
         USER[playerid][NAME],
@@ -665,6 +677,7 @@ stock clanInsertSuccess(playerid){
 /* CLAN SETUP
    @ clanInvite(playerid, inputtext)
    @ clanMember(playerid, listitem)
+   @ clanSkin(playerid,listitem)
 */
 stock clanInvite(playerid, inputtext[]){
     new user = getPlayerId(inputtext);
@@ -684,6 +697,13 @@ stock clanMember(playerid, listitem){
 	formatMsg(playerid, COL_SYS, "클랜 멤버 %d - %d",playerid, listitem);
 }
 
+stock clanSkin(playerid, listitem){
+	switch(listitem){
+        case 0 : showDialog(playerid, DL_CLAN_SETUP_SKIN_SETUP);
+        case 1 : showDialog(playerid, DL_CLAN_SETUP_SKIN_UPDATE);
+	}
+	formatMsg(playerid, COL_SYS, "클랜 스킨 %d - %d",playerid, listitem);
+}
 /* CLAN MEMBER SETUP
    @ clanMemberSetup(playerid, listitem);
    @ clanMemberRank(playerid, listitem);
@@ -703,6 +723,29 @@ stock clanMemberKick(playerid){
 	formatMsg(playerid, COL_SYS, "클랜원 강제추방 %d",playerid);
 }
 
+/* CLAN MEMBER SETUP
+   @ clanSkinSetup(playerid, inputtext)
+   @ clanSkinUpdate(playerid)
+*/
+stock clanSkinSetup(playerid, inputtext[]){
+    new skin = strval(inputtext);
+    if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, SKIN_MAX_299);
+    if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, SKIN_NOT_CJ);
+    CLAN[USER[playerid][CLANID]-1][SKIN] = skin;
+
+    new query[400];
+	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `SKIN` = %d WHERE `CLANID` = %d", skin, USER[playerid][CLANID]);
+	mysql_query(mysql, query);
+	
+    formatMsg(playerid, COL_SYS, "클랜 대표스킨이 [%d]번 스킨으로 변경되었습니다.",CLAN[USER[playerid][CLANID]-1][SKIN]);
+    return 0;
+}
+stock clanSkinUpdate(playerid){
+    if(CLAN[USER[playerid][CLANID]-1][SKIN] == 0) return SendClientMessage(playerid, COL_SYS, "현재 설정된 클랜 대표스킨이 없습니다.");
+    formatMsg(playerid, COL_SYS, "클랜 대표스킨으로 변경되었습니다. (%d번 스킨)", CLAN[USER[playerid][CLANID]-1][SKIN]);
+    SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
+	return 0;
+}
 /* SHOP
 	@ shopWeapon(playerid, listitem)
 	@ shopSkin(playerid, inputtext)
@@ -2080,6 +2123,9 @@ stock showDialog(playerid, type){
             if(isClan(playerid, IS_CLEN_LEADER)) return 0;
 		    ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_INVITE_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		}
+        case DL_CLAN_SETUP_SKIN : ShowPlayerDialog(playerid, DL_CLAN_SETUP_SKIN, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_DL_SKIN, DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_SKIN_SETUP   : ShowPlayerDialog(playerid, DL_CLAN_SETUP_SKIN_SETUP, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_MEMBER_SKIN_SETUP, DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_SKIN_UPDATE : ShowPlayerDialog(playerid, DL_CLAN_SETUP_SKIN_UPDATE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, CLAN_MEMBER_SKIN_UPDATE, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER :{
 			new query[400], sql[400], str[256];
 			
@@ -2117,7 +2163,6 @@ stock showDialog(playerid, type){
 		}
         case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_SETUP_RANK, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, CLAN_MEMBER_SETUP_KICK, DIALOG_ENTER, DIALOG_PREV);
-
 		case DL_SHOP_WEAPON :{
 			new str[256];
 			strcat(str, "{FFFFFF}");
