@@ -69,7 +69,7 @@
 #define USED_ZONE     932
 #define USED_TEXTDRAW 200
 #define USED_WEAPON   11
-#define USED_VEHICLE  500
+#define USED_VEHICLE  230
 #define USED_HOUSE    500
 #define USED_CLAN     100
 #define USED_MISSON   3
@@ -108,6 +108,7 @@ forward vehicleSapwn(vehicleid);
 new missonTick=0;
 new garageTick=0;
 #include "module/resource.pwn"
+#include "module/sql.pwn"
 
 /* static */
 static mysql;
@@ -265,12 +266,12 @@ new TDraw[MAX_PLAYERS][TDraw_MODEL];
 public OnGameModeExit(){return 1;
 }
 public OnGameModeInit(){
+	#include "module/vehicles.pwn"
 	dbcon();
 	data();
     mode();
 	server();
 	thread();
-	
     for(new vehicleid=1; vehicleid<=230; vehicleid++){
         vehicleSapwn(vehicleid);
     }
@@ -1246,7 +1247,6 @@ stock mode(){
 	zoneSetup();
 	loadMisson();
     loadGarage();
-	#include "module/vehicles.pwn"
 	textLabel_init();
 	textDraw_init();
 	object_init();
@@ -1288,6 +1288,7 @@ stock data(){
 	vehicle_data();
 	zone_data();
 	clan_data();
+	weapon_data();
 }
 stock cleaning(playerid){
     new
@@ -1309,12 +1310,20 @@ stock cleaning(playerid){
    @ vehicle_data()
    @ clan_data()
    @ zone_data()
+   @ weapon_data()
 */
 stock house_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `house_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("집 DB 정상");
+	else{
+        print("집 DB 에러 테이블 생성 리로드");
+        mysql_format(mysql, query, sizeof(query), SQL_HOUSE_TABLE);
+        mysql_query(mysql, query);
+        house_data();
+        return 0;
+	}
 
 	new rows, fields;
 	cache_get_data(rows, fields);
@@ -1330,14 +1339,21 @@ stock house_data(){
         HOUSE[i][LEAVE_POS_Y]   = cache_get_field_content_float(i, "LEAVE_POS_Y");
         HOUSE[i][LEAVE_POS_Z]   = cache_get_field_content_float(i, "LEAVE_POS_Z");
     }
-	
-
+    return 0;
 }
 stock vehicle_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `vehicle_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("차량 DB 정상");
+	else{
+        print("차량 DB 에러 테이블 생성 리로드");
+        mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_TABLE);
+        mysql_query(mysql, query);
+        vehicleInit();
+        vehicle_data();
+        return 0;
+	}
 	new rows, fields;
 	cache_get_data(rows, fields);
 	
@@ -1351,6 +1367,7 @@ stock vehicle_data(){
 	    VEHICLE[i+1][COLOR1]       = cache_get_field_content_int(i, "COLOR1");
 	    VEHICLE[i+1][COLOR2]       = cache_get_field_content_int(i, "COLOR2");
     }
+    return 0;
 }
 
 stock clan_data(){
@@ -1358,6 +1375,13 @@ stock clan_data(){
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `clan_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("클랜 DB 정상");
+	else{
+        print("클랜 DB 에러 테이블 생성 리로드");
+        mysql_format(mysql, query, sizeof(query), SQL_CLAN_TABLE);
+        mysql_query(mysql, query);
+        clan_data();
+        return 0;
+	}
 	new rows, fields;
 	cache_get_data(rows, fields);
 	
@@ -1370,17 +1394,39 @@ stock clan_data(){
 	    CLAN[i][COLOR]          = cache_get_field_content_int(i, "COLOR");
 	    CLAN[i][ZONE_LENGTH]    = cache_get_field_content_int(i, "ZONE_LENGTH");
     }
+	return 0;
 }
 stock zone_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `zone_info`");
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("갱존 DB 정상");
+	else{
+        print("갱존 DB 에러 테이블 생성 리로드");
+        mysql_format(mysql, query, sizeof(query), SQL_ZONE_TABLE);
+        mysql_query(mysql, query);
+        zone_data();
+        zoneInit();
+        return 0;
+	}
 	new rows, fields;
 	cache_get_data(rows, fields);
 	
     for(new i=0; i < rows; i++){
         ZONE[i][OWNER_CLAN] = cache_get_field_content_int(i, "OWNER_CLAN");
+    }
+	return 0;
+}
+
+stock weapon_data(){
+    new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `weapon_info`");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("총기 DB 정상");
+	else{
+      mysql_format(mysql, query, sizeof(query), SQL_WEAPON_TABLE);
+      mysql_query(mysql, query);
+      weapon_data();
     }
 }
 
@@ -1438,7 +1484,8 @@ public ServerThread(){
 */
 
 stock vehicleInit(){
-	for(new vehicleid=1; vehicleid<=230; vehicleid++){
+	printf("차량 데이터 초기화 실행");
+	for(new vehicleid=1; vehicleid<USED_VEHICLE; vehicleid++){
 	    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
 	    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
 		new query[400],sql[400];
@@ -1452,13 +1499,16 @@ stock vehicleInit(){
 		VEHICLE[vehicleid][ANGLE]
 		);
 		mysql_query(mysql, query);
+		printf("%d/%d",vehicleid,USED_VEHICLE);
 	}
 }
 stock zoneInit(){
 	new query[400];
+	printf("갱존 데이터 초기화 실행");
 	for(new i = 0; i < USED_ZONE; i++){
 	    mysql_format(mysql, query, sizeof(query), "INSERT INTO `zone_info` (OWNER_CLAN) VALUES (%d)",-1);
         mysql_query(mysql, query);
+        printf("%d/%d",i,USED_ZONE);
 	}
 }
 
@@ -1617,7 +1667,6 @@ stock checkZone(playerid){
             CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
 			
             INGAME[playerid][ENTER_ZONE] = z;
-
 			INGAME[playerid][ZONE_TICK] = 0;
         }
 	}
