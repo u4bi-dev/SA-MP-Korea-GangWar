@@ -55,9 +55,6 @@
 #define DL_GARAGE_TURNING                 1092
 
 #define COL_SYS  0xAFAFAF99
-#define DIALOG_TITLE "{8D8DFF}샘프워코리아"
-#define DIALOG_ENTER "확인"
-#define DIALOG_PREV "뒤로"
 
 /* IS CHECK */
 #define IS_CLEN_HAVE          500
@@ -107,6 +104,7 @@ forward vehicleSapwn(vehicleid);
 /* global variable */
 new missonTick=0;
 new garageTick=0;
+#include "module/language/korea.pwn"
 #include "module/resource.pwn"
 #include "module/sql.pwn"
 
@@ -184,6 +182,8 @@ enum HOUSE_MODEL{
  	ID,
  	NAME[MAX_PLAYER_NAME],
  	OPEN,
+	INTERIOR,
+	WORLD,
 	Float:ENTER_POS_X,
 	Float:ENTER_POS_Y,
 	Float:ENTER_POS_Z,
@@ -284,7 +284,7 @@ public OnPlayerText(playerid, text[]){
 	        if(USER[i][CLANID] == USER[playerid][CLANID]){
                 new str[256];
                 strmid(str, text, 1, strlen(text));
-	            formatMsg(i, 0x7FFF00FF,"(클랜채팅) %s : %s", USER[playerid][NAME], str);
+	            formatMsg(i, 0x7FFF00FF,CLAN_CHAT, USER[playerid][NAME], str);
 	        }
         }
         return 0;
@@ -296,7 +296,7 @@ public OnPlayerText(playerid, text[]){
 }
 public OnPlayerRequestClass(playerid, classid){
 
-    if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    이미 로그인 하셨습니다.");
+    if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,ALREADY_LOGIN);
 
     join(playerid, check(playerid));
     showZone(playerid);
@@ -305,7 +305,7 @@ public OnPlayerRequestClass(playerid, classid){
     return 1;
 }
 public OnPlayerSpawn(playerid){
-    if(!isDeagle(playerid) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500),SendClientMessage(playerid,COL_SYS,"    레벨 10까지 데져트이글이 제공됩니다.");
+    if(!isDeagle(playerid) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500),SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
     
     return 1;
 }
@@ -332,8 +332,8 @@ public OnPlayerStateChange(playerid, newstate, oldstate){
 
     if(newstate == PLAYER_STATE_DRIVER){
         new vehicleid = GetPlayerVehicleID(playerid);
-	    if(!strcmp("N", VEHICLE[vehicleid][NAME])) SendClientMessage(playerid,COL_SYS,"    소유자가 없는 차량입니다.");
-	    else formatMsg(playerid, COL_SYS, "    탑승하신 차량은 [%s] 유저분의 소유입니다.", VEHICLE[vehicleid][NAME]);
+	    if(!strcmp("N", VEHICLE[vehicleid][NAME])) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
+	    else formatMsg(playerid, COL_SYS, IN_CAR_WHO_OWNER, VEHICLE[vehicleid][NAME]);
 	}
     return 1;
 }
@@ -348,16 +348,16 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
 	if(PRESSED(KEY_YES)){
 		if(INGAME[playerid][INVITE_CLANID]){
             clanJoin(playerid, INGAME[playerid][INVITE_CLANID]);
-            formatMsg(playerid, COL_SYS, "    당신은  [{%06x}%s{AFAFAF}] 클랜의 멤버가 되었습니다.",CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][COLOR] >>> 8 , CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
-            formatMsg(INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID], COL_SYS, "    %s님이 당신의 클랜 가입 권유를 승낙하였습니다.",USER[playerid][NAME]);
+            formatMsg(playerid, COL_SYS, CLAN_INVITE_YES,CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][COLOR] >>> 8 , CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
+            formatMsg(INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID], COL_SYS, CLAN_INVITE_YES_CALL,USER[playerid][NAME]);
             INGAME[playerid][INVITE_CLANID] = 0;
             INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
 		}
 	}
 	if(PRESSED(KEY_NO)){
 		if(INGAME[playerid][INVITE_CLANID]){
-            formatMsg(playerid, COL_SYS, "    당신은 [%s] 클랜의 가입 권유를 거부하였습니다.", CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
-            formatMsg(INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID], COL_SYS, "    %s님이 당신의 클랜 가입 권유를 거부하였습니다.",USER[playerid][NAME]);
+            formatMsg(playerid, COL_SYS, CLAN_INVITE_NOT, CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
+            formatMsg(INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID], COL_SYS, CLAN_INVITE_NOT_CALL,USER[playerid][NAME]);
 		    INGAME[playerid][INVITE_CLANID] = 0;
             INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
 		}
@@ -476,12 +476,12 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 stock info(playerid, listitem){
 	new result[502], clanName[50];
 	
-	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), "미소속");
+	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
 	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
 	else format(result,sizeof(result), infoMessege[listitem]);
-	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, "닫기", "");
+	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
 }
 
 stock clan(playerid,listitem){
@@ -547,7 +547,7 @@ stock clanInsert(playerid, inputtext[]){
     
     row = cache_num_rows();
 	if(row){
-        formatMsg(playerid, COL_SYS, "    [%s] 클랜은 이미 존재하는 클랜입니다.", CLAN_SETUP[playerid][NAME]);
+        formatMsg(playerid, COL_SYS, ALREADY_CLAN_NAME, CLAN_SETUP[playerid][NAME]);
         showDialog(playerid, DL_CLAN_INSERT);
     }
     else showDialog(playerid, DL_CLAN_INSERT_COLOR);
@@ -569,7 +569,7 @@ stock clanSetup(playerid, listitem){
 	return 0;
 }
 stock clanLeave(playerid){
-    formatMsg(playerid, COL_SYS, "    당신이 소속되어 있던 [%s] 클랜을 탈퇴하였습니다.", CLAN[USER[playerid][CLANID]-1][NAME]);
+    formatMsg(playerid, COL_SYS, YOU_CLAN_LEAVE, CLAN[USER[playerid][CLANID]-1][NAME]);
 	USER[playerid][CLANID] = 0;
 	SetPlayerColor(playerid, 0xE6E6E699);
     save(playerid);
@@ -600,10 +600,11 @@ stock clanInsertColor(playerid, listitem){
             row = cache_num_rows();
             if(row){
                 cache_get_field_content(0, "NAME", field, mysql, 50);
-                formatMsg(playerid, COL_SYS, "    {%06x}%06x{FFFFFF}색상은 [$s] 클랜의 고유 색상으로 지정되어 있습니다.", CLAN_SETUP[playerid][COLOR] , CLAN_SETUP[playerid][COLOR] ,field);
+                formatMsg(playerid, COL_SYS, ALREADY_CLAN_COLOR, CLAN_SETUP[playerid][COLOR] , CLAN_SETUP[playerid][COLOR] ,field);
                 showDialog(playerid, DL_CLAN_INSERT_COLOR);
             }else showDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM);
 		}
+/* HACK : 나중에 컬러 선택하여 설정 가능하게 */
 //		case 1 : showDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE);
 	}
 }
@@ -620,7 +621,7 @@ stock clanInsertColorChoice(playerid, inputtext[]){
 stock clanInsertSuccess(playerid){
     if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
     
-	formatMsg(playerid, COL_SYS, "    당신은 [{%06x}%s{AFAFAF}]클랜을 창설하였습니다.", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
+	formatMsg(playerid, COL_SYS, YOU_CALN_INSERT_SUCCESS, CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
     giveMoney(playerid, -20000);
 	
 	new query[400],sql[400];
@@ -652,11 +653,11 @@ stock clanInsertSuccess(playerid){
 stock clanInvite(playerid, inputtext[]){
     new user = getPlayerId(inputtext);
 
-	if(user < 0 || user > GetMaxPlayers()) return SendClientMessage(playerid,COL_SYS,"    초대하실 유저분의 닉네임을 입력해주세요."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
-    if(!INGAME[user][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    현재 서버에 접속하지 않은 유저 번호입니다."), showDialog(playerid, DL_CLAN_SETUP_INVITE);
+	if(user < 0 || user > GetMaxPlayers()) return SendClientMessage(playerid,COL_SYS,CLAN_INVITE_USER_NAME), showDialog(playerid, DL_CLAN_SETUP_INVITE);
+    if(!INGAME[user][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER), showDialog(playerid, DL_CLAN_SETUP_INVITE);
     if(isClan(user, IS_CLEN_HAVE)) return 0;
-    formatMsg(user, COL_SYS, "    %s님이 당신에게 [{%06x}%s{AFAFAF}] 클랜 가입 권유를 보냈습니다.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
-    formatMsg(user, COL_SYS, "    동의하시면 {8D8DFF}Y키{AFAFAF} 거부하시면 {FF0000}N키{AFAFAF}를 눌러주세요.",USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
+    formatMsg(user, COL_SYS, CLAN_INVITE_REQ,USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
+    formatMsg(user, COL_SYS, CLAN_INVITE_RES,USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
     INGAME[user][INVITE_CLANID] = USER[playerid][CLANID];
     INGAME[user][INVITE_CLAN_REQUEST_MEMBERID] = playerid;
 	return 1;
@@ -664,7 +665,7 @@ stock clanInvite(playerid, inputtext[]){
 
 stock clanMember(playerid, listitem){
 	showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
-	formatMsg(playerid, COL_SYS, "클랜 정보 %d - %d",playerid, listitem);
+	formatMsg(playerid, COL_SYS, "클랜 멤버 %d - %d",playerid, listitem);
 }
 
 /* CLAN MEMBER SETUP
@@ -715,16 +716,16 @@ stock shopWeapon(playerid, listitem){
 
     row = cache_num_rows();
 	if(row){
-        formatMsg(playerid, COL_SYS, "    [%s]를 이미 보유하고 있습니다.", wepModel[listitem]);
+        formatMsg(playerid, COL_SYS, ALREADY_HAVE_WEAPON, wepModel[listitem]);
         showDialog(playerid, DL_SHOP_WEAPON);
     }
     else showDialog(playerid, DL_SHOP_WEAPON_BUY);
 }
 stock shopSkin(playerid, inputtext[]){
     new skin = strval(inputtext);
-    if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, "    1번부터 299번까지 스킨이 존재합니다.");
-    if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, "    CJ 스킨은 규정상 선택하실 수 없습니다.");
-    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,"    스킨을 구매할 자금이 부족합니다.");
+    if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, SKIN_MAX_299);
+    if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, SKIN_NOT_CJ);
+    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,SKIN_BUY_NOT_MONEY);
 
     INGAME[playerid][BUY_SKINID] = skin;
 	showDialog(playerid, DL_SHOP_SKIN_BUY);
@@ -735,7 +736,7 @@ stock shopAcc(playerid, listitem){
 }
 
 stock shopName(playerid, inputtext[]){
-    if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    닉네임을 변경할 자금이 부족합니다.");
+    if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,NAME_EDIT_NOT_MONEY);
 
 	new query[400],row;
     mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `user_info` WHERE `NAME` = '%s' LIMIT 1", inputtext);
@@ -743,7 +744,7 @@ stock shopName(playerid, inputtext[]){
 
     row = cache_num_rows();
 	if(row){
-	    SendClientMessage(playerid,COL_SYS,"    이미 존재하는 닉네임입니다.");
+	    SendClientMessage(playerid,COL_SYS,ALREADY_NAME);
 	    showDialog(playerid, DL_SHOP_NAME);
 	    return 0;
 	}
@@ -757,9 +758,9 @@ stock shopName(playerid, inputtext[]){
    @ shopWeaponBuy(playerid)
 */
 stock shopWeaponBuy(playerid){
-	if(isBuyWepMoney(INGAME[playerid][BUY_WEAPONID], USER[playerid][MONEY]))return SendClientMessage(playerid,COL_SYS,"    무기를 구매할 자금이 부족합니다.");
+	if(isBuyWepMoney(INGAME[playerid][BUY_WEAPONID], USER[playerid][MONEY]))return SendClientMessage(playerid,COL_SYS,WEAPON_BUY_NOT_MONEY);
 
-    formatMsg(playerid, COL_SYS, "    당신은 [%s] 무기를 구매하였습니다.",wepName(INGAME[playerid][BUY_WEAPONID]));
+    formatMsg(playerid, COL_SYS, WEAPON_BUY_SUCCESS,wepName(INGAME[playerid][BUY_WEAPONID]));
 
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "INSERT INTO `weapon_info` (`USER_ID`,`MODEL`) VALUES (%d,%d)",
@@ -778,7 +779,7 @@ stock shopWeaponBuy(playerid){
    @ shopSkinBuy(playerid)
 */
 stock shopSkinBuy(playerid){
-    formatMsg(playerid, COL_SYS, "    당신은 %d번 스킨을 구매하였습니다.",INGAME[playerid][BUY_SKINID]);
+    formatMsg(playerid, COL_SYS, SKIN_BUY_SUCCESS,INGAME[playerid][BUY_SKINID]);
     giveMoney(playerid, -5000);
 
     USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
@@ -793,7 +794,7 @@ stock shopSkinBuy(playerid){
    @ shopNameEdit(playerid)
 */
 stock shopNameEdit(playerid){
-    formatMsg(playerid, COL_SYS, "    당신은 %s로 닉네임을 변경하였습니다.",INGAME[playerid][EDIT_NAME]);
+    formatMsg(playerid, COL_SYS, NAME_EDIT_SUCCESS,INGAME[playerid][EDIT_NAME]);
     giveMoney(playerid, -20000);
 
 	new query[400];
@@ -852,13 +853,13 @@ stock holdWep(playerid){
 	}
 
     syncWep(playerid);
-    formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯에 [%s] 무기를 장착합니다.",INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+    formatMsg(playerid, COL_SYS, WEAPON_HOLD_SUCCESS,INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
     save(playerid);
     showDialog(playerid, DL_MYWEP_SETUP);
     return 0;
 }
 stock putWep(playerid){
-    formatMsg(playerid, COL_SYS, "    주무기 %d번 슬롯의 [%s] 무기를 탈착합니다.",INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+    formatMsg(playerid, COL_SYS, WEAPON_PUT_SUCCESS,INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
 
 	switch(INGAME[playerid][HOLD_WEPLIST]){
         case 0 : USER[playerid][WEP1] = 0;
@@ -879,8 +880,8 @@ stock putWep(playerid){
 stock setCar(playerid, listitem){
 	switch(listitem){
 		case 0 :{
-            if(IsPlayerInAnyVehicle(playerid)) return SendClientMessage(playerid,COL_SYS,"    차량에 탑승하신 상태에서는 소환이 불가능합니다.");
-            if(USER[playerid][MONEY] < 2000) return SendClientMessage(playerid,COL_SYS,"    차량을 소환할 자금이 부족합니다.");
+            if(IsPlayerInAnyVehicle(playerid)) return SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_CAR_SPAWN);
+            if(USER[playerid][MONEY] < 2000) return SendClientMessage(playerid,COL_SYS, CAR_SPAWN_NOT_MONEY);
             showDialog(playerid, DL_MYCAR_SETUP_SPAWN);
 		}
 	}
@@ -898,7 +899,7 @@ stock spawnCar(playerid){
     PutPlayerInVehicle(playerid, vehicleid, 0);
 	
 	vehicleSave(vehicleid);
-	formatMsg(playerid, COL_SYS, "    [%s] 차량을 자신의 앞으로 소환합니다.", vehicleName[model - 400]);
+	formatMsg(playerid, COL_SYS, CAR_SPAWN_SUCCESS, vehicleName[model - 400]);
     giveMoney(playerid,-2000);
 }
 /* GARAGE
@@ -907,12 +908,14 @@ stock spawnCar(playerid){
    @ turnCar(playerid)
 */
 stock repairCar(playerid){
+    if(USER[playerid][MONEY] < 100) return SendClientMessage(playerid,COL_SYS,CAR_REPAIR_NOT_MONEY);
     new vehicleid = GetPlayerVehicleID(playerid);
    	new model = GetVehicleModel(vehicleid);
    	
-	formatMsg(playerid, COL_SYS, "    [%s] 차량을 수리합니다.", vehicleName[model - 400]);
+	formatMsg(playerid, COL_SYS, CAR_REPAIR_SUCCESS, vehicleName[model - 400]);
     RepairVehicle(vehicleid);
     giveMoney(playerid,-100);
+    return 0;
 }
 stock paintCar(playerid){
     formatMsg(playerid, COL_SYS, "주유소 도색 %d",playerid);
@@ -924,12 +927,12 @@ stock turnCar(playerid){
 public OnPlayerCommandText(playerid, cmdtext[]){
     if(!strcmp("/sav", cmdtext)){
 
-        if(!INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,"    로그인후에 사용 가능합니다.");
+        if(!INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS, ONLY_LOGIN_CMD);
 
         save(playerid);
 		if(IsPlayerInAnyVehicle(playerid)) vehicleSave(GetPlayerVehicleID(playerid));
 
-        SendClientMessage(playerid,COL_SYS,"    저장되었습니다.");
+        SendClientMessage(playerid,COL_SYS, LOG_SAVE);
         return 1;
     }
    	if(!strcmp("/help", cmdtext)){
@@ -944,25 +947,10 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		showDialog(playerid, DL_MYCAR);
         return 1;
  	}
-    if(!strcmp("/carinit", cmdtext)){
-	 	vehicleInit();
-        return 1;
-	}
-    if(!strcmp("/zoneinit", cmdtext)){
-        zoneInit();
-	 	return 1;
- 	}
-    if(!strcmp("/carspawn", cmdtext)){
-        for(new vehicleid=1; vehicleid<=230; vehicleid++){
-            vehicleSapwn(vehicleid);
-        }
-        SendClientMessage(playerid,COL_SYS,"    모든 차량이 스폰되었습니다.");
-		return 1;
-    }
     if(!strcmp("/carbuy", cmdtext)){
         if(!IsPlayerInAnyVehicle(playerid))return 1;
         if(!strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return 1;
-        if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,"    차량을 구매할 자금이 부족합니다. (입찰가 : 30000원)");
+        if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,CAR_BUY_NOT_MONEY);
         
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
 		return 1;
@@ -1017,10 +1005,10 @@ public OnPlayerDeath(playerid, killerid, reason){
 */
 stock checked(playerid, password[]){
 
-    if(strlen(password) == 0) return join(playerid, 1), SendClientMessage(playerid,COL_SYS,"    비밀번호를 입력해주세요.");
-    if(strcmp(password, USER[playerid][PASS])) return join(playerid, 1), SendClientMessage(playerid,COL_SYS,"    비밀번호가 틀립니다.");
+    if(strlen(password) == 0) return join(playerid, 1), SendClientMessage(playerid,COL_SYS, TYPE_NOT_PASSWORD);
+    if(strcmp(password, USER[playerid][PASS])) return join(playerid, 1), SendClientMessage(playerid,COL_SYS, YOU_NOT_PASSWORD);
 
-    SendClientMessage(playerid,COL_SYS,"    로그인 하였습니다.");
+    SendClientMessage(playerid,COL_SYS,JOIN_LOGIN);
     INGAME[playerid][LOGIN] = true;
     load(playerid);
     return 1;
@@ -1092,7 +1080,7 @@ public regist(playerid, pass[]){
 
 	USER[playerid][ID] = cache_insert_id();
 
-	SendClientMessage(playerid,COL_SYS,"    회원가입을 하였습니다.");
+	SendClientMessage(playerid,COL_SYS, JOIN_REGIST);
 	INGAME[playerid][LOGIN] = true;
 	spawn(playerid);
 }
@@ -1614,7 +1602,7 @@ stock vehicleBuy(playerid, vehicleid){
     new model = GetVehicleModel(vehicleid);
     
     format(VEHICLE[vehicleid][NAME], 24, "%s",USER[playerid][NAME]);
-    formatMsg(playerid, COL_SYS, "    당신은 [%s] 차량을 구매하였습니다.", vehicleName[model - 400]);
+    formatMsg(playerid, COL_SYS, CAR_BUY_SUCCESS, vehicleName[model - 400]);
     
 	strcat(sql, "UPDATE `vehicle_info`");
 	strcat(sql, " SET NAME = '%s' WHERE ID = %d");
@@ -1763,7 +1751,7 @@ stock event(playerid){
 stock giveMoney(playerid,money){
     ResetPlayerMoney(playerid);
     GivePlayerMoney(playerid, USER[playerid][MONEY]+=money);
-	formatMsg(playerid, COL_SYS,"%d원",money);
+	formatMsg(playerid, COL_SYS,GIVE_CASH,money);
 }
 
 stock death(playerid, killerid, reason){
@@ -1850,13 +1838,13 @@ stock textLabel_init(){
 
 	for(new i = 0;i<USED_GARAGE;i++){
 		new str[60];
-		format(str, sizeof(str),"%s (경적(Caps Lock))",GARAGE[i][NAME]);
+		format(str, sizeof(str),GARAGE_TEXT_LABEL,GARAGE[i][NAME]);
 		Create3DTextLabel(str, 0x8D8DFFFF, GARAGE[i][POS_X], GARAGE[i][POS_Y], GARAGE[i][POS_Z], 25.0, 0, 1);
 	}
 	
 	for(new i = 0;i<USED_MISSON;i++){
 		new str[40];
-		format(str, sizeof(str),"%s (F키)",MISSON[i][NAME]);
+		format(str, sizeof(str),MISSON_TEXT_LABEL,MISSON[i][NAME]);
 		Create3DTextLabel(str, 0x8D8DFFFF, MISSON[i][POS_X], MISSON[i][POS_Y], MISSON[i][POS_Z], 7.0, 0, 1);
 	}
 }
@@ -1931,9 +1919,9 @@ stock searchGarageRange(playerid){
 }
 stock showMisson(playerid, type){
 	switch(type){
-		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 정보\n클랜 탈퇴","확인", "닫기");
-		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}무기\n스킨\n악세사리\n닉네임 변경","확인", "닫기");
-		case 2: ShowPlayerDialog(playerid, DL_MISSON_NOTICE, DIALOG_STYLE_LIST,DIALOG_TITLE,"{FFFFFF}시즌 랭킹","확인", "닫기");
+		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_CALN_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_SHOP_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+		case 2: ShowPlayerDialog(playerid, DL_MISSON_NOTICE, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_NOTICE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 	}
     ClearAnimations(playerid);
 	return 1;
@@ -1946,10 +1934,10 @@ stock showGarage(playerid){
 
 stock showDialog(playerid, type){
     switch(type){
-        case DL_LOGIN : ShowPlayerDialog(playerid, DL_LOGIN, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, "{FFFFFF}로그인을 해주세요", DIALOG_ENTER, "나가기");
-        case DL_REGIST : ShowPlayerDialog(playerid, DL_REGIST, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, "{FFFFFF}회원가입을 해주세요.", DIALOG_ENTER, "나가기");
+        case DL_LOGIN : ShowPlayerDialog(playerid, DL_LOGIN, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, LOGIN_DL_TEXT, DIALOG_ENTER, DIALOG_EXIT);
+        case DL_REGIST : ShowPlayerDialog(playerid, DL_REGIST, DIALOG_STYLE_PASSWORD, DIALOG_TITLE, REGIST_DL_TEXT, DIALOG_ENTER, DIALOG_EXIT);
 
-        case DL_INFO  : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, "서버 규정\n내 프로필\n문의\n", DIALOG_ENTER, DIALOG_PREV);
+        case DL_INFO  : ShowPlayerDialog(playerid, DL_INFO, DIALOG_STYLE_LIST, DIALOG_TITLE, INFO_DL_TEXT, DIALOG_ENTER, DIALOG_PREV);
         case DL_MYWEP :{
             new str[256];
             strcat(str, "{FFFFFF}");
@@ -1983,13 +1971,13 @@ stock showDialog(playerid, type){
                 
                 new model = GetVehicleModel(vehicleid);
 
-				format(temp, sizeof(temp), "번호판 : %d번\t\t모델명 : %s\n\n", vehicleid, vehicleName[model - 400]);
+				format(temp, sizeof(temp), MYCAR_DL_TEXT, vehicleid, vehicleName[model - 400]);
                 strcat(str, temp);
 		    }
 		    
             ShowPlayerDialog(playerid, DL_MYCAR, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-        case DL_GARAGE :ShowPlayerDialog(playerid, DL_GARAGE, DIALOG_STYLE_LIST, DIALOG_TITLE, "수리\n도색\n튜닝", DIALOG_ENTER, DIALOG_PREV);
+        case DL_GARAGE :ShowPlayerDialog(playerid, DL_GARAGE, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TEXT, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_LIST :{
             new query[400], sql[400], str[1286];
 
@@ -2002,14 +1990,14 @@ stock showDialog(playerid, type){
 
 			new rows, fields;
 			cache_get_data(rows, fields);
-			strcat(str, "{8D8DFF}\t\t클랜 목록{FFFFFF}\n\n");
+			strcat(str, CLAN_LIST_DL_TITLE);
 
 		    for(new i=0; i < rows; i++){
                 new temp[128], name[24];
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "클랜이름 \t\t {%06x}%s{FFFFFF}\n\n", CLAN[i][COLOR] >>> 8, name);
+				format(temp, sizeof(temp), CLAN_LIST_DL_CONTENT, CLAN[i][COLOR] >>> 8, name);
                 strcat(str, temp);
 		    }
 		    
@@ -2027,14 +2015,14 @@ stock showDialog(playerid, type){
 
 			new rows, fields;
 			cache_get_data(rows, fields);
-			strcat(str, "{8D8DFF}\t\t클랜 랭킹{FFFFFF}\n\n");
+			strcat(str, CLAN_RANK_DL_TITLE);
 
 		    for(new i=0; i < rows; i++){
                 new temp[128], name[24];
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "%d위 \t 총 점령구역 : %d\t\t{%06x}%s{FFFFFF}\n\n", i+1, cache_get_field_content_int(i, "ZONE_LENGTH"), CLAN[i][COLOR] >>> 8, name);
+				format(temp, sizeof(temp), CLAN_RANK_DL_CONTENT, i+1, cache_get_field_content_int(i, "ZONE_LENGTH"), CLAN[i][COLOR] >>> 8, name);
                 strcat(str, temp);
 		    }
 		    
@@ -2043,34 +2031,34 @@ stock showDialog(playerid, type){
         case DL_CLAN_SETUP :{
             if(isClan(playerid, IS_CLEN_NOT)) return 0;
             
-		    ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}클랜원 초대\n클랜원 목록", DIALOG_ENTER, DIALOG_PREV);
+		    ShowPlayerDialog(playerid, DL_CLAN_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_SETUP_DL_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_LEAVE :{
             if(isClan(playerid, IS_CLEN_NOT)) return 0;
             if(isClan(playerid, IS_CLEN_LEADER)) return 0;
-		    ShowPlayerDialog(playerid, DL_CLAN_LEAVE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 클랜을 탈퇴하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
+		    ShowPlayerDialog(playerid, DL_CLAN_LEAVE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, CLAN_LEAVE_DL_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_INSERT :{
             if(isClan(playerid, IS_CLEN_HAVE)) return 0;
             
-		    ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜명을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+		    ShowPlayerDialog(playerid, DL_CLAN_INSERT, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_INSERT_DL_NAME, DIALOG_ENTER, DIALOG_PREV);
         }
-        case DL_CLAN_INSERT_COLOR : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}랜덤색보기", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_INSERT_COLOR : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_INSERT_DL_COLOR, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_COLOR_RANDOM :{
             new str[256];
-            format(str, sizeof(str),"{%06x}색상 :\t\t%s\n\n{FFFFFF}랜덤으로 색을 뽑아붑니다.", CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
+            format(str, sizeof(str),CLAN_RANDOM_COLOR_TEXT, CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
 		    ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_RANDOM, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_PREV, DIALOG_ENTER);
 		}
-//        case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}클랜 색상을 지정해주세요.", DIALOG_ENTER, DIALOG_PREV);
+//        case DL_CLAN_INSERT_COLOR_CHOICE : ShowPlayerDialog(playerid, DL_CLAN_INSERT_COLOR_CHOICE, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_CHOICE_COLOR_TEXT, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_INSERT_SUCCESS :{
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}클랜 명 :\t\t%s\n\n클랜 색상 : \t\t{%06x}%06x{FFFFFF}\n\n위 조건으로 클랜을 창설하시겠습니까?\n\n(차감액 : 20000원)", CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
+            format(str, sizeof(str),CLAN_INSERT_DL_SUCCESS, CLAN_SETUP[playerid][NAME],CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][COLOR] >>> 8);
             ShowPlayerDialog(playerid, DL_CLAN_INSERT_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 
         case DL_CLAN_SETUP_INVITE :{
             if(isClan(playerid, IS_CLEN_LEADER)) return 0;
-		    ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF}초대하실분의 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+		    ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_INVITE_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_SETUP_MEMBER :{
 			new query[400], sql[400], str[256];
@@ -2091,7 +2079,7 @@ stock showDialog(playerid, type){
                 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 				
-				format(temp, sizeof(temp), "이름 : %20s\t\t레벨 %d\t킬 - %d 데쓰 - %d K/D - %.01f% 랭크 - %s\n{FFFFFF}",
+				format(temp, sizeof(temp), CLAN_MEMBER_CONTENT,
 					name,
 					cache_get_field_content_int(i, "LEVEL"),
 					cache_get_field_content_int(i, "KILLS"),
@@ -2105,10 +2093,10 @@ stock showDialog(playerid, type){
         }
         case DL_CLAN_SETUP_MEMBER_SETUP :{
             if(isClan(playerid, IS_CLEN_LEADER)) return 0;
-            ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}직위 변경\n강제 추방", DIALOG_ENTER, DIALOG_PREV);
+            ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_SETUP, DIALOG_ENTER, DIALOG_PREV);
 		}
-        case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}1등급\n2등급\n3등급", DIALOG_ENTER, DIALOG_PREV);
-        case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}정말로 추방하시겠습니까?", DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_SETUP_RANK, DIALOG_ENTER, DIALOG_PREV);
+        case DL_CLAN_SETUP_MEMBER_SETUP_KICK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_KICK, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, CLAN_MEMBER_SETUP_KICK, DIALOG_ENTER, DIALOG_PREV);
 
 		case DL_SHOP_WEAPON :{
 			new str[256];
@@ -2122,22 +2110,22 @@ stock showDialog(playerid, type){
             
 			ShowPlayerDialog(playerid, DL_SHOP_WEAPON, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
         }
-		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 스킨번호를 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
-		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}모자\n마스크", DIALOG_ENTER, DIALOG_PREV);
-		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, "{FFFFFF} 변경하실 닉네임을 입력해주세요.", DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_SKIN : ShowPlayerDialog(playerid, DL_SHOP_SKIN, DIALOG_STYLE_INPUT, DIALOG_TITLE, SHOP_DL_SKIN_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_ACC : ShowPlayerDialog(playerid, DL_SHOP_ACC, DIALOG_STYLE_LIST, DIALOG_TITLE, SHOP_DL_ACC_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_SHOP_NAME : ShowPlayerDialog(playerid, DL_SHOP_NAME, DIALOG_STYLE_INPUT, DIALOG_TITLE, SHOP_DL_NAME_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_SHOP_WEAPON_BUY : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}무기 모델명 :\t\t%s\n\n해당 무기를 정말로 구매하시겠습니까?\n\n(차감액 : %d원)", wepName(INGAME[playerid][BUY_WEAPONID]), wepPrice(INGAME[playerid][BUY_WEAPONID]));
+            format(str, sizeof(str),SHOP_DL_WEAPON_BUY_TEXT, wepName(INGAME[playerid][BUY_WEAPONID]), wepPrice(INGAME[playerid][BUY_WEAPONID]));
             ShowPlayerDialog(playerid, DL_SHOP_WEAPON_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_SHOP_SKIN_BUY : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}스킨 번호 :\t\t%d\n\n해당 스킨을 정말로 구매하시겠습니까?\n\n(차감액 : 5000원)", INGAME[playerid][BUY_SKINID]);
+            format(str, sizeof(str),SHOP_DL_SKIN_BUY_TEXT, INGAME[playerid][BUY_SKINID]);
             ShowPlayerDialog(playerid, DL_SHOP_SKIN_BUY, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_SHOP_NAME_EDIT : {
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}변경하실 닉네임 :\t\t%s\n\n해당 닉네임으로 정말로 변경하시겠습니까?\n\n(차감액 : 20000원)", INGAME[playerid][EDIT_NAME]);
+            format(str, sizeof(str),SHOP_DL_NAME_EDIT_TEXT, INGAME[playerid][EDIT_NAME]);
             ShowPlayerDialog(playerid, DL_SHOP_NAME_EDIT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_NOTICE_SEASON :{
@@ -2148,13 +2136,13 @@ stock showDialog(playerid, type){
 		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
 		            strcat(sql," FROM `user_info` ");
 		            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
-		            strcat(str, "{8D8DFF}\t\t샘프워 레벨 랭킹 - 총 10인{FFFFFF}\n\n");
+		            strcat(str, SEASON_DL_LEVEL_TITLE);
 	            }
 	            case 1:{
 		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
 		            strcat(sql," FROM `user_info` ");
 		            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
-		            strcat(str, "{8D8DFF}\t\t샘프워 최다킬수 랭킹 - 총 10인{FFFFFF}\n\n");
+		            strcat(str, SEASON_DL_KILL_TITLE);
 	            }
             }
             INGAME[playerid][SEASON] +=1;
@@ -2169,7 +2157,7 @@ stock showDialog(playerid, type){
 
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
-				format(temp, sizeof(temp), "%d위\t\t이름 : %s\t레벨 : %d\t킬 : %d 데쓰 : %d K/D %.01f% 랭크 %s{FFFFFF}\n\n",
+				format(temp, sizeof(temp), SEASON_DL_CONTENT_TEXT,
 					i+1,
 					name,
 					cache_get_field_content_int(i, "LEVEL"),
@@ -2184,49 +2172,47 @@ stock showDialog(playerid, type){
         }
 		case DL_MYWEP_SETUP :{
 			new str[256], temp[50];
-			new slot[20] = {"주무기 슬롯"};
-			new none[20] = {"(비어있음)"};
 
 			strcat(str, "{FFFFFF}");
 			/* HACK : 추후 코드리펙 : pawno enum에 배열 선언 불가? */
-			strcat(str, slot);
-			if(!USER[playerid][WEP1]) format(temp, sizeof(temp), "1\t\t%s\n", none);
+			strcat(str, MYWEP_SETUP_SLOT_TITLE);
+			if(!USER[playerid][WEP1]) format(temp, sizeof(temp), "1\t\t%s\n", MYWEP_SETUP_SLOT_NONE);
 			else format(temp, sizeof(temp), "1\t\t(%s)\n", wepName(USER[playerid][WEP1]));
             strcat(str, temp);
 
-			strcat(str, slot);
-			if(!USER[playerid][WEP2]) format(temp, sizeof(temp), "2\t\t%s\n", none);
+			strcat(str, MYWEP_SETUP_SLOT_TITLE);
+			if(!USER[playerid][WEP2]) format(temp, sizeof(temp), "2\t\t%s\n", MYWEP_SETUP_SLOT_NONE);
 			else format(temp, sizeof(temp), "2\t\t(%s)\n", wepName(USER[playerid][WEP2]));
             strcat(str, temp);
             
-			strcat(str, slot);
-			if(!USER[playerid][WEP3]) format(temp, sizeof(temp), "3\t\t%s\n", none);
+			strcat(str, MYWEP_SETUP_SLOT_TITLE);
+			if(!USER[playerid][WEP3]) format(temp, sizeof(temp), "3\t\t%s\n", MYWEP_SETUP_SLOT_NONE);
 			else format(temp, sizeof(temp), "3\t\t(%s)\n", wepName(USER[playerid][WEP3]));
 			strcat(str, temp);
 			
 		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
         }
-        case DL_MYWEP_SETUP_OPTION : ShowPlayerDialog(playerid, DL_MYWEP_SETUP_OPTION, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}장착\n탈착\n", DIALOG_ENTER, DIALOG_PREV);
+        case DL_MYWEP_SETUP_OPTION : ShowPlayerDialog(playerid, DL_MYWEP_SETUP_OPTION, DIALOG_STYLE_LIST, DIALOG_TITLE, MYWEP_DL_OPTION_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_MYWEP_SETUP_HOLD   :{
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}%d번 슬롯 :\t\t%s\n\n선택하신 무기를 정말로 장착하시겠습니까?\n", INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+            format(str, sizeof(str),MYWEP_DL_HOLD_TEXT, INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
 		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP_HOLD, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_MYWEP_SETUP_PUT    :{
             new str[256];
-            format(str, sizeof(str),"{FFFFFF}%d번 슬롯 :\t\t%s\n\n선택하신 무기를 정말로 탈착하시겠습니까?\n", INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
+            format(str, sizeof(str),MYWEP_DL_PUT_TEXT, INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
 		    ShowPlayerDialog(playerid, DL_MYWEP_SETUP_PUT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-		case DL_MYCAR_SETUP : ShowPlayerDialog(playerid, DL_MYCAR_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}소환", DIALOG_ENTER, DIALOG_PREV);
+		case DL_MYCAR_SETUP : ShowPlayerDialog(playerid, DL_MYCAR_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, MYCAR_SETUP_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_MYCAR_SETUP_SPAWN :{
 	        new str[256];
             new model = GetVehicleModel(INGAME[playerid][HOLD_CARID]);
-	        format(str, sizeof(str),"{FFFFFF}차량 모델명 :\t\t%s\n\n해당 차량을 정말로 소환하시겠습니까?\n\n(차감액 : 2000원)",vehicleName[model - 400]);
+	        format(str, sizeof(str), MYCAR_DL_SPAWN_TEXT, vehicleName[model - 400]);
 	        ShowPlayerDialog(playerid, DL_MYCAR_SETUP_SPAWN, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-		case DL_GARAGE_REPAIR  : ShowPlayerDialog(playerid, DL_GARAGE_REPAIR, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, "{FFFFFF}탑승하신 차량을 정말로 소환하시겠습니까?\n\n(차감액 : 100원)", DIALOG_ENTER, DIALOG_PREV);
-		case DL_GARAGE_PAINT   : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}컬러1\n컬러2\n페인트잡", DIALOG_ENTER, DIALOG_PREV);
-		case DL_GARAGE_TURNING : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, "{FFFFFF}휠\n본넷\n범퍼", DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_REPAIR  : ShowPlayerDialog(playerid, DL_GARAGE_REPAIR, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, GARAGE_DL_REPAIR_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_PAINT   : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_PAINT_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_TURNING : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TURNING_TEXT, DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
 }
@@ -2234,7 +2220,7 @@ stock showDialog(playerid, type){
 stock isHoldWep(playerid, model){
 	if(USER[playerid][WEP1] == model ||
        USER[playerid][WEP2] == model ||
-       USER[playerid][WEP3] == model) return SendClientMessage(playerid,COL_SYS,"    이미 주무기로 설정하신 무기입니다.");
+       USER[playerid][WEP3] == model) return SendClientMessage(playerid,COL_SYS,ALREADY_HOLD_WEAPON);
 	return 0;
 }
 
@@ -2259,10 +2245,10 @@ stock isBuyWepMoney(weponid, money){
 
 stock isClan(playerid, type){
 	switch(type){
-		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,"    당신은 이미 클랜에 소속되어 있습니다.");
-		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,"    당신은 클랜에 소속되어 있지 않습니다.");
-		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,"    클랜 리더가 아닙니다.");
-        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,"    클랜을 창설할 만큼의 자금이 부족합니다.");
+		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,CLAN_HAVE_TEXT);
+		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,CLAN_NOT_TEXT);
+		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,CLAN_NOT_LEADER_TEXT);
+        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,CLAN_INSERT_NOT_MONEY);
 	}
     return 0;
 }
@@ -2270,7 +2256,7 @@ stock isClan(playerid, type){
 stock isClanHangul(playerid, str[]){
     for (new i=0, j=strlen(str); i<j; i++){
         if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
-        if(str[i] > '9' || str[i] < '0')return SendClientMessage(playerid,COL_SYS,"    클랜명에 한글이 포함되어 있습니다.");
+        if(str[i] > '9' || str[i] < '0')return SendClientMessage(playerid,COL_SYS, CLAN_NOT_ENG);
     }
     return 0;
 }
