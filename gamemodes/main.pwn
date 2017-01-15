@@ -324,6 +324,14 @@ public OnPlayerExitVehicle(playerid, vehicleid){
 }
 
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
+    GetPlayerHealth(playerid, USER[playerid][HP]);
+    GetPlayerArmour(playerid, USER[playerid][AM]);
+    if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] == 100 && USER[playerid][AM] == 10){
+        new Float:pos[3];
+        GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
+        CreateExplosion(pos[0], pos[1], pos[2], 16, 32.0);
+		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
+    }
     PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
     return 1;
 }
@@ -737,7 +745,8 @@ stock shopAcc(playerid, listitem){
 
 stock shopName(playerid, inputtext[]){
     if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,NAME_EDIT_NOT_MONEY);
-
+    if(isNameHangul(playerid, inputtext)) return showDialog(playerid, DL_SHOP_NAME);
+    
 	new query[400],row;
     mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `user_info` WHERE `NAME` = '%s' LIMIT 1", inputtext);
     mysql_query(mysql, query);
@@ -808,8 +817,8 @@ stock shopNameEdit(playerid){
     mysql_query(mysql, query);
     
     format(USER[playerid][NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
-    format(INGAME[playerid][EDIT_NAME], 24,"");
     SetPlayerName(playerid, USER[playerid][NAME]);
+    format(INGAME[playerid][EDIT_NAME], 24,"");
 
 }
 
@@ -817,7 +826,7 @@ stock shopNameEdit(playerid){
     @ noticeSeason(playerid)
 */
 stock noticeSeason(playerid){
-    if(INGAME[playerid][SEASON] == 2) return 0;
+    if(INGAME[playerid][SEASON] == 2) return INGAME[playerid][SEASON] = 0;
     showDialog(playerid, DL_NOTICE_SEASON);
     return 0;
 }
@@ -949,7 +958,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
  	}
     if(!strcmp("/carbuy", cmdtext)){
         if(!IsPlayerInAnyVehicle(playerid))return 1;
-        if(!strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return 1;
+        if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return 1;
         if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,CAR_BUY_NOT_MONEY);
         
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
@@ -1480,6 +1489,7 @@ public ServerThread(){
    @ isHoldWep(playerid, model)
    @ isClan(playerid, type)
    @ isClanHangul(playerid, str[])
+   @ isNameHangul(playerid, str[])
    @ randomColor()
    @ getPlayerId(name[]
    @ wepID(model)
@@ -1650,28 +1660,31 @@ stock checkZone(playerid){
 				    return 0;
 				}
 				
-				ZONE[z][STAY_CLAN] = 0;
-				for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[z][i][INDEX])ZONE[z][STAY_CLAN] +=1;
-				
-				if(ZONE[z][STAY_CLAN] > 1){
-				    new str[120];
-				    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- ~w~BATTLE ~r~~h~ IN ZONE CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], ZONE[z][STAY_CLAN]);
-				    TextDrawSetString(TDraw[playerid][CP],str);
-				    return 0;
+				if(USER[playerid][CLANID]){
+					ZONE[z][STAY_CLAN] = 0;
+					for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[z][i][INDEX])ZONE[z][STAY_CLAN] +=1;
+
+					if(ZONE[z][STAY_CLAN] > 1){
+					    new str[120];
+					    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- ~w~BATTLE ~r~~h~ IN ZONE CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], ZONE[z][STAY_CLAN]);
+					    TextDrawSetString(TDraw[playerid][CP],str);
+					    return 0;
+					}
 				}
 				
 				tickZone(playerid);
 			    return 0;
 			}
+			if(USER[playerid][CLANID]){
+				if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+				ZONE[z][STAY_HUMAN]+=1;
 
-			if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
-			ZONE[z][STAY_HUMAN]+=1;
-			
-			if(INGAME[playerid][ENTER_ZONE]){
-				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
-			}
-            CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
+				if(INGAME[playerid][ENTER_ZONE]){
+					CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+	                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+				}
+	            CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
+            }
 			
             INGAME[playerid][ENTER_ZONE] = z;
 			INGAME[playerid][ZONE_TICK] = 0;
@@ -1755,10 +1768,10 @@ stock giveMoney(playerid,money){
 }
 
 stock death(playerid, killerid, reason){
-    new Float:x, Float:y, Float:z;
-    GetPlayerPos(playerid, x, y, z);
-    CreateExplosion(x, y, z, 16, 32.0);
-    CreateExplosion(x, y, z+10, 0, 0.1);
+    new Float:pos[3];
+    GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
+    CreateExplosion(pos[0], pos[1], pos[2], 16, 32.0);
+    CreateExplosion(pos[0], pos[1], pos[2]+10, 0, 0.1);
 
 	fixPos(playerid);
 	USER[playerid][POS_X]   = INGAME[playerid][SPAWN_POS_X];
@@ -2035,7 +2048,6 @@ stock showDialog(playerid, type){
 		}
         case DL_CLAN_LEAVE :{
             if(isClan(playerid, IS_CLEN_NOT)) return 0;
-            if(isClan(playerid, IS_CLEN_LEADER)) return 0;
 		    ShowPlayerDialog(playerid, DL_CLAN_LEAVE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, CLAN_LEAVE_DL_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_INSERT :{
@@ -2260,6 +2272,16 @@ stock isClanHangul(playerid, str[]){
     }
     return 0;
 }
+stock isNameHangul(playerid, str[]){
+    for (new i=0, j=strlen(str); i<j; i++){
+        if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
+        if(str[i] > '9' || str[i] < '0')
+        if(str[i] != '[' && str[i] != ']' && str[i] != '_' && str[i] != '@')
+		return SendClientMessage(playerid,COL_SYS, NAME_NOT_ENG);
+    }
+    return 0;
+}
+
 stock isBike(vehicleid){
 	new bikeModel[13] ={522,481,441,468,448,446,513,521,510,430,520,476,463};
     for(new i = 0; i < 13; i++)if(GetVehicleModel(vehicleid) == bikeModel[i]) return 1;
