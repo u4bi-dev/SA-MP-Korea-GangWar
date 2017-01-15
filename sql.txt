@@ -1,5 +1,4 @@
 drop table user_info;
-
 drop table clan_info;
 drop table zone_info;
 drop table vehicle_info;

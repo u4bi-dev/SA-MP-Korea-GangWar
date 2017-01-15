@@ -268,7 +268,6 @@ public OnGameModeExit(){return 1;
 public OnGameModeInit(){
 	#include "module/vehicles.pwn"
 	dbcon();
-	data();
     mode();
 	server();
 	thread();
@@ -1281,9 +1280,11 @@ stock dbcon(){
     mysql = mysql_connect(db_value[0], db_value[1], db_value[2], db_value[3]);
     mysql_set_charset("euckr");
 
-    if(mysql_errno(mysql))print("DB연결오류");
+    if(!mysql_errno(mysql))print("DB 불러오기"),data();
+    else printf("DB연결오류");
 }
 stock data(){
+	user_data();
 	house_data();
 	vehicle_data();
 	zone_data();
@@ -1306,19 +1307,36 @@ stock cleaning(playerid){
 }
 
 /* DB DATA
+   @ user_data()
    @ house_data()
    @ vehicle_data()
    @ clan_data()
    @ zone_data()
    @ weapon_data()
 */
+stock user_data(){
+    new query[400];
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `user_info` LIMIT 1");
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("유저 : 정상");
+	else{
+      print("유저 DB 에러 테이블 생성 리로드..");
+      mysql_format(mysql, query, sizeof(query), SQL_USER_TABLE_1);
+      mysql_query(mysql, query);
+      mysql_format(mysql, query, sizeof(query), SQL_USER_TABLE_2);
+      mysql_query(mysql, query);
+      mysql_format(mysql, query, sizeof(query), SQL_USER_TABLE_3);
+      mysql_query(mysql, query);
+      user_data();
+    }
+}
 stock house_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `house_info`");
 	mysql_query(mysql, query);
-	if(!mysql_errno(mysql))print("집 DB 정상");
+	if(!mysql_errno(mysql))print("건물 : 정상");
 	else{
-        print("집 DB 에러 테이블 생성 리로드");
+        print("건물 DB 에러 테이블 생성 리로드..");
         mysql_format(mysql, query, sizeof(query), SQL_HOUSE_TABLE);
         mysql_query(mysql, query);
         house_data();
@@ -1345,9 +1363,9 @@ stock vehicle_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `vehicle_info`");
 	mysql_query(mysql, query);
-	if(!mysql_errno(mysql))print("차량 DB 정상");
+	if(!mysql_errno(mysql))print("차량 : 정상");
 	else{
-        print("차량 DB 에러 테이블 생성 리로드");
+        print("차량 DB 에러 테이블 생성 리로드..");
         mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_TABLE);
         mysql_query(mysql, query);
         vehicleInit();
@@ -1374,9 +1392,9 @@ stock clan_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `clan_info`");
 	mysql_query(mysql, query);
-	if(!mysql_errno(mysql))print("클랜 DB 정상");
+	if(!mysql_errno(mysql))print("클랜 : 정상");
 	else{
-        print("클랜 DB 에러 테이블 생성 리로드");
+        print("클랜 DB 에러 테이블 생성 리로드..");
         mysql_format(mysql, query, sizeof(query), SQL_CLAN_TABLE);
         mysql_query(mysql, query);
         clan_data();
@@ -1400,9 +1418,9 @@ stock zone_data(){
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `zone_info`");
 	mysql_query(mysql, query);
-	if(!mysql_errno(mysql))print("갱존 DB 정상");
+	if(!mysql_errno(mysql))print("갱존 : 정상");
 	else{
-        print("갱존 DB 에러 테이블 생성 리로드");
+        print("갱존 DB 에러 테이블 생성 리로드..");
         mysql_format(mysql, query, sizeof(query), SQL_ZONE_TABLE);
         mysql_query(mysql, query);
         zone_data();
@@ -1420,10 +1438,11 @@ stock zone_data(){
 
 stock weapon_data(){
     new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `weapon_info`");
+	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `weapon_info` LIMIT 1");
 	mysql_query(mysql, query);
-	if(!mysql_errno(mysql))print("총기 DB 정상");
+	if(!mysql_errno(mysql))print("총기 : 정상");
 	else{
+      print("총기 DB 에러 테이블 생성 리로드..");
       mysql_format(mysql, query, sizeof(query), SQL_WEAPON_TABLE);
       mysql_query(mysql, query);
       weapon_data();
