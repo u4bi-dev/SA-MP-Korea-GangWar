@@ -122,6 +122,7 @@ enum ZONE_MODEL{
 	ID,
 	OWNER_CLAN,
 	STAY_HUMAN,
+    STAY_CLAN,
 	Float:MIN_X,
 	Float:MIN_Y,
 	Float:MAX_X,
@@ -1406,6 +1407,7 @@ public ServerThread(){
    @ event(playerid)
    @ giveMoney(playerid,money)
    @ death(playerid, killerid, reason)
+   @ killCombo(playerid)
    @ loadMisson()
    @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)
    @ object_init()
@@ -1439,12 +1441,10 @@ stock vehicleInit(){
 	for(new vehicleid=1; vehicleid<=230; vehicleid++){
 	    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
 	    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
-	//	ChangeVehicleColor(vehicleid, 0, 1);
 		new query[400],sql[400];
 		strcat(sql, "INSERT INTO `vehicle_info`");
 		strcat(sql, " (NAME, POS_X, POS_Y, POS_Z, ANGLE, COLOR1, COLOR2)");
 		strcat(sql, " VALUES ('N', %f, %f, %f, %f, 0, 0)");
-	//	USER[playerid][NAME],
 		mysql_format(mysql, query, sizeof(query), sql,
 		VEHICLE[vehicleid][POS_X],
 		VEHICLE[vehicleid][POS_Y],
@@ -1593,14 +1593,25 @@ stock checkZone(playerid){
 				    return 0;
 				}
 				
+				ZONE[z][STAY_CLAN] = 0;
+				for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[z][i][INDEX])ZONE[z][STAY_CLAN] +=1;
+				
+				if(ZONE[z][STAY_CLAN] > 1){
+				    new str[120];
+				    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- ~w~BATTLE ~r~~h~ IN ZONE CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], ZONE[z][STAY_CLAN]);
+				    TextDrawSetString(TDraw[playerid][CP],str);
+				    return 0;
+				}
+				
 				tickZone(playerid);
 			    return 0;
 			}
 
 			if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
 			ZONE[z][STAY_HUMAN]+=1;
+			
 			if(INGAME[playerid][ENTER_ZONE]){
-			    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
                 if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
 			}
             CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
