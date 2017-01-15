@@ -305,7 +305,7 @@ public OnPlayerRequestClass(playerid, classid){
     return 1;
 }
 public OnPlayerSpawn(playerid){
-    if(!isDeagle(playerid) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500),SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
+    if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500),SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
     
     return 1;
 }
@@ -324,13 +324,21 @@ public OnPlayerExitVehicle(playerid, vehicleid){
 }
 
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
+    if(!isHaveWeapon(playerid,weaponid) && weaponid != 24 && weaponid != 0) return Kick(playerid);
+    
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
+    
     if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] == 100 && USER[playerid][AM] == 10){
         new Float:pos[3];
         GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
         CreateExplosion(pos[0], pos[1], pos[2], 16, 32.0);
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
+
+		SetPlayerHealth(playerid, USER[playerid][HP]);
+		SetPlayerArmour(playerid, USER[playerid][AM]);
+	    GetPlayerHealth(playerid, USER[playerid][HP]);
+	    GetPlayerArmour(playerid, USER[playerid][AM]);
     }
     PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
     return 1;
@@ -1483,7 +1491,7 @@ public ServerThread(){
    @ isPlayerZone(playerid, zoneid)
    @ checkZone(playerid)
    @ holdZone(playerid)
-   @ isDeagle(playerid)
+   @ isHaveWeapon(playerid , weaponid)
    @ isEmptyWep(playerid, listitem)
    @ isBuyWepMoney(weponid, money)
    @ isHoldWep(playerid, model)
@@ -1788,7 +1796,7 @@ stock death(playerid, killerid, reason){
     INGAME[playerid][COMBO] = 0;
 
 	spawn(playerid);
-	if(reason == 255) return 1;
+	if(reason == 255 || reason == 47 || reason == 49 || reason == 50 || reason == 51 || reason == 54 || reason == 53 || reason == 54 ) return 1;
     SendDeathMessage(killerid, playerid, reason);
 	new str[128];
 	format(str, sizeof(str), "~y~You got killed by ~r~%s", USER[killerid][NAME]);
@@ -2236,9 +2244,9 @@ stock isHoldWep(playerid, model){
 	return 0;
 }
 
-stock isDeagle(playerid){
+stock isHaveWeapon(playerid , weaponid){
     for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
-	    if(WEPBAG[playerid][i][MODEL] == 24)return 1;
+	    if(WEPBAG[playerid][i][MODEL] == weaponid)return 1;
 	}
 	return 0;
 }
@@ -2361,7 +2369,7 @@ stock syncWep(playerid){
     GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
     GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
     
-    if(!isDeagle(playerid) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500);
+    if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500);
 }
 
 stock sync(playerid){
