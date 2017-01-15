@@ -16,6 +16,21 @@ new wepModel[11][50] = {
     {"컨트리 라이플"},
     {"스나이퍼 라이플"}
 };
+new comboText[12][30] = {
+    {""},
+    {"First Kill"},
+    {"Double Kill"},
+    {"Triple Kill"},
+    {"Quadra Kill"},
+    {"Penta Kill"},
+    {"Hexa Kill"},
+    {"Wicked Kill"},
+    {"Monster Kill"},
+    {"God Kill"},
+    {"Legendary Kill"},
+    {"WHAHAHAHAHAHA!!"}
+};
+
 new Float:SPAWN_MODEL[54][3] = {
 {966.1048,-989.9128,37.2340},
 {962.3964,-1116.9700,23.2486},

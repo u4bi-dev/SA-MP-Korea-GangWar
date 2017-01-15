@@ -993,14 +993,12 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 }
 
 public OnPlayerDisconnect(playerid, reason){
-
     if(INGAME[playerid][LOGIN]) save(playerid);
-    
     if(IsPlayerInAnyVehicle(playerid)) vehicleSave(GetPlayerVehicleID(playerid));
     
     ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
     CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-    
+
     cleaning(playerid);
     return 1;
 }
@@ -1300,7 +1298,7 @@ stock cleaning(playerid){
     USER[playerid] = temp1;
     INGAME[playerid] = temp2;
     CLAN_SETUP[playerid] = temp3;
-    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
+    for(new i=0; i < USED_WEAPON; i++){
         WEPBAG[playerid][i] = temp4;
     }
 }
@@ -1588,7 +1586,12 @@ stock checkZone(playerid){
 			    return 0;
 			}
 			if(INGAME[playerid][ENTER_ZONE] == z){
-				if(ZONE[z][OWNER_CLAN] == USER[playerid][CLANID]) return 0;
+				if(ZONE[z][OWNER_CLAN] == USER[playerid][CLANID]){
+                    new str[120];
+                    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~CLAN HAVED",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+                    TextDrawSetString(TDraw[playerid][CP],str);
+				    return 0;
+				}
 				
 				tickZone(playerid);
 			    return 0;
@@ -1634,7 +1637,8 @@ stock tickZone(playerid){
 }
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
-    if(ZONE[zoneid][OWNER_CLAN] == USER[playerid][CLANID]) return 0;
+    if(ZONE[zoneid][OWNER_CLAN] == USER[playerid][CLANID])return 0;
+    
     new zoneOwner;
     new query[400];
     
@@ -1684,12 +1688,17 @@ stock giveMoney(playerid,money){
 }
 
 stock death(playerid, killerid, reason){
+    new Float:x, Float:y, Float:z;
+    GetPlayerPos(playerid, x, y, z);
+    CreateExplosion(x, y, z, 16, 32.0);
+    CreateExplosion(x, y, z+10, 0, 0.1);
+
 	fixPos(playerid);
 	USER[playerid][POS_X]   = INGAME[playerid][SPAWN_POS_X];
  	USER[playerid][POS_Y]   = INGAME[playerid][SPAWN_POS_Y];
 	USER[playerid][POS_Z]   = INGAME[playerid][SPAWN_POS_Y];
 	USER[playerid][ANGLE]   = INGAME[playerid][SPAWN_ANGLE];
-	USER[playerid][DEATHS] -= 1;
+	USER[playerid][DEATHS] += 1;
 	USER[playerid][HP]      = 100.0;
 	USER[playerid][AM]      = 100.0;
 
@@ -1697,10 +1706,14 @@ stock death(playerid, killerid, reason){
         TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
     }
     INGAME[playerid][COMBO] = 0;
-    
-    save(playerid);
+
 	spawn(playerid);
 	if(reason == 255) return 1;
+    SendDeathMessage(killerid, playerid, reason);
+	new str[128];
+	format(str, sizeof(str), "~y~You got killed by ~r~%s", USER[killerid][NAME]);
+    GameTextForPlayer( playerid, str, 3000, 1 );
+    
 	USER[killerid][KILLS] += 1;
 	giveMoney(killerid, 500);
     save(killerid);
@@ -1709,8 +1722,15 @@ stock death(playerid, killerid, reason){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
         INGAME[killerid][COMBO]+=1;
     }
+    killCombo(killerid);
     
 	return 1;
+}
+
+stock killCombo(playerid){
+	new str[50];
+	format(str, sizeof(str), "~r~~>~~y~%s~r~~<~",comboText[INGAME[playerid][COMBO]]);
+	GameTextForPlayer(playerid, str, 2500, 6);
 }
 
 stock loadGarage(){
