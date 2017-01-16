@@ -300,13 +300,13 @@ public OnPlayerText(playerid, text[]){
 	        if(USER[i][CLANID] == USER[playerid][CLANID]){
                 new str[256];
                 strmid(str, text, 1, strlen(text));
-	            formatMsg(i, 0x7FFF00FF,CLAN_CHAT, USER[playerid][NAME], str);
+	            formatMsg(i, 0x7FFF00FF,CLAN_CHAT, USER[playerid][NAME], playerid, str);
 	        }
         }
         return 0;
     }
 	if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME], text);
-	else format(send,sizeof(send),"{E6E6E6} %s : %s", USER[playerid][NAME], text);
+	else format(send,sizeof(send),"{E6E6E6} %s(%d) : %s", USER[playerid][NAME], playerid, text);
     SendClientMessageToAll(-1, send);
     return 0;
 }

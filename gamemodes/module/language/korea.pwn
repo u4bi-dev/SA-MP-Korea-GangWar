@@ -1,4 +1,4 @@
-#define CLAN_CHAT               "(클랜채팅) %s : %s"
+#define CLAN_CHAT               "(클랜채팅) %s(%d) : %s"
 #define ALREADY_LOGIN           "    이미 로그인 하셨습니다."
 #define ONLY_LOGIN_CMD          "    로그인후에 사용 가능합니다."
 #define TYPE_NOT_PASSWORD       "    비밀번호를 입력해주세요."
