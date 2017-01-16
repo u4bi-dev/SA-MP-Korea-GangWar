@@ -22,18 +22,17 @@
 #define DL_CLAN_LIST                      1041
 #define DL_CLAN_RANK                      1042
 #define DL_CLAN_SETUP                     1043
-#define DL_CLAN_LEAVE                    1044
+#define DL_CLAN_LEAVE                     1044
 
 #define DL_CLAN_SETUP_INVITE              10430
 #define DL_CLAN_SETUP_MEMBER              10431
-#define DL_CLAN_SETUP_SKIN                10432
+#define DL_CLAN_SETUP_MEMBER_SETUP        10433
+#define DL_CLAN_SETUP_MEMBER_SETUP_RANK   10434
+#define DL_CLAN_SETUP_MEMBER_SETUP_KICK   10435
 
-#define DL_CLAN_SETUP_MEMBER_SETUP        104310
-#define DL_CLAN_SETUP_MEMBER_SETUP_RANK   104311
-#define DL_CLAN_SETUP_MEMBER_SETUP_KICK   104312
-
-#define DL_CLAN_SETUP_SKIN_SETUP          104320
-#define DL_CLAN_SETUP_SKIN_UPDATE         104321
+#define DL_CLAN_SETUP_SKIN                10436
+#define DL_CLAN_SETUP_SKIN_SETUP          10437
+#define DL_CLAN_SETUP_SKIN_UPDATE         10438
 
 #define DL_SHOP_WEAPON                    1050
 #define DL_SHOP_SKIN                      1051
@@ -227,9 +226,14 @@ enum INGAME_MODEL{
     HOLD_CARID,
     EDIT_NAME,
 	COMBO,
+    AMMO,
     bool:SYNC,
+    bool:SPAWN,
 	EVENT_TICK,
-	SEASON
+	SEASON,
+    PAINT_TYPE,
+    CAR_PAINT1,
+    CAR_PAINT2
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -310,8 +314,12 @@ public OnPlayerRequestClass(playerid, classid){
     return 1;
 }
 public OnPlayerSpawn(playerid){
-    if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500),SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
-    
+    if(!INGAME[playerid][SPAWN] && !isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10){
+	    GivePlayerWeapon(playerid, 24, 500);
+		SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
+		INGAME[playerid][SPAWN] = true;
+	}
+
     return 1;
 }
 
@@ -329,7 +337,7 @@ public OnPlayerExitVehicle(playerid, vehicleid){
 }
 
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
-    if(!isHaveWeapon(playerid,weaponid) && weaponid != 24 && weaponid != 0) return Kick(playerid);
+    if(!isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0) return Kick(playerid);
     
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
@@ -398,9 +406,10 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
 //			case DL_CLAN_INSERT_COLOR_CHOICE :return showDialog(playerid, DL_CLAN_INSERT_COLOR);
 			case DL_CLAN_INSERT_SUCCESS : return showDialog(playerid, DL_CLAN_INSERT_COLOR);
-			case DL_CLAN_SETUP_INVITE, DL_CLAN_SETUP_MEMBER : return showDialog(playerid, DL_CLAN_SETUP);
+			case DL_CLAN_SETUP_INVITE, DL_CLAN_SETUP_MEMBER, DL_CLAN_SETUP_SKIN: return showDialog(playerid, DL_CLAN_SETUP);
 			case DL_CLAN_SETUP_MEMBER_SETUP : return showDialog(playerid, DL_CLAN_SETUP_MEMBER);
 			case DL_CLAN_SETUP_MEMBER_SETUP_RANK, DL_CLAN_SETUP_MEMBER_SETUP_KICK : return showDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP);
+			case DL_CLAN_SETUP_SKIN_SETUP, DL_CLAN_SETUP_SKIN_UPDATE : return showDialog(playerid, DL_CLAN_SETUP_SKIN);
 			case DL_SHOP_WEAPON, DL_SHOP_SKIN, DL_SHOP_ACC, DL_SHOP_NAME : return showMisson(playerid, 1);
 			case DL_SHOP_WEAPON_BUY : return showDialog(playerid, DL_SHOP_WEAPON);
 			case DL_SHOP_SKIN_BUY : return showDialog(playerid, DL_SHOP_SKIN);
@@ -411,7 +420,6 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MYCAR_SETUP : return showDialog(playerid, DL_MYCAR);
 			case DL_MYCAR_SETUP_SPAWN : return showDialog(playerid, DL_MYCAR_SETUP);
 			case DL_GARAGE_REPAIR, DL_GARAGE_PAINT, DL_GARAGE_TURNING : return showDialog(playerid, DL_GARAGE);
-			case DL_CLAN_SETUP_SKIN_SETUP, DL_CLAN_SETUP_SKIN_UPDATE : return showDialog(playerid, DL_CLAN_SETUP_SKIN);
 		}
 	}
 	
@@ -486,7 +494,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		
 		/* GARAGE */
 		case DL_GARAGE_REPAIR      : repairCar(playerid);
-		case DL_GARAGE_PAINT       : paintCar(playerid);
+		case DL_GARAGE_PAINT       : paintCar(playerid, inputtext);
 		case DL_GARAGE_TURNING     : turnCar(playerid);
     }
     return 1;
@@ -549,9 +557,16 @@ stock mycar(playerid,listitem){
 stock garage(playerid,listitem){
 	switch(listitem){
         case 0 : showDialog(playerid, DL_GARAGE_REPAIR);
-        case 1 : showDialog(playerid, DL_GARAGE_PAINT);
-        case 2 : showDialog(playerid, DL_GARAGE_TURNING);
+        case 1 :{
+            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
+		    showDialog(playerid, DL_GARAGE_PAINT);
+		}
+        case 2 :{
+            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
+            showDialog(playerid, DL_GARAGE_TURNING);
+		}
 	}
+    return 0;
 }
 /* CLAN
    @ clanInsert(playerid, inputtext)
@@ -564,7 +579,9 @@ stock garage(playerid,listitem){
 */
 stock clanInsert(playerid, inputtext[]){
     if(!strlen(inputtext))return showDialog(playerid, DL_CLAN_INSERT);
-    
+    if(strlen(inputtext) < 3)return SendClientMessage(playerid,COL_SYS, CLAN_NAME_MIN_LENTH), showDialog(playerid, DL_CLAN_INSERT);
+    if(strlen(inputtext) > 20)return SendClientMessage(playerid,COL_SYS, CLAN_NAME_MAX_LENTH), showDialog(playerid, DL_CLAN_INSERT);
+
     format(CLAN_SETUP[playerid][NAME], 50, "%s", escape(inputtext));
     if(isClanHangul(playerid, CLAN_SETUP[playerid][NAME])) return showDialog(playerid, DL_CLAN_INSERT);
 
@@ -737,12 +754,12 @@ stock clanSkinSetup(playerid, inputtext[]){
 	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `SKIN` = %d WHERE `CLANID` = %d", skin, USER[playerid][CLANID]);
 	mysql_query(mysql, query);
 	
-    formatMsg(playerid, COL_SYS, "클랜 대표스킨이 [%d]번 스킨으로 변경되었습니다.",CLAN[USER[playerid][CLANID]-1][SKIN]);
+    formatMsg(playerid, COL_SYS, CLAN_SKIN_EDIT_SUCCESS,CLAN[USER[playerid][CLANID]-1][SKIN]);
     return 0;
 }
 stock clanSkinUpdate(playerid){
-    if(CLAN[USER[playerid][CLANID]-1][SKIN] == 0) return SendClientMessage(playerid, COL_SYS, "현재 설정된 클랜 대표스킨이 없습니다.");
-    formatMsg(playerid, COL_SYS, "클랜 대표스킨으로 변경되었습니다. (%d번 스킨)", CLAN[USER[playerid][CLANID]-1][SKIN]);
+    if(CLAN[USER[playerid][CLANID]-1][SKIN] == 0) return SendClientMessage(playerid, COL_SYS, YOU_CLAN_NOT_SKIN);
+    formatMsg(playerid, COL_SYS, CALN_SKIN_GET_SUCCESS, CLAN[USER[playerid][CLANID]-1][SKIN]);
     SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
 	return 0;
 }
@@ -795,7 +812,11 @@ stock shopAcc(playerid, listitem){
 }
 
 stock shopName(playerid, inputtext[]){
+    if(!strlen(inputtext))return showDialog(playerid, DL_SHOP_NAME);
     if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,NAME_EDIT_NOT_MONEY);
+    if(strlen(inputtext) < 3)return SendClientMessage(playerid,COL_SYS, YOU_NAME_MIN_LENTH), showDialog(playerid, DL_SHOP_NAME);
+    if(strlen(inputtext) > 24)return SendClientMessage(playerid,COL_SYS, YOU_NAME_MAX_LENTH), showDialog(playerid, DL_SHOP_NAME);
+
     if(isNameHangul(playerid, inputtext)) return showDialog(playerid, DL_SHOP_NAME);
     
 	new query[400],row;
@@ -912,7 +933,7 @@ stock holdWep(playerid){
         case 2 : USER[playerid][WEP3] = INGAME[playerid][HOLD_WEPID];
 	}
 
-    syncWep(playerid);
+    sync(playerid);
     formatMsg(playerid, COL_SYS, WEAPON_HOLD_SUCCESS,INGAME[playerid][HOLD_WEPLIST]+1, wepName(INGAME[playerid][HOLD_WEPID]));
     save(playerid);
     showDialog(playerid, DL_MYWEP_SETUP);
@@ -927,7 +948,7 @@ stock putWep(playerid){
         case 2 : USER[playerid][WEP3] = 0;
 	}
 	
-	syncWep(playerid);
+	sync(playerid);
     save(playerid);
     showDialog(playerid, DL_MYWEP_SETUP);
     return 0;
@@ -964,7 +985,7 @@ stock spawnCar(playerid){
 }
 /* GARAGE
    @ repairCar(playerid)
-   @ paintCar(playerid)
+   @ paintCar(playerid, inputtext)
    @ turnCar(playerid)
 */
 stock repairCar(playerid){
@@ -977,8 +998,41 @@ stock repairCar(playerid){
     giveMoney(playerid,-100);
     return 0;
 }
-stock paintCar(playerid){
-    formatMsg(playerid, COL_SYS, "주유소 도색 %d",playerid);
+stock paintCar(playerid, inputtext[]){
+    if(USER[playerid][MONEY] < 500) return SendClientMessage(playerid,COL_SYS,CAR_PAINT_NOT_MONEY);
+    
+	switch(INGAME[playerid][PAINT_TYPE]){
+	    case 0:{
+            INGAME[playerid][CAR_PAINT1] = strval(inputtext);
+		    showDialog(playerid, DL_GARAGE_PAINT);
+		    INGAME[playerid][PAINT_TYPE] =1;
+            SendClientMessage(playerid,COL_SYS, CAR_PAINT1_TEXT);
+	    }
+	    case 1:{
+			new vehicleid = GetPlayerVehicleID(playerid);
+			
+            INGAME[playerid][CAR_PAINT2] = strval(inputtext);
+            INGAME[playerid][PAINT_TYPE] =0;
+            SendClientMessage(playerid,COL_SYS, CAR_PAINT2_TEXT);
+            
+            VEHICLE[vehicleid][COLOR1] = INGAME[playerid][CAR_PAINT1];
+            VEHICLE[vehicleid][COLOR2] = INGAME[playerid][CAR_PAINT2];
+            
+            ChangeVehicleColor(GetPlayerVehicleID(playerid), VEHICLE[vehicleid][COLOR1], VEHICLE[vehicleid][COLOR2]);
+            
+			new query[400],sql[400];
+			strcat(sql, "UPDATE `vehicle_info`");
+			strcat(sql, " SET COLOR1 = %d, COLOR2 = %d WHERE ID = %d");
+			
+			mysql_format(mysql, query, sizeof(query), sql,
+			VEHICLE[vehicleid][COLOR1],
+			VEHICLE[vehicleid][COLOR2],
+			vehicleid);
+			
+			mysql_query(mysql, query);
+	    }
+	}
+	return 0;
 }
 stock turnCar(playerid){
     formatMsg(playerid, COL_SYS, "주유소 튜닝 %d",playerid);
@@ -1007,10 +1061,14 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		showDialog(playerid, DL_MYCAR);
         return 1;
  	}
+   	if(!strcmp("/kill", cmdtext)){
+        SetPlayerHealth(playerid, 0);
+        return 1;
+ 	}
     if(!strcmp("/carbuy", cmdtext)){
         if(!IsPlayerInAnyVehicle(playerid))return 1;
-        if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return 1;
         if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,CAR_BUY_NOT_MONEY);
+        if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS,CAR_ALREADY_SELL);
         
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
 		return 1;
@@ -1545,7 +1603,6 @@ public ServerThread(){
    @ getPlayerId(name[]
    @ wepID(model)
    @ wepName(model)
-   @ syncWep(playerid)
    @ sync(playerid)
    @ kdRatio(kill, death)
    @ kdTier(kill, death)
@@ -1726,16 +1783,14 @@ stock checkZone(playerid){
 				tickZone(playerid);
 			    return 0;
 			}
-			if(USER[playerid][CLANID]){
-				if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
-				ZONE[z][STAY_HUMAN]+=1;
+			if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+			ZONE[z][STAY_HUMAN]+=1;
 
-				if(INGAME[playerid][ENTER_ZONE]){
-					CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-	                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
-				}
-	            CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
-            }
+			if(INGAME[playerid][ENTER_ZONE]){
+				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+			}
+            CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
 			
             INGAME[playerid][ENTER_ZONE] = z;
 			INGAME[playerid][ZONE_TICK] = 0;
@@ -1837,7 +1892,8 @@ stock death(playerid, killerid, reason){
         TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
     }
     INGAME[playerid][COMBO] = 0;
-
+    INGAME[playerid][SPAWN] = false;
+    
 	spawn(playerid);
 	if(reason == 255 || reason == 47 || reason == 49 || reason == 50 || reason == 51 || reason == 54 || reason == 53 || reason == 54 ) return 1;
     SendDeathMessage(killerid, playerid, reason);
@@ -2276,7 +2332,7 @@ stock showDialog(playerid, type){
 	        ShowPlayerDialog(playerid, DL_MYCAR_SETUP_SPAWN, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_GARAGE_REPAIR  : ShowPlayerDialog(playerid, DL_GARAGE_REPAIR, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, GARAGE_DL_REPAIR_TEXT, DIALOG_ENTER, DIALOG_PREV);
-		case DL_GARAGE_PAINT   : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_PAINT_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_PAINT   : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_INPUT, DIALOG_TITLE, GARAGE_DL_PAINT_SETUP, DIALOG_ENTER, DIALOG_PREV);
 		case DL_GARAGE_TURNING : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TURNING_TEXT, DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
@@ -2408,16 +2464,13 @@ stock wepPrice(model){
 	return price;
 }
 
-stock syncWep(playerid){
-    ResetPlayerWeapons(playerid);
-    GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
-    GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
-    GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
-    
-    if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, 500);
-}
-
 stock sync(playerid){
+    if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10){
+        new wep[2];
+        GetPlayerWeaponData(playerid, 2, wep[0], wep[1]);
+        if(wep[0] == 24 && wep[1] > 0)INGAME[playerid][AMMO] = wep[1];
+    }
+    
 	INGAME[playerid][SYNC] = true;
 	new Float:pos[4],world, inter;
 	GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
@@ -2431,8 +2484,15 @@ stock sync(playerid){
 	SetPlayerFacingAngle(playerid, pos[3]);
 	SetPlayerInterior(playerid, inter);
 	SetPlayerVirtualWorld(playerid, world);
-    SetPlayerArmedWeapon(playerid, 0);
 	INGAME[playerid][SYNC] = false;
+	
+    ResetPlayerWeapons(playerid);
+    GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
+    GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
+    GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
+
+    if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, INGAME[playerid][AMMO]);
+    SetPlayerArmedWeapon(playerid, 0);
 }
 
 public Float:kdRatio(kill, death){
