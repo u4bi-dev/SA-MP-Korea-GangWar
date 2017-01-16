@@ -205,7 +205,7 @@ new HOUSE[USED_HOUSE][HOUSE_MODEL];
 
 enum CLAN_MODEL{
  	ID,
- 	NAME[20],
+ 	NAME[50],
  	LEADER_NAME[MAX_PLAYER_NAME],
  	KILLS,
  	DEATHS,
@@ -349,15 +349,15 @@ public OnPlayerExitVehicle(playerid, vehicleid){
 }
 
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
-    if(!isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0) return Kick(playerid);
+    if(!isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0 && weaponid != 47 &&  weaponid != 49 && weaponid != 50 && weaponid != 51 && weaponid != 54 &&  weaponid != 53 && weaponid != 54) return Kick(issuerid);
     
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
     
-    if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] == 100 && USER[playerid][AM] == 10){
+    if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90){
         new Float:pos[3];
-        GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
-        CreateExplosion(pos[0], pos[1], pos[2], 16, 32.0);
+        GetPlayerPos(issuerid, pos[0], pos[1], pos[2]);
+        CreateExplosion(pos[0], pos[1], pos[2], 12, 10.0);
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
 
 		SetPlayerHealth(playerid, 100);
@@ -566,6 +566,7 @@ stock mywep(playerid,listitem){
     return 0;
 }
 stock mycar(playerid,listitem){
+	if(!CARBAG[playerid][listitem][ID])return showDialog(playerid, DL_MYCAR);
     INGAME[playerid][HOLD_CARID] = CARBAG[playerid][listitem][ID];
     showDialog(playerid, DL_MYCAR_SETUP);
     return 0;
@@ -1782,6 +1783,7 @@ stock checkZone(playerid){
         if(isPlayerZone(playerid, z)){
             if(z == 714){
                 TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
+                INGAME[playerid][ENTER_ZONE] = 714;
 			    return 0;
 			}
 			if(INGAME[playerid][ENTER_ZONE] == z){
@@ -1903,6 +1905,7 @@ stock inCar(playerid, vehicleid){
 stock warp(playerid){
    WARP[playerid][INCAR]=true;
    if(!WARP[playerid][CHECK])checkWarp(playerid);
+   SetPlayerArmedWeapon(playerid, 0);
 }
 stock warpInit(playerid){
    new temp[WARP_MODEL];
