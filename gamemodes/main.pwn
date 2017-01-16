@@ -1124,6 +1124,7 @@ public OnPlayerDisconnect(playerid, reason){
     
     ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
     CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+    GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
 
     cleaning(playerid);
     return 1;
@@ -1794,7 +1795,7 @@ stock checkZone(playerid){
 				    return 0;
 				}
 				
-				if(USER[playerid][CLANID]){
+				if(USER[playerid][CLANID] != 0){
 					ZONE[z][STAY_CLAN] = 0;
 					for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[z][i][INDEX])ZONE[z][STAY_CLAN] +=1;
 
@@ -1809,12 +1810,17 @@ stock checkZone(playerid){
 				tickZone(playerid);
 			    return 0;
 			}
-			if(INGAME[playerid][ENTER_ZONE]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+			if(INGAME[playerid][ENTER_ZONE]){
+                ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+                if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] == 0)GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
+            }
 			ZONE[z][STAY_HUMAN]+=1;
 
 			if(INGAME[playerid][ENTER_ZONE]){
 				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0){
+				    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+				}
 			}
             CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
 			
@@ -1828,22 +1834,28 @@ stock checkZone(playerid){
 
 stock tickZone(playerid){
 
-    if(USER[playerid][CLANID])INGAME[playerid][ZONE_TICK] +=1;
+    if(USER[playerid][CLANID] != 0)INGAME[playerid][ZONE_TICK] +=1;
 
     if(INGAME[playerid][ZONE_TICK] == 2){
         INGAME[playerid][ZONE_TICK] = 0;
 
         CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] +=1;
 
+		if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 80){
+			formatMsg(playerid, COL_SYS, "    %d번 구역에서 {%06x}[%s]{AFAFAF} 클랜이 해당 구역을 점거중입니다.",INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
+            GangZoneFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID], GetPlayerColor(playerid));
+		}
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] > 80)PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
+            formatMsg(playerid, COL_SYS, "    {%06x}[%s]{AFAFAF} 클랜이 %d번 구역을 점거하였습니다.",GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE]);
 			holdZone(playerid);
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+            GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
         }
     }
     
 	new str[120];
-	if(!USER[playerid][CLANID])format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+	if(USER[playerid][CLANID] == 0)format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
 	else format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP]);
 	TextDrawSetString(TDraw[playerid][CP],str);
 }
