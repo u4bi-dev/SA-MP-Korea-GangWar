@@ -113,7 +113,14 @@ new garageTick=0;
 
 /* static */
 static mysql;
-	
+
+enum WARP_MODEL{
+   bool:CHECK,
+   bool:INCAR,
+   CARID
+}
+new WARP[MAX_PLAYERS][WARP_MODEL];
+
 enum CLAN_CP_MODEL{
    CP,
    INDEX
@@ -330,6 +337,11 @@ public OnVehicleSpawn(vehicleid){
 public OnVehicleDeath(vehicleid, killerid){
     return 1;
 }
+public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger){
+	inCar(playerid,vehicleid);
+	return 1;
+}
+
 public OnPlayerExitVehicle(playerid, vehicleid){
 	vehicleSave(vehicleid);
     SetTimerEx("vehicleSapwn", 1500, false, "i", vehicleid);
@@ -358,7 +370,11 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
 }
 
 public OnPlayerStateChange(playerid, newstate, oldstate){
-
+    switch(newstate){
+        case PLAYER_STATE_ONFOOT : warpInit(playerid);
+        case PLAYER_STATE_DRIVER..PLAYER_STATE_PASSENGER : warp(playerid);
+    }
+    
     if(newstate == PLAYER_STATE_DRIVER){
         new vehicleid = GetPlayerVehicleID(playerid);
 	    if(!strcmp("N", VEHICLE[vehicleid][NAME])) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
@@ -971,12 +987,14 @@ stock setCar(playerid, listitem){
 stock spawnCar(playerid){
     new vehicleid = INGAME[playerid][HOLD_CARID];
 	new model = GetVehicleModel(vehicleid);
+    RemovePlayerFromVehicle(playerid);
 	
 	GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
 	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
-    
+
     SetVehiclePos(vehicleid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
     SetVehicleZAngle(vehicleid, USER[playerid][ANGLE]);
+    inCar(playerid,vehicleid);
     PutPlayerInVehicle(playerid, vehicleid, 0);
 	
 	vehicleSave(vehicleid);
@@ -1410,6 +1428,7 @@ stock cleaning(playerid){
     for(new i=0; i < USED_WEAPON; i++){
         WEPBAG[playerid][i] = temp4;
     }
+    warpInit(playerid);
 }
 
 /* DB DATA
@@ -1560,6 +1579,7 @@ public ServerThread(){
     foreach (new i : Player){
 	    event(i);
 	    checkZone(i);
+	    checkWarp(i);
     }
 }
 
@@ -1576,6 +1596,10 @@ public ServerThread(){
    @ showTextDraw(playerid)
    @ fixPos(playerid)
    @ event(playerid)
+   @ checkWarp(playerid)
+   @ inCar(playerid, vehicleid)
+   @ warp(playerid)
+   @ warpInit(playerid)
    @ giveMoney(playerid,money)
    @ death(playerid, killerid, reason)
    @ killCombo(playerid)
@@ -1865,6 +1889,24 @@ stock event(playerid){
             INGAME[playerid][EVENT_TICK] = 0;
 		}
     }
+}
+stock checkWarp(playerid){
+    if(!WARP[playerid][INCAR]) return 0;
+    new vehicleid = GetPlayerVehicleID(playerid);
+    if(WARP[playerid][CARID] != vehicleid && vehicleid != 0)printf("¿öÇÁÇÙ : %s",USER[playerid][NAME]),Kick(playerid);
+    return 0;
+}
+stock inCar(playerid, vehicleid){
+   WARP[playerid][CARID]=vehicleid;
+   WARP[playerid][CHECK]=true;
+}
+stock warp(playerid){
+   WARP[playerid][INCAR]=true;
+   if(!WARP[playerid][CHECK])checkWarp(playerid);
+}
+stock warpInit(playerid){
+   new temp[WARP_MODEL];
+   WARP[playerid] = temp;
 }
 
 stock giveMoney(playerid,money){
