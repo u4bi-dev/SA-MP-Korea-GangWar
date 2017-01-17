@@ -79,6 +79,7 @@
 #define CAR_ALREADY_SELL        "    이미 주인이 있는 차량입니다."
 #define CAR_BUY_SUCCESS         "    당신은 [%s] 차량을 구매하였습니다."
 #define GIVE_CASH               "%d원"
+#define GIVE_EXP                "%d EXP"
 #define GARAGE_TEXT_LABEL       "%s (경적(Caps Lock))"
 #define MISSON_TEXT_LABEL       "%s (F키)"
 #define MISSON_CLAN_TEXT        "{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 정보\n클랜 탈퇴"

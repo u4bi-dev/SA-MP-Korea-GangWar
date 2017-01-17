@@ -1423,7 +1423,7 @@ public save(playerid){
 	else format(clanName,sizeof(clanName),"NONE");
 	
 	new str[256];
-	format(str,sizeof(str),"~b~~h~N~w~AME : %s   ~b~~h~C~w~LAN : %s   ~b~~h~L~w~EVEL : %d   ~b~~h~E~w~XP : %d   ~b~~h~M~w~ONEY : %d   ~b~~h~K~w~ILLS : %d   ~b~~h~D~w~EATHS : %d   ~b~~h~K~w~/D~w~ : %.01f%",
+	format(str,sizeof(str),"~b~~h~N~w~AME : %s   ~b~~h~C~w~LAN : %s   ~b~~h~L~w~EVEL : %d   ~b~~h~E~w~XP : %d/50   ~b~~h~M~w~ONEY : %d   ~b~~h~K~w~ILLS : %d   ~b~~h~D~w~EATHS : %d   ~b~~h~K~w~/D~w~ : %.01f%",
 	USER[playerid][NAME],
 	clanName,
 	USER[playerid][LEVEL],
@@ -2123,6 +2123,7 @@ stock tickZone(playerid){
             formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE], USER[playerid][NAME]);
 			holdZone(playerid);
 			giveMoney(playerid, 2000);
+            giveExp(playerid, 2);
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
             GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
         }
@@ -2205,6 +2206,19 @@ stock giveMoney(playerid,money){
 	formatMsg(playerid, COL_SYS,GIVE_CASH,money);
 }
 
+stock giveExp(playerid,exp){
+    USER[playerid][EXP]+=exp;
+	formatMsg(playerid, COL_SYS,GIVE_EXP,exp);
+	if(USER[playerid][EXP] >= 50){
+		USER[playerid][LEVEL] +=1;
+		USER[playerid][EXP] = USER[playerid][EXP]-50;
+		new str[50];
+		format(str,sizeof(str), "~y~Level UP!~w~%d!",USER[playerid][LEVEL]);
+        GameTextForPlayer(playerid, str,3000,1);
+        save(playerid);
+	}
+}
+
 stock death(playerid, killerid, reason){
 
     new Float:death_pos[3];
@@ -2237,7 +2251,8 @@ stock death(playerid, killerid, reason){
     
 	USER[killerid][KILLS] += 1;
 	giveMoney(killerid, 1000);
-
+    giveExp(killerid, 1);
+    
 	if(INGAME[killerid][COMBO] < 10){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
         INGAME[killerid][COMBO]+=1;
@@ -2251,6 +2266,13 @@ stock killCombo(playerid){
 	new str[50];
 	format(str, sizeof(str), "~r~~>~~y~%s~r~~<~",comboText[INGAME[playerid][COMBO]]);
 	GameTextForPlayer(playerid, str, 2500, 6);
+	switch(INGAME[playerid][COMBO]){
+		case 3 : giveExp(playerid, 2);
+		case 5 : giveExp(playerid, 3);
+		case 7 : giveExp(playerid, 4);
+		case 8 : giveExp(playerid, 5);
+		case 10: giveExp(playerid, 7);
+	}
 }
 
 stock deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pickup_z){
