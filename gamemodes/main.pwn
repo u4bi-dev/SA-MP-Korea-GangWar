@@ -1206,7 +1206,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
         if(giveid == playerid) return SendClientMessage(playerid,COL_SYS,HELP_PM_NOT_SELF);
         
-        str = strtok(cmdtext, idx);
+        str = strtok2(cmdtext, idx);
         if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_PM_TEXT);
         
 		formatMsg(playerid, 0xFFFF00AA, PM_SEND_TEXT,USER[giveid][NAME],giveid, str);
@@ -1513,7 +1513,23 @@ strtok(const string[], &index){
 	result[index - offset] = EOS;
 	return result;
 }
-
+strtok2(const string[], &index)
+{
+	new length = strlen(string);
+	while ((index < length) && (string[index] <= ' '))
+	{
+		index++;
+	}
+	new offset = index;
+	new result[256];
+	while ((index < length) &&((index - offset) < (sizeof(result) - 1)))
+	{
+		result[index - offset] = string[index];
+		index++;
+	}
+	result[index - offset] = EOS;
+	return result;
+}
 /* INIT
    @ out(playerid)
    @ dbcon()
