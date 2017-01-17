@@ -30,6 +30,8 @@
 #define DIALOG_PREV             "뒤로"
 #define DIALOG_CLOSE            "닫기"
 #define DIALOG_EXIT             "나가기"
+#define YOU_NOT_ADMIN           "    관리자 권한을 획득 후 사용해주시기 바랍니다."
+#define SERVER_RESTART_TEXT     "    서버가 재시작됩니다. 잠시만 기다려주세요."
 #define HELP_PM_TEXT            "    /pm [id] [word]"
 #define HELP_PM_NOT_SELF        "    자신에게 귓속말을 보낼 수 없습니다."
 #define PM_SEND_TEXT            "(( PM 보냄 %s(%d)에게 : %s ))"

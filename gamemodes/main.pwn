@@ -250,6 +250,7 @@ enum INGAME_MODEL{
     AMMO,
     bool:SYNC,
     bool:SPAWN,
+	bool:RESTART,
 	EVENT_TICK,
 	SEASON,
     PAINT_TYPE,
@@ -1193,23 +1194,24 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         giveMoney(playerid, 50000);
         return 1;
  	}
+ 	if(!strcmp("/restart", cmdtext)){
+        if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+        SendClientMessageToAll(COL_SYS, SERVER_RESTART_TEXT);
+        for(new i=0; i<GetMaxPlayers(); i++){
+			out(playerid);
+			INGAME[playerid][RESTART] = true;
+        }
+        SendRconCommand("gmx");
+        return 1;
+ 	}
  	
     return 0;
 }
 
 public OnPlayerDisconnect(playerid, reason){
-    if(INGAME[playerid][LOGIN]) save(playerid);
-    if(IsPlayerInAnyVehicle(playerid)) vehicleSave(GetPlayerVehicleID(playerid));
+    if(INGAME[playerid][RESTART]) return 0;
     
-    ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
-    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-    GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
-
-    cleaning(playerid);
-    hide(playerid);
-    
-    DestroyPickup(INGAME[playerid][DEATH_PICKUP_HP]);
-    DestroyPickup(INGAME[playerid][DEATH_PICKUP_AM]);
+    out(playerid);
     return 1;
 }
 
@@ -1464,6 +1466,7 @@ strtok(const string[], &index){
 }
 
 /* INIT
+   @ out(playerid)
    @ dbcon()
    @ data()
    @ mode()
@@ -1472,6 +1475,21 @@ strtok(const string[], &index){
    @ cleaning(playerid)
    @ hide(playerid)
 */
+stock out(playerid){
+    if(INGAME[playerid][LOGIN]) save(playerid);
+    if(IsPlayerInAnyVehicle(playerid)) vehicleSave(GetPlayerVehicleID(playerid));
+
+    ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+    GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
+
+    cleaning(playerid);
+    hide(playerid);
+
+    DestroyPickup(INGAME[playerid][DEATH_PICKUP_HP]);
+    DestroyPickup(INGAME[playerid][DEATH_PICKUP_AM]);
+}
+
 stock mode(){
 	zoneSetup();
 	loadMisson();
