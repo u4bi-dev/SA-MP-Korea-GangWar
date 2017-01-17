@@ -89,6 +89,14 @@ new FALSE = false;
 	}\
 	while(FALSE)
 
+#define formatMsgAll(%1,%2,%3)\
+    do{\
+        new _str[256];\
+	    format(_str,256,%2,%3);\
+		SendClientMessageToAll(%1,_str);\
+    }\
+	while(FALSE)
+	
 #define rgbToHex(%0,%1,%2,%3) %0 << 24 | %1 << 16 | %2 << 8 | %3
 
 main(){}
@@ -420,10 +428,10 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
 	    DAMAGE[playerid][issuerid][GIVE] +=amount;
 
 	    new str[120];
-	    format(str,sizeof(str),"%s~n~-%i (%s)",USER[playerid][NAME],floatround(DAMAGE[issuerid][playerid][TAKE]),wepName(weaponid));
+	    format(str,sizeof(str),"%s~n~-%i (%s)",USER[playerid][NAME],floatround(DAMAGE[issuerid][playerid][TAKE]),wepNameTD(weaponid));
 	    TextDrawSetString(TDraw[issuerid][TAKE_DAMAGE],str);
 
-	    format(str,sizeof(str),"%s~n~-%i (%s)",USER[issuerid][NAME],floatround(DAMAGE[playerid][issuerid][GIVE]),wepName(weaponid));
+	    format(str,sizeof(str),"%s~n~-%i (%s)",USER[issuerid][NAME],floatround(DAMAGE[playerid][issuerid][GIVE]),wepNameTD(weaponid));
 	    TextDrawSetString(TDraw[playerid][GIVE_DAMAGE],str);
 
 		INGAME[issuerid][TAKE_DAMAGE_ALPHA] = 0xFF;
@@ -802,7 +810,6 @@ stock clanSkin(playerid, listitem){
         case 0 : showDialog(playerid, DL_CLAN_SETUP_SKIN_SETUP);
         case 1 : showDialog(playerid, DL_CLAN_SETUP_SKIN_UPDATE);
 	}
-	formatMsg(playerid, COL_SYS, "클랜 스킨 %d - %d",playerid, listitem);
 }
 /* CLAN MEMBER SETUP
    @ clanMemberSetup(playerid, listitem);
@@ -843,8 +850,12 @@ stock clanSkinSetup(playerid, inputtext[]){
 }
 stock clanSkinUpdate(playerid){
     if(CLAN[USER[playerid][CLANID]-1][SKIN] == 0) return SendClientMessage(playerid, COL_SYS, YOU_CLAN_NOT_SKIN);
+	sync(playerid);
     formatMsg(playerid, COL_SYS, CLAN_SKIN_GET_SUCCESS, CLAN[USER[playerid][CLANID]-1][SKIN]);
-    SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
+
+	USER[playerid][SKIN] = CLAN[USER[playerid][CLANID]-1][SKIN];
+	SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
+	save(playerid);
 	return 0;
 }
 /* SHOP
@@ -944,12 +955,11 @@ stock shopWeaponBuy(playerid){
    @ shopSkinBuy(playerid)
 */
 stock shopSkinBuy(playerid){
+    sync(playerid);
     formatMsg(playerid, COL_SYS, SKIN_BUY_SUCCESS,INGAME[playerid][BUY_SKINID]);
     giveMoney(playerid, -5000);
 
     USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
-    sync(playerid);
-    
     INGAME[playerid][BUY_SKINID] = 0;
     SetPlayerSkin(playerid, USER[playerid][SKIN]);
 	save(playerid);
@@ -1179,11 +1189,11 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         formatMsg(giveid, 0xFFFF00AA, PM_GET_TEXT,USER[playerid][NAME],playerid, str);
         return 1;
 	}
-/* 	if(!strcmp("/money", cmdtext)){
-        giveMoney(playerid, 5000);
+ 	if(!strcmp("/돈돈", cmdtext)){
+        giveMoney(playerid, 50000);
         return 1;
  	}
-*/
+ 	
     return 0;
 }
 
@@ -1204,6 +1214,7 @@ public OnPlayerDisconnect(playerid, reason){
 }
 
 public OnPlayerDeath(playerid, killerid, reason){
+	formatMsg(playerid, COL_SYS, "데스 콜백");
     if(INGAME[playerid][SYNC]) return 0;
     
 	death(playerid, killerid, reason);
@@ -1418,12 +1429,16 @@ stock escape(str[]){
 */
 stock spawn(playerid){
 
-	new ammo = 9999;
+    new ammo = 9999;
 	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
     
 	SpawnPlayer(playerid);
+
 	ResetPlayerMoney(playerid);
 	GivePlayerMoney(playerid, USER[playerid][MONEY]);
+
+	USER[playerid][HP] = 100.0;
+	USER[playerid][AM] = 100.0;
 	SetPlayerHealth(playerid, USER[playerid][HP]);
 	SetPlayerArmour(playerid, USER[playerid][AM]);
 
@@ -1720,7 +1735,7 @@ public ServerThread(){
    @ giveMoney(playerid,money)
    @ death(playerid, killerid, reason)
    @ killCombo(playerid)
-   @ deathPickup(killerid, playerid, reason)
+   @ deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pickup_z)
    @ loadMisson()
    @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)
    @ object_init()
@@ -1749,6 +1764,7 @@ public ServerThread(){
    @ getPlayerId(name[]
    @ wepID(model)
    @ wepName(model)
+   @ wepNameTD(model)
    @ sync(playerid)
    @ kdRatio(kill, death)
    @ kdTier(kill, death)
@@ -1916,76 +1932,96 @@ stock isPlayerZone(playerid, zoneid){
     
     return 0;
 }
+/* ZONE LIFE CYCLE
+
+   @ checkZone(playerid)
+	   @ enterZone(playerid)
+		   @ notDmZone(playerid)
+		   @ ownerZone(playerid)
+		   @ stayClanCheck(playerid)
+		   @ tickZone(playerid)
+		   
+	   @ exitZone(playerid)
+	   @ joinZone(playerid, z)
+*/
 
 stock checkZone(playerid){
 	for(new z = 0; z < USED_ZONE; z++){
-        if(isPlayerZone(playerid, z)){
-            if(z == 714){
-                TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
-                INGAME[playerid][ENTER_ZONE] = 714;
-			    return 0;
-			}
-			if(INGAME[playerid][ENTER_ZONE] == z){
-				if(ZONE[z][OWNER_CLAN] == USER[playerid][CLANID]){
-                    new str[120];
-                    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~CLAN HAVED",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
-                    TextDrawSetString(TDraw[playerid][CP],str);
-				    return 0;
-				}
-				
-				if(USER[playerid][CLANID] != 0){
-					ZONE[z][STAY_CLAN] = 0;
-					for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[z][i][INDEX])ZONE[z][STAY_CLAN] +=1;
-
-					if(ZONE[z][STAY_CLAN] > 1){
-					    new str[120];
-					    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- ~w~BATTLE ~r~~h~ IN ZONE CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], ZONE[z][STAY_CLAN]);
-					    TextDrawSetString(TDraw[playerid][CP],str);
-					    return 0;
-					}
-				}
-				
-				tickZone(playerid);
-			    return 0;
-			}
-			if(INGAME[playerid][ENTER_ZONE]){
-                ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
-                if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] == 0)GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
-            }
-			ZONE[z][STAY_HUMAN]+=1;
-
-			if(INGAME[playerid][ENTER_ZONE]){
-				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-                if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0){
-				    CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
-				}
-			}
-            CLAN_CP[z][USER[playerid][CLANID]][INDEX]+=1;
-			
-            INGAME[playerid][ENTER_ZONE] = z;
-			INGAME[playerid][ZONE_TICK] = 0;
-        }
+	    if(isPlayerZone(playerid, z)){
+			if(INGAME[playerid][ENTER_ZONE] == z)return enterZone(playerid);
+			if(INGAME[playerid][ENTER_ZONE] != 0)exitZone(playerid);
+            joinZone(playerid, z);
+	    }
 	}
-	
 	return 0;
+}
+stock joinZone(playerid, zoneid){
+    if(USER[playerid][CLANID] != 0)CLAN_CP[zoneid][USER[playerid][CLANID]][INDEX]+=1;
+
+	ZONE[zoneid][STAY_HUMAN]+=1;
+	INGAME[playerid][ENTER_ZONE] = zoneid;
+	INGAME[playerid][ZONE_TICK] = 0;
+}
+stock exitZone(playerid){
+	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+	CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+
+	if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] == 0)GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
+    if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+}
+stock enterZone(playerid){
+    if(INGAME[playerid][ENTER_ZONE] == 714)return notDmZone(playerid);
+	if(ZONE[INGAME[playerid][ENTER_ZONE]][OWNER_CLAN] == USER[playerid][CLANID])return ownerZone(playerid);
+	
+    if(USER[playerid][CLANID] != 0)stayClanCheck(playerid), tickZone(playerid);
+    else{
+		new str[120];
+	    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+		TextDrawSetString(TDraw[playerid][CP],str);
+    }
+    return 0;
+}
+
+stock notDmZone(playerid){
+	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
+	return 0;
+}
+
+stock ownerZone(playerid){
+	new str[120];
+	format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~CLAN HAVED",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+	TextDrawSetString(TDraw[playerid][CP],str);
+	return 0;
+}
+
+stock stayClanCheck(playerid){
+	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] = 0;
+	
+	for(new i=0; i < USED_CLAN; i++){
+        if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][i][INDEX]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] +=1;
+	}
+	if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] > 1){
+		new str[120];
+		format(str,sizeof(str),"~r~~h~%d ZONE IN - ~w~BATTLE ~r~~h~IN CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN]);
+		TextDrawSetString(TDraw[playerid][CP],str);
+	}
 }
 
 stock tickZone(playerid){
 
-    if(USER[playerid][CLANID] != 0)INGAME[playerid][ZONE_TICK] +=1;
+    INGAME[playerid][ZONE_TICK] +=1;
 
     if(INGAME[playerid][ZONE_TICK] == 2){
         INGAME[playerid][ZONE_TICK] = 0;
-
         CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] +=1;
 
 		if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 80){
-			formatMsg(playerid, COL_SYS, "    %d번 구역에서 {%06x}[%s]{AFAFAF} 클랜이 해당 구역을 점거중입니다.",INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
+			formatMsgAll(COL_SYS, "    %d번 구역에서 {%06x}[%s]{AFAFAF} 클랜이 해당 구역을 점거중입니다.",INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
             GangZoneFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID], GetPlayerColor(playerid));
 		}
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] > 80)PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
-            formatMsg(playerid, COL_SYS, "    {%06x}[%s]{AFAFAF} 클랜이 %d번 구역을 점거하였습니다.",GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE]);
+            formatMsgAll(COL_SYS, "    {%06x}[%s]{AFAFAF} 클랜이 %d번 구역을 점거하였습니다.",GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE]);
 			holdZone(playerid);
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
             GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
@@ -1993,8 +2029,7 @@ stock tickZone(playerid){
     }
     
 	new str[120];
-	if(USER[playerid][CLANID] == 0)format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
-	else format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP]);
+    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~%d%",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN], CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP]);
 	TextDrawSetString(TDraw[playerid][CP],str);
 }
 stock holdZone(playerid){
@@ -2070,11 +2105,11 @@ stock giveMoney(playerid,money){
 }
 
 stock death(playerid, killerid, reason){
-    deathPickup(killerid, playerid, reason);
-    
-    GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
-    CreateExplosion(USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], 16, 32.0);
-    CreateExplosion(USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]+10, 0, 0.1);
+
+    new Float:death_pos[3];
+    GetPlayerPos(playerid, death_pos[0], death_pos[1], death_pos[2]);
+    CreateExplosion(death_pos[0], death_pos[1], death_pos[2], 16, 32.0);
+    CreateExplosion(death_pos[0], death_pos[1], death_pos[2]+10, 0, 0.1);
 
 	fixPos(playerid);
 	USER[playerid][POS_X]   = INGAME[playerid][SPAWN_POS_X];
@@ -2082,8 +2117,6 @@ stock death(playerid, killerid, reason){
 	USER[playerid][POS_Z]   = INGAME[playerid][SPAWN_POS_Y];
 	USER[playerid][ANGLE]   = INGAME[playerid][SPAWN_ANGLE];
 	USER[playerid][DEATHS] += 1;
-	USER[playerid][HP]      = 100.0;
-	USER[playerid][AM]      = 100.0;
 
     for(new i=0; i < INGAME[playerid][COMBO]; i++){
         TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
@@ -2093,21 +2126,23 @@ stock death(playerid, killerid, reason){
     
 	spawn(playerid);
 	if(reason == 255 || reason == 47 || reason == 49 || reason == 50 || reason == 51 || reason == 54 || reason == 53 || reason == 54 ) return 1;
+
     SendDeathMessage(killerid, playerid, reason);
+    deathPickup(killerid, playerid, death_pos[0],death_pos[1],death_pos[2]);
+    
 	new str[128];
 	format(str, sizeof(str), "~y~You got killed by ~r~%s", USER[killerid][NAME]);
     GameTextForPlayer( playerid, str, 3000, 1 );
     
 	USER[killerid][KILLS] += 1;
 	giveMoney(killerid, 500);
-    save(killerid);
 
 	if(INGAME[killerid][COMBO] < 10){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
         INGAME[killerid][COMBO]+=1;
     }
     killCombo(killerid);
-    
+	save(killerid);
 	return 1;
 }
 
@@ -2117,24 +2152,14 @@ stock killCombo(playerid){
 	GameTextForPlayer(playerid, str, 2500, 6);
 }
 
-stock deathPickup(killerid, playerid, reason){
+stock deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pickup_z){
     DestroyPickup(INGAME[playerid][DEATH_PICKUP_HP]);
     DestroyPickup(INGAME[playerid][DEATH_PICKUP_AM]);
     
-	if(reason == 255 || reason == 47 || reason == 49 || reason == 50 || reason == 51 || reason == 54 || reason == 53 || reason == 54 ) return 1;
-
 	GetPlayerHealth(killerid, USER[killerid][HP]);
-	if(USER[killerid][HP] >= 1.00){
-		GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
-		INGAME[playerid][DEATH_PICKUP_HP] = CreatePickup(1240,8, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], 0);
-	}
-
 	GetPlayerArmour(killerid, USER[killerid][AM]);
-	if(USER[killerid][AM] >= 1.00){
-		GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
-		INGAME[playerid][DEATH_PICKUP_AM] = CreatePickup(1242,8, USER[playerid][POS_X], USER[playerid][POS_Y]+1.0, USER[playerid][POS_Z], 0);
-	}
-	return 0;
+	if(USER[killerid][HP] >= 1.00)INGAME[playerid][DEATH_PICKUP_HP] = CreatePickup(1240,8, pickup_x, pickup_y, pickup_z, 0);
+	if(USER[killerid][AM] >= 1.00)INGAME[playerid][DEATH_PICKUP_AM] = CreatePickup(1242,8, pickup_x, pickup_y+1.0, pickup_z, 0);
 }
 stock loadGarage(){
     garageInit("남부 주유소",1936.2174,-1774.7317,13.0537);
@@ -2627,7 +2652,6 @@ stock isNameHangul(playerid, str[]){
     for (new i=0, j=strlen(str); i<j; i++){
         if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
         if(str[i] > '9' || str[i] < '0')
-        if(str[i] != '[' && str[i] != ']' && str[i] != '_' && str[i] != '@')
 		return SendClientMessage(playerid,COL_SYS, NAME_NOT_ENG);
     }
     return 0;
@@ -2741,6 +2765,23 @@ stock wepName(model){
 		case 32 : format(wep, sizeof(wep), "%s", wepModel[8]);
 		case 33 : format(wep, sizeof(wep), "%s", wepModel[9]);
 		case 34 : format(wep, sizeof(wep), "%s", wepModel[10]);
+	}
+	return wep;
+}
+stock wepNameTD(model){
+    new wep[30];
+	switch(model){
+		case 24 : format(wep, sizeof(wep), "%s", wepModelTD[0]);
+		case 25 : format(wep, sizeof(wep), "%s", wepModelTD[1]);
+		case 26 : format(wep, sizeof(wep), "%s", wepModelTD[2]);
+		case 27 : format(wep, sizeof(wep), "%s", wepModelTD[3]);
+		case 28 : format(wep, sizeof(wep), "%s", wepModelTD[4]);
+		case 29 : format(wep, sizeof(wep), "%s", wepModelTD[5]);
+		case 30 : format(wep, sizeof(wep), "%s", wepModelTD[6]);
+		case 31 : format(wep, sizeof(wep), "%s", wepModelTD[7]);
+		case 32 : format(wep, sizeof(wep), "%s", wepModelTD[8]);
+		case 33 : format(wep, sizeof(wep), "%s", wepModelTD[9]);
+		case 34 : format(wep, sizeof(wep), "%s", wepModelTD[10]);
 	}
 	return wep;
 }

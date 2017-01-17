@@ -16,6 +16,19 @@ new wepModel[11][50] = {
     {"컨트리 라이플"},
     {"스나이퍼 라이플"}
 };
+new wepModelTD[11][50] = {
+    {"Desert Eagle"},
+    {"Shotgun"},
+    {"Sawnoff Shotgun"},
+    {"Combat Shotgun"},
+    {"Micro SMG/Uzi"},
+    {"MP5"},
+    {"AK-47"},
+    {"M4"},
+    {"Tec-9"},
+    {"Country Rifle"},
+    {"Sniper Rifle"}
+};
 new comboText[12][30] = {
     {""},
     {"First Kill"},
