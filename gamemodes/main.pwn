@@ -240,7 +240,9 @@ enum INGAME_MODEL{
 	SEASON,
     PAINT_TYPE,
     CAR_PAINT1,
-    CAR_PAINT2
+    CAR_PAINT2,
+	DRUNK_LEVEL_LAST,
+    FPS
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -275,7 +277,10 @@ new TDrawG[USED_TEXTDRAW][TDrawG_MODEL];
 
 enum TDraw_MODEL{
 	Text:ZONETEXT,
-	Text:CP
+	Text:CP,
+	Text:FPS,
+	Text:PING,
+	Text:PACKET
 }
 new TDraw[MAX_PLAYERS][TDraw_MODEL];
 
@@ -1579,6 +1584,7 @@ stock weapon_data(){
 /* SERVER THREAD*/
 public ServerThread(){
     foreach (new i : Player){
+	    fps(i);
 	    event(i);
 	    checkZone(i);
 	    checkWarp(i);
@@ -1594,6 +1600,7 @@ public ServerThread(){
    @ zoneSetup()
    @ showZone(playerid)
    @ vehicleBuy(playerid, carid)
+   @ showEnvi(playerid)
    @ showRank(playerid)
    @ showTextDraw(playerid)
    @ fixPos(playerid)
@@ -1626,6 +1633,7 @@ public ServerThread(){
    @ isClanHangul(playerid, str[])
    @ isNameHangul(playerid, str[])
    @ randomColor()
+   @ fps(playerid)
    @ getPlayerId(name[]
    @ wepID(model)
    @ wepName(model)
@@ -1756,6 +1764,13 @@ stock vehicleBuy(playerid, vehicleid){
 	);
 	mysql_query(mysql, query);
 }
+
+stock showEnvi(playerid){
+	new str[30];
+	format(str,sizeof(str),"~r~~h~F~w~PS : %d",INGAME[playerid][FPS]);
+	TextDrawSetString(TDraw[playerid][FPS],str);
+}
+
 stock showRank(playerid){
 	new str[50];
     format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
@@ -1769,6 +1784,10 @@ stock showTextDraw(playerid){
     
     TextDrawShowForPlayer(playerid, TDraw[playerid][ZONETEXT]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][CP]);
+    
+    TextDrawShowForPlayer(playerid, TDraw[playerid][FPS]);
+    TextDrawShowForPlayer(playerid, TDraw[playerid][PING]);
+    TextDrawShowForPlayer(playerid, TDraw[playerid][PACKET]);
 }
 stock isPlayerZone(playerid, zoneid){
     new	Float:x, Float:y, Float:z;
@@ -1898,6 +1917,7 @@ stock event(playerid){
 	INGAME[playerid][EVENT_TICK] +=1;
     
     switch(INGAME[playerid][EVENT_TICK]){
+		case 5,10,15:showEnvi(playerid);
 		case 20:{
             showRank(playerid);
             INGAME[playerid][EVENT_TICK] = 0;
@@ -2060,6 +2080,21 @@ stock textDraw_init(){
         TextDrawUseBox(TDraw[i][CP], 1);
         TextDrawBoxColor(TDraw[i][CP], 0x00000099);
         TextDrawTextSize(TDraw[i][CP], 641.500, 13.000);
+
+		TDraw[i][FPS] = TextDrawCreate(502, 2,"~r~~h~F~w~PS : 000");
+		TextDrawLetterSize(TDraw[i][FPS], 0.219999,1.099999);
+		TextDrawFont(TDraw[i][FPS], 1);
+		TextDrawSetShadow(TDraw[i][FPS], 0);
+		
+		TDraw[i][PING] = TextDrawCreate(538, 2,"~r~~h~P~w~ING : 000");
+		TextDrawLetterSize(TDraw[i][PING], 0.219999,1.099999);
+		TextDrawFont(TDraw[i][PING], 1);
+		TextDrawSetShadow(TDraw[i][PING], 0);
+		
+		TDraw[i][PACKET] = TextDrawCreate(577, 2,"~r~~h~P~w~acket loss : 0.0%");
+		TextDrawLetterSize(TDraw[i][PACKET], 0.219999,1.099999);
+		TextDrawFont(TDraw[i][PACKET], 1);
+		TextDrawSetShadow(TDraw[i][PACKET], 0);
     }
 
 	new comboWidth = 542;
@@ -2456,6 +2491,21 @@ stock randomColor(){
     for(new i=0; i < sizeof(code); i++)code[i] = random(256);
     return rgbToHex(code[0], code[1], code[2], 103);
 }
+
+stock fps(playerid){
+    new drunk = GetPlayerDrunkLevel(playerid);
+
+	if(drunk < 100)SetPlayerDrunkLevel(playerid, 2000);
+    else{
+        if (INGAME[playerid][DRUNK_LEVEL_LAST] != drunk){
+            new value = INGAME[playerid][DRUNK_LEVEL_LAST] - drunk;
+			if((value > 0)&&(value < 200))INGAME[playerid][FPS] = value;
+
+			INGAME[playerid][DRUNK_LEVEL_LAST] = drunk;
+        }
+    }
+}
+
 stock getPlayerId(name[]){
   for(new i = 0; i <= GetMaxPlayers(); i++){
     if(IsPlayerConnected(i)){
