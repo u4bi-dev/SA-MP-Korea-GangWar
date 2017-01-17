@@ -114,6 +114,12 @@ new garageTick=0;
 /* static */
 static mysql;
 
+enum DAMAGE_MODEL{
+	Float:TAKE,
+	Float:GIVE
+}
+new DAMAGE[MAX_PLAYERS][MAX_PLAYERS][DAMAGE_MODEL];
+
 enum WARP_MODEL{
    bool:CHECK,
    bool:INCAR,
@@ -243,7 +249,9 @@ enum INGAME_MODEL{
     CAR_PAINT2,
 	DRUNK_LEVEL_LAST,
     FPS,
-    Float:PACKET
+    Float:PACKET,
+    TAKE_DAMAGE_ALPHA,
+    GIVE_DAMAGE_ALPHA,
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -362,7 +370,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
-    
+	
     if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90){
         new Float:pos[3];
         GetPlayerPos(issuerid, pos[0], pos[1], pos[2]);
@@ -373,9 +381,25 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
 		SetPlayerArmour(playerid, 100);
 	    GetPlayerHealth(playerid, USER[playerid][HP]);
 	    GetPlayerArmour(playerid, USER[playerid][AM]);
+	    return 0;
     }
+    
+    DAMAGE[issuerid][playerid][TAKE] +=amount;
+    DAMAGE[playerid][issuerid][GIVE] +=amount;
+    
+    new str[120];
+    format(str,sizeof(str),"%s~n~-%i (%s)",USER[playerid][NAME],floatround(DAMAGE[issuerid][playerid][TAKE]),wepName(weaponid));
+    TextDrawSetString(TDraw[issuerid][TAKE_DAMAGE],str);
+
+    format(str,sizeof(str),"%s~n~-%i (%s)",USER[issuerid][NAME],floatround(DAMAGE[playerid][issuerid][GIVE]),wepName(weaponid));
+    TextDrawSetString(TDraw[playerid][GIVE_DAMAGE],str);
+
+	INGAME[issuerid][TAKE_DAMAGE_ALPHA] = 0xFF;
+	INGAME[playerid][GIVE_DAMAGE_ALPHA] = 0xFF;
+	
     PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
     PlayerPlaySound(playerid, 5205, 0.0, 0.0, 0.0);
+    
     return 1;
 }
 
@@ -1618,6 +1642,7 @@ public ServerThread(){
 	    event(i);
 	    checkZone(i);
 	    checkWarp(i);
+        damage(i);
     }
 }
 
@@ -1665,6 +1690,8 @@ public ServerThread(){
    @ randomColor()
    @ packet(playerid)
    @ fps(playerid)
+   @ setAlpha(color, a)
+   @ damage(playerid)
    @ getPlayerId(name[]
    @ wepID(model)
    @ wepName(model)
@@ -1826,9 +1853,6 @@ stock showTextDraw(playerid){
     TextDrawShowForPlayer(playerid, TDraw[playerid][FPS]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][PING]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][PACKET]);
-    
-    TextDrawShowForPlayer(playerid, TDraw[playerid][TAKE_DAMAGE]);
-    TextDrawShowForPlayer(playerid, TDraw[playerid][GIVE_DAMAGE]);
 }
 stock isPlayerZone(playerid, zoneid){
     new	Float:x, Float:y, Float:z;
@@ -2568,6 +2592,38 @@ stock fps(playerid){
 			INGAME[playerid][DRUNK_LEVEL_LAST] = drunk;
         }
     }
+}
+
+stock setAlpha(color, a){return (((color >> 24) & 0xFF) << 24 | ((color >> 16) & 0xFF) << 16 | ((color >> 8) & 0xFF) << 8 | floatround((float(color & 0xFF) / 255) * a));}
+stock damage(playerid){
+	if(INGAME[playerid][TAKE_DAMAGE_ALPHA] > 0){
+		TextDrawColor(TDraw[playerid][TAKE_DAMAGE], setAlpha(0x8D8DFFFF, INGAME[playerid][TAKE_DAMAGE_ALPHA]));
+		TextDrawBackgroundColor(TDraw[playerid][TAKE_DAMAGE], setAlpha(0x000000FF, INGAME[playerid][TAKE_DAMAGE_ALPHA] / 0x6));
+		
+		TextDrawShowForPlayer(playerid, TDraw[playerid][TAKE_DAMAGE]);
+		INGAME[playerid][TAKE_DAMAGE_ALPHA] -= 0x6;
+		
+	}else if(INGAME[playerid][TAKE_DAMAGE_ALPHA] < 0){
+	
+		TextDrawHideForPlayer(playerid, TDraw[playerid][TAKE_DAMAGE]);
+
+		INGAME[playerid][TAKE_DAMAGE_ALPHA] = 0;
+		for(new i = 0; i < GetMaxPlayers(); i++)DAMAGE[playerid][i][TAKE] = 0.0;
+	}
+	if(INGAME[playerid][GIVE_DAMAGE_ALPHA] > 0){
+		TextDrawColor(TDraw[playerid][GIVE_DAMAGE], setAlpha(0xB00000FF, INGAME[playerid][GIVE_DAMAGE_ALPHA]));
+		TextDrawBackgroundColor(TDraw[playerid][GIVE_DAMAGE], setAlpha(0x000000FF, INGAME[playerid][GIVE_DAMAGE_ALPHA] / 0x6));
+
+		TextDrawShowForPlayer(playerid, TDraw[playerid][GIVE_DAMAGE]);
+		INGAME[playerid][GIVE_DAMAGE_ALPHA] -= 0x6;
+		
+	}else if(INGAME[playerid][GIVE_DAMAGE_ALPHA] < 0){
+	
+		TextDrawHideForPlayer(playerid, TDraw[playerid][GIVE_DAMAGE]);
+
+		INGAME[playerid][GIVE_DAMAGE_ALPHA] = 0;
+		for(new i = 0; i < GetMaxPlayers(); i++)DAMAGE[playerid][i][GIVE] = 0.0;
+	}
 }
 
 stock getPlayerId(name[]){
