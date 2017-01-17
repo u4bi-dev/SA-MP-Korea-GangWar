@@ -246,7 +246,7 @@ enum INGAME_MODEL{
 	HOLD_WEPLIST,
     WEPBAG_INDEX,
     HOLD_CARID,
-    EDIT_NAME,
+    EDIT_NAME[24],
 	COMBO,
     AMMO,
     bool:SYNC,
@@ -324,6 +324,7 @@ public OnGameModeInit(){
 public OnPlayerText(playerid, text[]){
     new send[256];
     if(text[0] == '!'){
+        if(USER[playerid][CLANID] == 0) return SendClientMessage(playerid,COL_SYS, YOU_NOT_CLAN_CHAT);
         foreach (new i : Player){
 	        if(USER[i][CLANID] == USER[playerid][CLANID]){
                 new str[256];
@@ -415,10 +416,11 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
 	
+	if(INGAME[issuerid][ENTER_ZONE] == 714 && USER[issuerid][HP] > 90 && USER[issuerid][AM] > 90 && INGAME[playerid][ENTER_ZONE] != 714){
+        formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT2);
+        spawn(issuerid);
+	}
     if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90){
-        new Float:pos[3];
-        GetPlayerPos(issuerid, pos[0], pos[1], pos[2]);
-        CreateExplosion(pos[0], pos[1], pos[2], 12, 10.0);
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
 
 		SetPlayerHealth(playerid, 100);
@@ -678,11 +680,11 @@ stock clanInsert(playerid, inputtext[]){
     if(strlen(inputtext) < 3)return SendClientMessage(playerid,COL_SYS, CLAN_NAME_MIN_LENTH), showDialog(playerid, DL_CLAN_INSERT);
     if(strlen(inputtext) > 20)return SendClientMessage(playerid,COL_SYS, CLAN_NAME_MAX_LENTH), showDialog(playerid, DL_CLAN_INSERT);
 
-    format(CLAN_SETUP[playerid][NAME], 50, "%s", escape(inputtext));
+    format(CLAN_SETUP[playerid][NAME], 50, "%s", inputtext);
     if(isClanHangul(playerid, CLAN_SETUP[playerid][NAME])) return showDialog(playerid, DL_CLAN_INSERT);
 
 	new query[400],row;
-    mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `clan_info` WHERE `NAME` = '%s' LIMIT 1", CLAN_SETUP[playerid][NAME]);
+    mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `clan_info` WHERE `NAME` = '%s' LIMIT 1", escape(CLAN_SETUP[playerid][NAME]));
     mysql_query(mysql, query);
     
     row = cache_num_rows();
@@ -798,6 +800,8 @@ stock clanInvite(playerid, inputtext[]){
 	if(user < 0 || user > GetMaxPlayers()) return SendClientMessage(playerid,COL_SYS,CLAN_INVITE_USER_NAME), showDialog(playerid, DL_CLAN_SETUP_INVITE);
     if(!INGAME[user][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER), showDialog(playerid, DL_CLAN_SETUP_INVITE);
     if(isClan(user, IS_CLEN_HAVE)) return 0;
+    if(isClan(playerid, IS_CLEN_LEADER)) return SendClientMessage(playerid, COL_SYS, CLAN_ONLY_LEADER);
+    
     formatMsg(user, COL_SYS, CLAN_INVITE_REQ,USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
     formatMsg(user, COL_SYS, CLAN_INVITE_RES,USER[playerid][NAME], CLAN[USER[playerid][CLANID]-1][COLOR] >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME]);
     INGAME[user][INVITE_CLANID] = USER[playerid][CLANID];
@@ -812,9 +816,13 @@ stock clanMember(playerid, listitem){
 
 stock clanSkin(playerid, listitem){
 	switch(listitem){
-        case 0 : showDialog(playerid, DL_CLAN_SETUP_SKIN_SETUP);
+        case 0 :{
+            if(isClan(playerid, IS_CLEN_LEADER)) return SendClientMessage(playerid, COL_SYS, CLAN_ONLY_LEADER);
+            showDialog(playerid, DL_CLAN_SETUP_SKIN_SETUP);
+		}
         case 1 : showDialog(playerid, DL_CLAN_SETUP_SKIN_UPDATE);
 	}
+	return 0;
 }
 /* CLAN MEMBER SETUP
    @ clanMemberSetup(playerid, listitem);
@@ -841,7 +849,6 @@ stock clanMemberKick(playerid){
 */
 stock clanSkinSetup(playerid, inputtext[]){
     new skin = strval(inputtext);
-    if(isClan(playerid, IS_CLEN_LEADER)) return SendClientMessage(playerid, COL_SYS, CLAN_ONLY_LEADER);
     if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, SKIN_MAX_299);
     if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, SKIN_NOT_CJ);
     CLAN[USER[playerid][CLANID]-1][SKIN] = skin;
@@ -860,6 +867,7 @@ stock clanSkinUpdate(playerid){
 
 	USER[playerid][SKIN] = CLAN[USER[playerid][CLANID]-1][SKIN];
 	SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
+	
 	save(playerid);
 	return 0;
 }
@@ -930,7 +938,7 @@ stock shopName(playerid, inputtext[]){
 	    return 0;
 	}
 
-    format(INGAME[playerid][EDIT_NAME], 24,"%s", escape(inputtext));
+    format(INGAME[playerid][EDIT_NAME], 24,"%s", inputtext);
     showDialog(playerid, DL_SHOP_NAME_EDIT);
 	return 0;
 }
@@ -942,6 +950,7 @@ stock shopWeaponBuy(playerid){
 	if(isBuyWepMoney(INGAME[playerid][BUY_WEAPONID], USER[playerid][MONEY]))return SendClientMessage(playerid,COL_SYS,WEAPON_BUY_NOT_MONEY);
 
     formatMsg(playerid, COL_SYS, WEAPON_BUY_SUCCESS,wepName(INGAME[playerid][BUY_WEAPONID]));
+    formatMsg(playerid, COL_SYS, WEAPON_BUY_HELP_TEXT);
 
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), "INSERT INTO `weapon_info` (`USER_ID`,`MODEL`) VALUES (%d,%d)",
@@ -979,12 +988,12 @@ stock shopNameEdit(playerid){
 
 	new query[400];
 	if(USER[playerid][NAME] == CLAN[USER[playerid][CLANID]-1][LEADER_NAME]){
-		mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `LEADER_NAME` = '%s' WHERE `LEADER_NAME` = '%s'", INGAME[playerid][EDIT_NAME], USER[playerid][NAME]);
+		mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `LEADER_NAME` = '%s' WHERE `LEADER_NAME` = '%s'", escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
 		mysql_query(mysql, query);
 		format(CLAN[USER[playerid][CLANID]-1][LEADER_NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
     }
 
-    mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `NAME` = '%s'  WHERE `NAME` = '%s'", INGAME[playerid][EDIT_NAME], USER[playerid][NAME]);
+    mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `NAME` = '%s'  WHERE `NAME` = '%s'", escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
     mysql_query(mysql, query);
     
     format(USER[playerid][NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
@@ -1155,6 +1164,16 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         SendClientMessage(playerid,COL_SYS, LOG_SAVE);
         return 1;
     }
+    if(!strcmp("/lobby", cmdtext)){
+        if(USER[playerid][MONEY] < 3000) return SendClientMessage(playerid,COL_SYS,LOBBY_TEL_NOT_MONEY);
+        if(USER[playerid][HP] < 90 && USER[playerid][AM] < 90) return SendClientMessage(playerid,COL_SYS, "    비전투구역은 피 90 아머90 이상일때만 이동이 가능합니다.");
+
+	    SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
+	    SetPlayerFacingAngle(playerid, 89.3591);
+        SendClientMessage(playerid,COL_SYS, "    비전투구역으로 이동하였습니다.");
+        giveMoney(playerid, -3000);
+        return 1;
+ 	}
    	if(!strcmp("/help", cmdtext)){
 		showDialog(playerid, DL_INFO);
         return 1;
@@ -1245,7 +1264,6 @@ public OnPlayerDisconnect(playerid, reason){
 }
 
 public OnPlayerDeath(playerid, killerid, reason){
-	formatMsg(playerid, COL_SYS, "데스 콜백");
     if(INGAME[playerid][SYNC]) return 0;
     
 	death(playerid, killerid, reason);
@@ -1461,7 +1479,7 @@ stock escape(str[]){
 stock spawn(playerid){
 
     new ammo = 9999;
-	SetSpawnInfo(playerid, 0, USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
+	SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
     
 	SpawnPlayer(playerid);
 
@@ -1472,7 +1490,9 @@ stock spawn(playerid){
 	USER[playerid][AM] = 100.0;
 	SetPlayerHealth(playerid, USER[playerid][HP]);
 	SetPlayerArmour(playerid, USER[playerid][AM]);
-
+	
+    SetPlayerTeam(playerid, USER[playerid][CLANID]);
+    
 	if(USER[playerid][CLANID] == 0)SetPlayerColor(playerid, 0xE6E6E699);
     else SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
     
@@ -1852,19 +1872,21 @@ stock zoneSave(id, owner_clan){
     mysql_query(mysql, query);
 }
 stock vehicleSave(vehicleid){
-	    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
-	    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
-		new query[400],sql[400];
-		strcat(sql, "UPDATE `vehicle_info`");
-		strcat(sql, " SET POS_X = %f, POS_Y = %f, POS_Z = %f, ANGLE = %f WHERE ID = %d");
-		mysql_format(mysql, query, sizeof(query), sql,
-		VEHICLE[vehicleid][POS_X],
-		VEHICLE[vehicleid][POS_Y],
-		VEHICLE[vehicleid][POS_Z],
-		VEHICLE[vehicleid][ANGLE],
-		vehicleid
-		);
-		mysql_query(mysql, query);
+    if(strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
+    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
+    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
+	new query[400],sql[400];
+	strcat(sql, "UPDATE `vehicle_info`");
+	strcat(sql, " SET POS_X = %f, POS_Y = %f, POS_Z = %f, ANGLE = %f WHERE ID = %d");
+	mysql_format(mysql, query, sizeof(query), sql,
+	VEHICLE[vehicleid][POS_X],
+	VEHICLE[vehicleid][POS_Y],
+	VEHICLE[vehicleid][POS_Z],
+	VEHICLE[vehicleid][ANGLE],
+	vehicleid
+	);
+	mysql_query(mysql, query);
+    return 0;
 }
 public vehicleSapwn(vehicleid){
     SetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
@@ -1955,8 +1977,10 @@ stock showEnvi(playerid){
 
 stock showRank(playerid){
 	new str[50];
-    format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
+    if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
+    else format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
+    return 0;
 }
 
 stock showTextDraw(playerid){
@@ -2031,6 +2055,7 @@ stock enterZone(playerid){
 
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
+    SetPlayerArmedWeapon(playerid, 0);
 	return 0;
 }
 
@@ -2068,8 +2093,9 @@ stock tickZone(playerid){
 		}
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] > 80)PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
-            formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE]);
+            formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE], USER[playerid][NAME]);
 			holdZone(playerid);
+			giveMoney(playerid, 2000);
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
             GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
         }
@@ -2082,6 +2108,7 @@ stock tickZone(playerid){
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
     if(ZONE[zoneid][OWNER_CLAN] == USER[playerid][CLANID])return 0;
+    if(zoneid == 714)return 0;
     
     new zoneOwner;
     new query[400];
@@ -2182,7 +2209,7 @@ stock death(playerid, killerid, reason){
     GameTextForPlayer( playerid, str, 3000, 1 );
     
 	USER[killerid][KILLS] += 1;
-	giveMoney(killerid, 500);
+	giveMoney(killerid, 1000);
 
 	if(INGAME[killerid][COMBO] < 10){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
