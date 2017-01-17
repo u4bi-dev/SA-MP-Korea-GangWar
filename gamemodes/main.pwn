@@ -383,23 +383,24 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
 	    GetPlayerArmour(playerid, USER[playerid][AM]);
 	    return 0;
     }
-    
-    DAMAGE[issuerid][playerid][TAKE] +=amount;
-    DAMAGE[playerid][issuerid][GIVE] +=amount;
-    
-    new str[120];
-    format(str,sizeof(str),"%s~n~-%i (%s)",USER[playerid][NAME],floatround(DAMAGE[issuerid][playerid][TAKE]),wepName(weaponid));
-    TextDrawSetString(TDraw[issuerid][TAKE_DAMAGE],str);
 
-    format(str,sizeof(str),"%s~n~-%i (%s)",USER[issuerid][NAME],floatround(DAMAGE[playerid][issuerid][GIVE]),wepName(weaponid));
-    TextDrawSetString(TDraw[playerid][GIVE_DAMAGE],str);
+    if(weaponid != 18 && weaponid != 37){
+	    DAMAGE[issuerid][playerid][TAKE] +=amount;
+	    DAMAGE[playerid][issuerid][GIVE] +=amount;
 
-	INGAME[issuerid][TAKE_DAMAGE_ALPHA] = 0xFF;
-	INGAME[playerid][GIVE_DAMAGE_ALPHA] = 0xFF;
-	
-    PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
-    PlayerPlaySound(playerid, 5205, 0.0, 0.0, 0.0);
-    
+	    new str[120];
+	    format(str,sizeof(str),"%s~n~-%i (%s)",USER[playerid][NAME],floatround(DAMAGE[issuerid][playerid][TAKE]),wepName(weaponid));
+	    TextDrawSetString(TDraw[issuerid][TAKE_DAMAGE],str);
+
+	    format(str,sizeof(str),"%s~n~-%i (%s)",USER[issuerid][NAME],floatround(DAMAGE[playerid][issuerid][GIVE]),wepName(weaponid));
+	    TextDrawSetString(TDraw[playerid][GIVE_DAMAGE],str);
+
+		INGAME[issuerid][TAKE_DAMAGE_ALPHA] = 0xFF;
+		INGAME[playerid][GIVE_DAMAGE_ALPHA] = 0xFF;
+
+	    PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
+	    PlayerPlaySound(playerid, 5205, 0.0, 0.0, 0.0);
+	}
     return 1;
 }
 
@@ -1092,6 +1093,11 @@ stock turnCar(playerid){
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
+    new cmd[256], tmp[256], idx, str[256];
+    cmd = strtok(cmdtext, idx);
+    
+    new giveid;
+    
     if(!strcmp("/sav", cmdtext)){
 
         if(!INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS, ONLY_LOGIN_CMD);
@@ -1126,29 +1132,26 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
 		return 1;
     }
-    if(!strcmp("/hold", cmdtext)){
-        if(isClan(playerid, IS_CLEN_NOT)) return 1;
- 	    holdZone(playerid);
- 	    return 1;
- 	}
- 	if(!strcmp("/money", cmdtext)){
+	if(!strcmp("/pm", cmd) || !strcmp("/spm", cmd) || !strcmp("/ow", cmd) || !strcmp("/op", cmd)){
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_PM_TEXT);
+        giveid = strval(tmp);
+        
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        if(giveid == playerid) return SendClientMessage(playerid,COL_SYS,HELP_PM_NOT_SELF);
+        
+        str = strtok(cmdtext, idx);
+        if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_PM_TEXT);
+        
+		formatMsg(playerid, 0xFFFF00AA, PM_SEND_TEXT,USER[giveid][NAME],giveid, str);
+        formatMsg(giveid, 0xFFFF00AA, PM_GET_TEXT,USER[playerid][NAME],playerid, str);
+        return 1;
+	}
+/* 	if(!strcmp("/money", cmdtext)){
         giveMoney(playerid, 5000);
         return 1;
  	}
-
- 	if(!strcmp("/combo", cmdtext)){
-	    if(INGAME[playerid][COMBO] < 10){
-		    TextDrawShowForPlayer(playerid, TDrawG[INGAME[playerid][COMBO]][COMBO]);
-		    INGAME[playerid][COMBO]+=1;
-		}
-        return 1;
- 	}
- 	if(!strcmp("/kd", cmdtext)){
-		USER[playerid][KILLS] = 130;
-		USER[playerid][DEATHS] = 78;
-        return 1;
- 	}
-
+*/
     return 0;
 }
 
@@ -1393,6 +1396,21 @@ stock spawn(playerid){
     else SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
     
     save(playerid);
+}
+
+strtok(const string[], &index){
+	new length = strlen(string);
+	while ((index < length) && (string[index] <= ' ')){
+		index++;
+	}
+	new offset = index;
+	new result[20];
+	while ((index < length) && (string[index] > ' ') && ((index - offset) < (sizeof(result) - 1))){
+		result[index - offset] = string[index];
+		index++;
+	}
+	result[index - offset] = EOS;
+	return result;
 }
 
 /* INIT
