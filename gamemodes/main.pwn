@@ -1133,6 +1133,7 @@ public OnPlayerDisconnect(playerid, reason){
     GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
 
     cleaning(playerid);
+    hide(playerid);
     return 1;
 }
 
@@ -1373,6 +1374,7 @@ stock spawn(playerid){
    @ thread()
    @ server()
    @ cleaning(playerid)
+   @ hide(playerid)
 */
 stock mode(){
 	zoneSetup();
@@ -1437,6 +1439,26 @@ stock cleaning(playerid){
         WEPBAG[playerid][i] = temp4;
     }
     warpInit(playerid);
+}
+stock hide(playerid){
+    TextDrawHideForPlayer(playerid, TDrawG[0][ID]);
+    TextDrawHideForPlayer(playerid, TDrawG[1][ID]);
+    TextDrawHideForPlayer(playerid, TDrawG[2][ID]);
+
+    TextDrawHideForPlayer(playerid, TDraw[playerid][ZONETEXT]);
+    TextDrawHideForPlayer(playerid, TDraw[playerid][CP]);
+
+    TextDrawHideForPlayer(playerid, TDraw[playerid][FPS]);
+    TextDrawHideForPlayer(playerid, TDraw[playerid][PING]);
+    TextDrawHideForPlayer(playerid, TDraw[playerid][PACKET]);
+    
+	for(new i=0; i < 10; i++){
+	    TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
+	}
+	
+	for(new i = 0; i < USED_ZONE; i++){
+      GangZoneHideForPlayer(playerid, ZONE[i][ID]);
+    }
 }
 
 /* DB DATA
