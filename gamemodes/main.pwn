@@ -410,6 +410,17 @@ public OnPlayerPickUpPickup(playerid, pickupid){
 	}
     return 1;
 }
+public OnPlayerClickPlayer(playerid, clickedplayerid, source){
+    new result[502], clanName[50];
+
+	if(USER[clickedplayerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
+	else format(clanName,sizeof(clanName), "%s",CLAN[USER[clickedplayerid][CLANID]-1][NAME]);
+
+    format(result,sizeof(result), infoMessege[1],USER[clickedplayerid][NAME],clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]));
+    ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
+    
+    return 1;
+}
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     if(!isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0 && weaponid != 47 &&  weaponid != 49 && weaponid != 50 && weaponid != 51 && weaponid != 54 &&  weaponid != 53 && weaponid != 54) return Kick(issuerid);
     
