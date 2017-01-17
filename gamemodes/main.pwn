@@ -1,7 +1,7 @@
 #include <a_samp>
 #include <a_mysql>
 #include <foreach>
-	
+
 #define DL_LOGIN                          100
 #define DL_REGIST                         101
 #define DL_INFO                           102
@@ -66,6 +66,7 @@
 #define IS_CLEN_INSERT_MONEY  503
 
 /*ZONE BASE */
+#define USED_PLAYER   51
 #define USED_ZONE     932
 #define USED_TEXTDRAW 200
 #define USED_WEAPON   11
@@ -126,14 +127,14 @@ enum DAMAGE_MODEL{
 	Float:TAKE,
 	Float:GIVE
 }
-new DAMAGE[MAX_PLAYERS][MAX_PLAYERS][DAMAGE_MODEL];
+new DAMAGE[USED_PLAYER][USED_PLAYER][DAMAGE_MODEL];
 
 enum WARP_MODEL{
    bool:CHECK,
    bool:INCAR,
    CARID
 }
-new WARP[MAX_PLAYERS][WARP_MODEL];
+new WARP[USED_PLAYER][WARP_MODEL];
 
 enum CLAN_CP_MODEL{
    CP,
@@ -178,17 +179,17 @@ enum USER_MODEL{
  	Float:HP,
  	Float:AM
 }
-new USER[MAX_PLAYERS][USER_MODEL];
+new USER[USED_PLAYER][USER_MODEL];
 
 enum WEPBAG_MODEL{
 	MODEL
 }
-new WEPBAG[MAX_PLAYERS][USED_WEAPON][WEPBAG_MODEL];
+new WEPBAG[USED_PLAYER][USED_WEAPON][WEPBAG_MODEL];
 
 enum CARBAG_MODEL{
 	ID
 }
-new CARBAG[MAX_PLAYERS][USED_WEAPON][CARBAG_MODEL];
+new CARBAG[USED_PLAYER][USED_WEAPON][CARBAG_MODEL];
 
 enum VEHICLE_MODEL{
  	ID,
@@ -264,7 +265,7 @@ enum INGAME_MODEL{
     DEATH_PICKUP_HP,
     DEATH_PICKUP_AM
 }
-new INGAME[MAX_PLAYERS][INGAME_MODEL];
+new INGAME[USED_PLAYER][INGAME_MODEL];
 
 enum MISSON_MODEL{
 	NAME[24],
@@ -287,7 +288,7 @@ enum CLAN_SETUP_MODEL{
 	MEMBER,
 	COLOR,
 }
-new CLAN_SETUP[MAX_PLAYERS][CLAN_SETUP_MODEL];
+new CLAN_SETUP[USED_PLAYER][CLAN_SETUP_MODEL];
 
 enum TDrawG_MODEL{
 	Text:ID,
@@ -304,7 +305,7 @@ enum TDraw_MODEL{
 	Text:TAKE_DAMAGE,
 	Text:GIVE_DAMAGE
 }
-new TDraw[MAX_PLAYERS][TDraw_MODEL];
+new TDraw[USED_PLAYER][TDraw_MODEL];
 
 public OnGameModeExit(){return 1;
 }
@@ -339,6 +340,9 @@ public OnPlayerText(playerid, text[]){
     return 0;
 }
 public OnPlayerRequestClass(playerid, classid){
+	SetPlayerPos(playerid, 1958.3783, 1343.1572, 15.3746);
+	SetPlayerCameraPos(playerid, 1958.3783, 1343.1572, 15.3746);
+	SetPlayerCameraLookAt(playerid, 1958.3783, 1343.1572, 15.3746);
 	
     if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,ALREADY_LOGIN);
 
@@ -1190,10 +1194,6 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         formatMsg(giveid, 0xFFFF00AA, PM_GET_TEXT,USER[playerid][NAME],playerid, str);
         return 1;
 	}
- 	if(!strcmp("/돈돈", cmdtext)){
-        giveMoney(playerid, 50000);
-        return 1;
- 	}
  	if(!strcmp("/restart", cmdtext)){
         if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
         SendClientMessageToAll(COL_SYS, SERVER_RESTART_TEXT);
@@ -1202,6 +1202,35 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 			INGAME[playerid][RESTART] = true;
         }
         SendRconCommand("gmx");
+        return 1;
+ 	}
+ 	if(!strcmp("/givemoney", cmd)){
+        if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_GIVEMONEY_TEXT);
+
+        giveid = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        
+        str = strtok(cmdtext, idx);
+        if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_GIVEMONEY_TEXT);
+
+		new money = strval(str);
+        giveMoney(giveid, money);
+        formatMsg(giveid, COL_SYS, ADMIN_GIVEMONEY_GET,money);
+        formatMsg(playerid, COL_SYS, ADMIN_GIVEMONEY_SEND,USER[giveid][NAME], money);
+        return 1;
+ 	}
+ 	if(!strcmp("/settime", cmd)){
+        if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+        
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_SETTIME_TEXT);
+        
+        new time = strval(tmp);
+       	SetWorldTime(time);
+        formatMsgAll(COL_SYS, ADMIN_SETTIME_NOTICE, time);
         return 1;
  	}
  	
@@ -2034,12 +2063,12 @@ stock tickZone(playerid){
         CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] +=1;
 
 		if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 80){
-			formatMsgAll(COL_SYS, "    %d번 구역에서 {%06x}[%s]{AFAFAF} 클랜이 해당 구역을 점거중입니다.",INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
+			formatMsgAll(COL_SYS, ZONE_CLAN_HOLD_TEXT ,INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
             GangZoneFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID], GetPlayerColor(playerid));
 		}
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] > 80)PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
-            formatMsgAll(COL_SYS, "    {%06x}[%s]{AFAFAF} 클랜이 %d번 구역을 점거하였습니다.",GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE]);
+            formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE]);
 			holdZone(playerid);
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
             GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
