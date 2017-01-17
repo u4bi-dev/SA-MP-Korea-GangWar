@@ -242,7 +242,8 @@ enum INGAME_MODEL{
     CAR_PAINT1,
     CAR_PAINT2,
 	DRUNK_LEVEL_LAST,
-    FPS
+    FPS,
+    Float:PACKET
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -1584,7 +1585,7 @@ stock weapon_data(){
 /* SERVER THREAD*/
 public ServerThread(){
     foreach (new i : Player){
-	    fps(i);
+    	fps(i);
 	    event(i);
 	    checkZone(i);
 	    checkWarp(i);
@@ -1633,6 +1634,7 @@ public ServerThread(){
    @ isClanHangul(playerid, str[])
    @ isNameHangul(playerid, str[])
    @ randomColor()
+   @ packet(playerid)
    @ fps(playerid)
    @ getPlayerId(name[]
    @ wepID(model)
@@ -1769,6 +1771,13 @@ stock showEnvi(playerid){
 	new str[30];
 	format(str,sizeof(str),"~r~~h~F~w~PS : %d",INGAME[playerid][FPS]);
 	TextDrawSetString(TDraw[playerid][FPS],str);
+
+	format(str,sizeof(str),"~r~~h~P~w~ING : %d",GetPlayerPing(playerid));
+	TextDrawSetString(TDraw[playerid][PING],str);
+	
+    packet(playerid);
+	format(str,sizeof(str),"~r~~h~P~w~ket loss: %.01f%",INGAME[playerid][PACKET]);
+	TextDrawSetString(TDraw[playerid][PACKET],str);
 }
 
 stock showRank(playerid){
@@ -2081,17 +2090,17 @@ stock textDraw_init(){
         TextDrawBoxColor(TDraw[i][CP], 0x00000099);
         TextDrawTextSize(TDraw[i][CP], 641.500, 13.000);
 
-		TDraw[i][FPS] = TextDrawCreate(502, 2,"~r~~h~F~w~PS : 000");
+		TDraw[i][FPS] = TextDrawCreate(499, 2,"~r~~h~F~w~PS : 000");
 		TextDrawLetterSize(TDraw[i][FPS], 0.219999,1.099999);
 		TextDrawFont(TDraw[i][FPS], 1);
 		TextDrawSetShadow(TDraw[i][FPS], 0);
 		
-		TDraw[i][PING] = TextDrawCreate(538, 2,"~r~~h~P~w~ING : 000");
+		TDraw[i][PING] = TextDrawCreate(536, 2,"~r~~h~P~w~ING : 000");
 		TextDrawLetterSize(TDraw[i][PING], 0.219999,1.099999);
 		TextDrawFont(TDraw[i][PING], 1);
 		TextDrawSetShadow(TDraw[i][PING], 0);
 		
-		TDraw[i][PACKET] = TextDrawCreate(577, 2,"~r~~h~P~w~acket loss : 0.0%");
+		TDraw[i][PACKET] = TextDrawCreate(577, 2,"~r~~h~P~w~ket loss: 0.0%");
 		TextDrawLetterSize(TDraw[i][PACKET], 0.219999,1.099999);
 		TextDrawFont(TDraw[i][PACKET], 1);
 		TextDrawSetShadow(TDraw[i][PACKET], 0);
@@ -2492,6 +2501,16 @@ stock randomColor(){
     return rgbToHex(code[0], code[1], code[2], 103);
 }
 
+stock packet(playerid){
+	new nstats[400+1], nstats_loss[20], start, end;
+	GetPlayerNetworkStats(playerid, nstats, sizeof(nstats));
+
+	start = strfind(nstats,"packetloss",true);
+	end = strfind(nstats,"%",true,start);
+
+	strmid(nstats_loss, nstats, start+12, end, sizeof(nstats_loss));
+	INGAME[playerid][PACKET] = floatstr(nstats_loss);
+}
 stock fps(playerid){
     new drunk = GetPlayerDrunkLevel(playerid);
 
