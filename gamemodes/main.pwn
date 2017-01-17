@@ -252,6 +252,8 @@ enum INGAME_MODEL{
     Float:PACKET,
     TAKE_DAMAGE_ALPHA,
     GIVE_DAMAGE_ALPHA,
+    DEATH_PICKUP_HP,
+    DEATH_PICKUP_AM
 }
 new INGAME[MAX_PLAYERS][INGAME_MODEL];
 
@@ -328,7 +330,7 @@ public OnPlayerText(playerid, text[]){
     return 0;
 }
 public OnPlayerRequestClass(playerid, classid){
-
+	
     if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,ALREADY_LOGIN);
 
     join(playerid, check(playerid));
@@ -365,6 +367,35 @@ public OnPlayerExitVehicle(playerid, vehicleid){
     return 1;
 }
 
+public OnPlayerPickUpPickup(playerid, pickupid){
+    GetPlayerHealth(playerid, USER[playerid][HP]);
+    GetPlayerArmour(playerid, USER[playerid][AM]);
+    
+    for(new i=0; i<GetMaxPlayers(); i++){
+	    if(USER[playerid][HP] <= 69.00 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
+            USER[playerid][HP] += 30;
+	        SetPlayerHealth(playerid, USER[playerid][HP]);
+	        DestroyPickup(INGAME[i][DEATH_PICKUP_HP]);
+	    }
+	    if(USER[playerid][HP] >= 70.00 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
+            USER[playerid][HP] = 100;
+		    SetPlayerHealth(playerid, USER[playerid][HP]);
+		    DestroyPickup(INGAME[i][DEATH_PICKUP_HP]);
+		}
+
+		if(USER[playerid][AM] <= 69.00 && pickupid == INGAME[i][DEATH_PICKUP_AM]){
+            USER[playerid][AM] += 30;
+	        SetPlayerArmour(playerid, USER[playerid][AM]);
+	        DestroyPickup(INGAME[i][DEATH_PICKUP_AM]);
+	    }
+	    if(USER[playerid][AM] >= 70.00 && pickupid == INGAME[i][DEATH_PICKUP_AM]){
+            USER[playerid][AM] = 100;
+	        SetPlayerArmour(playerid, USER[playerid][AM]);
+	        DestroyPickup(INGAME[i][DEATH_PICKUP_AM]);
+	    }
+	}
+    return 1;
+}
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     if(!isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0 && weaponid != 47 &&  weaponid != 49 && weaponid != 50 && weaponid != 51 && weaponid != 54 &&  weaponid != 53 && weaponid != 54) return Kick(issuerid);
     
@@ -718,7 +749,7 @@ stock clanInsertColorChoice(playerid, inputtext[]){
 stock clanInsertSuccess(playerid){
     if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
     
-	formatMsg(playerid, COL_SYS, YOU_CALN_INSERT_SUCCESS, CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
+	formatMsg(playerid, COL_SYS, YOU_CLAN_INSERT_SUCCESS, CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
     giveMoney(playerid, -20000);
 	
 	new query[400],sql[400];
@@ -798,6 +829,7 @@ stock clanMemberKick(playerid){
 */
 stock clanSkinSetup(playerid, inputtext[]){
     new skin = strval(inputtext);
+    if(isClan(playerid, IS_CLEN_LEADER)) return SendClientMessage(playerid, COL_SYS, CLAN_ONLY_LEADER);
     if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, SKIN_MAX_299);
     if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, SKIN_NOT_CJ);
     CLAN[USER[playerid][CLANID]-1][SKIN] = skin;
@@ -811,7 +843,7 @@ stock clanSkinSetup(playerid, inputtext[]){
 }
 stock clanSkinUpdate(playerid){
     if(CLAN[USER[playerid][CLANID]-1][SKIN] == 0) return SendClientMessage(playerid, COL_SYS, YOU_CLAN_NOT_SKIN);
-    formatMsg(playerid, COL_SYS, CALN_SKIN_GET_SUCCESS, CLAN[USER[playerid][CLANID]-1][SKIN]);
+    formatMsg(playerid, COL_SYS, CLAN_SKIN_GET_SUCCESS, CLAN[USER[playerid][CLANID]-1][SKIN]);
     SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
 	return 0;
 }
@@ -1165,6 +1197,9 @@ public OnPlayerDisconnect(playerid, reason){
 
     cleaning(playerid);
     hide(playerid);
+    
+    DestroyPickup(INGAME[playerid][DEATH_PICKUP_HP]);
+    DestroyPickup(INGAME[playerid][DEATH_PICKUP_AM]);
     return 1;
 }
 
@@ -1685,6 +1720,7 @@ public ServerThread(){
    @ giveMoney(playerid,money)
    @ death(playerid, killerid, reason)
    @ killCombo(playerid)
+   @ deathPickup(killerid, playerid, reason)
    @ loadMisson()
    @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)
    @ object_init()
@@ -2034,10 +2070,11 @@ stock giveMoney(playerid,money){
 }
 
 stock death(playerid, killerid, reason){
-    new Float:pos[3];
-    GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
-    CreateExplosion(pos[0], pos[1], pos[2], 16, 32.0);
-    CreateExplosion(pos[0], pos[1], pos[2]+10, 0, 0.1);
+    deathPickup(killerid, playerid, reason);
+    
+    GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+    CreateExplosion(USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], 16, 32.0);
+    CreateExplosion(USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]+10, 0, 0.1);
 
 	fixPos(playerid);
 	USER[playerid][POS_X]   = INGAME[playerid][SPAWN_POS_X];
@@ -2080,6 +2117,25 @@ stock killCombo(playerid){
 	GameTextForPlayer(playerid, str, 2500, 6);
 }
 
+stock deathPickup(killerid, playerid, reason){
+    DestroyPickup(INGAME[playerid][DEATH_PICKUP_HP]);
+    DestroyPickup(INGAME[playerid][DEATH_PICKUP_AM]);
+    
+	if(reason == 255 || reason == 47 || reason == 49 || reason == 50 || reason == 51 || reason == 54 || reason == 53 || reason == 54 ) return 1;
+
+	GetPlayerHealth(killerid, USER[killerid][HP]);
+	if(USER[killerid][HP] >= 1.00){
+		GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+		INGAME[playerid][DEATH_PICKUP_HP] = CreatePickup(1240,8, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], 0);
+	}
+
+	GetPlayerArmour(killerid, USER[killerid][AM]);
+	if(USER[killerid][AM] >= 1.00){
+		GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+		INGAME[playerid][DEATH_PICKUP_AM] = CreatePickup(1242,8, USER[playerid][POS_X], USER[playerid][POS_Y]+1.0, USER[playerid][POS_Z], 0);
+	}
+	return 0;
+}
 stock loadGarage(){
     garageInit("巢何 林蜡家",1936.2174,-1774.7317,13.0537);
     garageInit("巢何 林蜡家 2摸",1941.7302,-1772.3066,19.5250);
@@ -2225,7 +2281,7 @@ stock searchGarageRange(playerid){
 }
 stock showMisson(playerid, type){
 	switch(type){
-		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_CALN_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_CLAN_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_SHOP_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 		case 2: ShowPlayerDialog(playerid, DL_MISSON_NOTICE, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_NOTICE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 	}
@@ -2362,7 +2418,7 @@ stock showDialog(playerid, type){
 		}
 
         case DL_CLAN_SETUP_INVITE :{
-            if(isClan(playerid, IS_CLEN_LEADER)) return 0;
+            if(isClan(playerid, IS_CLEN_LEADER)) return SendClientMessage(playerid, COL_SYS, CLAN_ONLY_LEADER);
 		    ShowPlayerDialog(playerid, DL_CLAN_SETUP_INVITE, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_INVITE_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_SETUP_SKIN : ShowPlayerDialog(playerid, DL_CLAN_SETUP_SKIN, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_DL_SKIN, DIALOG_ENTER, DIALOG_PREV);
@@ -2400,7 +2456,7 @@ stock showDialog(playerid, type){
 		    ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
         }
         case DL_CLAN_SETUP_MEMBER_SETUP :{
-            if(isClan(playerid, IS_CLEN_LEADER)) return 0;
+            if(isClan(playerid, IS_CLEN_LEADER)) return SendClientMessage(playerid, COL_SYS, CLAN_ONLY_LEADER);
             ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_SETUP, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_SETUP_MEMBER_SETUP_RANK : ShowPlayerDialog(playerid, DL_CLAN_SETUP_MEMBER_SETUP_RANK, DIALOG_STYLE_LIST, DIALOG_TITLE, CLAN_MEMBER_SETUP_RANK, DIALOG_ENTER, DIALOG_PREV);
