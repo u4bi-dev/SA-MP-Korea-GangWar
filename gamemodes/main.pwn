@@ -281,7 +281,9 @@ enum TDraw_MODEL{
 	Text:CP,
 	Text:FPS,
 	Text:PING,
-	Text:PACKET
+	Text:PACKET,
+	Text:TAKE_DAMAGE,
+	Text:GIVE_DAMAGE
 }
 new TDraw[MAX_PLAYERS][TDraw_MODEL];
 
@@ -307,6 +309,7 @@ public OnPlayerText(playerid, text[]){
                 new str[256];
                 strmid(str, text, 1, strlen(text));
 	            formatMsg(i, 0x7FFF00FF,CLAN_CHAT, USER[playerid][NAME], playerid, str);
+                PlayerPlaySound(i, 1137, 0.0, 0.0, 0.0);
 	        }
         }
         return 0;
@@ -372,6 +375,7 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
 	    GetPlayerArmour(playerid, USER[playerid][AM]);
     }
     PlayerPlaySound(issuerid, 17802, 0.0, 0.0, 0.0);
+    PlayerPlaySound(playerid, 5205, 0.0, 0.0, 0.0);
     return 1;
 }
 
@@ -1451,6 +1455,9 @@ stock hide(playerid){
     TextDrawHideForPlayer(playerid, TDraw[playerid][FPS]);
     TextDrawHideForPlayer(playerid, TDraw[playerid][PING]);
     TextDrawHideForPlayer(playerid, TDraw[playerid][PACKET]);
+
+    TextDrawHideForPlayer(playerid, TDraw[playerid][TAKE_DAMAGE]);
+    TextDrawHideForPlayer(playerid, TDraw[playerid][GIVE_DAMAGE]);
     
 	for(new i=0; i < 10; i++){
 	    TextDrawHideForPlayer(playerid, TDrawG[i][COMBO]);
@@ -1819,6 +1826,9 @@ stock showTextDraw(playerid){
     TextDrawShowForPlayer(playerid, TDraw[playerid][FPS]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][PING]);
     TextDrawShowForPlayer(playerid, TDraw[playerid][PACKET]);
+    
+    TextDrawShowForPlayer(playerid, TDraw[playerid][TAKE_DAMAGE]);
+    TextDrawShowForPlayer(playerid, TDraw[playerid][GIVE_DAMAGE]);
 }
 stock isPlayerZone(playerid, zoneid){
     new	Float:x, Float:y, Float:z;
@@ -2126,6 +2136,19 @@ stock textDraw_init(){
 		TextDrawLetterSize(TDraw[i][PACKET], 0.219999,1.099999);
 		TextDrawFont(TDraw[i][PACKET], 1);
 		TextDrawSetShadow(TDraw[i][PACKET], 0);
+		
+		TDraw[i][TAKE_DAMAGE] = TextDrawCreate(440.0, 370.0, "HI0000000000~n~-23 (Deagle Eagle)");
+		TextDrawLetterSize(TDraw[i][TAKE_DAMAGE], 0.219999,1.099999);
+		TextDrawFont(TDraw[i][TAKE_DAMAGE], 1);
+		TextDrawSetShadow(TDraw[i][TAKE_DAMAGE], 0);
+		TextDrawColor(TDraw[i][TAKE_DAMAGE], 0x8D8DFFFF);
+		
+		TDraw[i][GIVE_DAMAGE] = TextDrawCreate(200.0, 370.0, "HI0000000000~n~-23 (Deagle Eagle)");
+		TextDrawLetterSize(TDraw[i][GIVE_DAMAGE], 0.219999,1.099999);
+		TextDrawFont(TDraw[i][GIVE_DAMAGE], 1);
+		TextDrawSetShadow(TDraw[i][GIVE_DAMAGE], 0);
+		TextDrawColor(TDraw[i][GIVE_DAMAGE], 0xB00000FF);
+		
     }
 
 	new comboWidth = 542;
