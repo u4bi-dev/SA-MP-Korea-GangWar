@@ -1278,8 +1278,8 @@ public save(playerid){
 	if(USER[playerid][CLANID])format(clanName,sizeof(clanName),"%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	else format(clanName,sizeof(clanName),"NONE");
 	
-	new str[120];
-	format(str,sizeof(str),"NAME : %s   CLAN : %s   LEVEL : %d   EXP : %d   MONEY : %d   KILLS : %d   DEATHS : %d   K/D : %.01f%",
+	new str[256];
+	format(str,sizeof(str),"~b~~h~N~w~AME : %s   ~b~~h~C~w~LAN : %s   ~b~~h~L~w~EVEL : %d   ~b~~h~E~w~XP : %d   ~b~~h~M~w~ONEY : %d   ~b~~h~K~w~ILLS : %d   ~b~~h~D~w~EATHS : %d   ~b~~h~K~w~/D~w~ : %.01f%",
 	USER[playerid][NAME],
 	clanName,
 	USER[playerid][LEVEL],
@@ -2027,7 +2027,7 @@ stock textLabel_init(){
 }
 
 stock textDraw_init(){
-    TDrawG[0][ID] = TextDrawCreate(20.000000,428.000000,"SA:MP KOREA ~b~~h~WAR~w~ Server");
+    TDrawG[0][ID] = TextDrawCreate(20.000000,424.000000,"SA:MP KOREA ~b~~h~WAR~w~ Server");
 	TextDrawAlignment(TDrawG[0][ID],0);
 	TextDrawBackgroundColor(TDrawG[0][ID],0x000000ff);
 	TextDrawFont(TDrawG[0][ID],2);
@@ -2037,34 +2037,32 @@ stock textDraw_init(){
 	TextDrawSetProportional(TDrawG[0][ID],1);
 	TextDrawSetShadow(TDrawG[0][ID],1);
 	
-    TDrawG[1][ID] = TextDrawCreate(-0.500, 436.000, "LD_PLAN:tvbase");
-    TextDrawFont(TDrawG[1][ID], 4);
-    TextDrawTextSize(TDrawG[1][ID], 641.500, 13.000);
-    TextDrawColor(TDrawG[1][ID], -1);
+    TDrawG[1][ID] = TextDrawCreate(-0.500, 436.000, "_______________________");
+	TextDrawUseBox(TDrawG[1][ID], 1);
+	TextDrawBoxColor(TDrawG[1][ID], 0x00000099);
+	TextDrawTextSize(TDrawG[1][ID], 641.500, 13.000);
 
-	TDrawG[2][ID] = TextDrawCreate(520,438.000,"~b~~h~S~w~hot:");
-	TextDrawLetterSize(TDrawG[2][ID],0.199999,0.899999);
-	TextDrawFont(TDrawG[2][ID],1);
-	TextDrawSetOutline(TDrawG[2][ID],1);
+	TDrawG[2][ID] = TextDrawCreate(520,437.000,"~b~~h~S~w~HOT:");
+	TextDrawLetterSize(TDrawG[2][ID], 0.219999,1.099999);
+	TextDrawFont(TDrawG[2][ID], 1);
+	TextDrawSetShadow(TDrawG[2][ID], 0);
 
     for(new i = 0; i <= GetMaxPlayers(); i++){
-		TDraw[i][ZONETEXT] = TextDrawCreate(1,438.000,"NAME :       LEVEL :       EXP :       MONEY :       KILLS :       DEATHS :");
-		TextDrawLetterSize(TDraw[i][ZONETEXT], 0.199999,0.899999);
+		TDraw[i][ZONETEXT] = TextDrawCreate(1,437.000,"SOUTH KOREA SAMP GANG WAR SERVER");
+		TextDrawLetterSize(TDraw[i][ZONETEXT], 0.219999,1.099999);
 		TextDrawFont(TDraw[i][ZONETEXT], 1);
-		TextDrawSetOutline(TDraw[i][ZONETEXT],1);
+        TextDrawSetShadow(TDraw[i][ZONETEXT], 0);
 
 		TDraw[i][CP] = TextDrawCreate(302.500, 2.500,"~r~~h~NEAR ZONE IN ~w~HUMAN 6 ~r~~h~- CP : ~w~00%");
-		TextDrawAlignment(TDraw[i][CP],0);
-		TextDrawBackgroundColor(TDraw[i][CP],0x000000ff);
-		TextDrawFont(TDraw[i][CP],2);
-		TextDrawLetterSize(TDraw[i][CP],0.199999,0.899999);
-		TextDrawColor(TDraw[i][CP],0xffffffff);
-		TextDrawSetOutline(TDraw[i][CP],1);
-		TextDrawSetProportional(TDraw[i][CP],1);
-		TextDrawSetShadow(TDraw[i][CP],1);
+		TextDrawLetterSize(TDraw[i][CP], 0.219999,1.099999);
+		TextDrawFont(TDraw[i][CP], 1);
+        TextDrawSetShadow(TDraw[i][CP], 0);
+        TextDrawUseBox(TDraw[i][CP], 1);
+        TextDrawBoxColor(TDraw[i][CP], 0x00000099);
+        TextDrawTextSize(TDraw[i][CP], 641.500, 13.000);
     }
 
-	new comboWidth = 540;
+	new comboWidth = 542;
     for(new i = 0; i < 10; i++){
         TDrawG[i][COMBO] = TextDrawCreate(comboWidth+(i*10), 437.500, "ld_shtr:ex3");
         TextDrawFont(TDrawG[i][COMBO], 4);
