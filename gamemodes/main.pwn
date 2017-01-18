@@ -2491,9 +2491,7 @@ stock garageInit(name[],Float:pos_x,Float:pos_y,Float:pos_z){
 }
 
 stock object_init(){
-	CreateObject(1504, 1909.60229, -1713.55371, 12.30253,   0.00000, 0.00000, 269.91336);
-	CreateObject(1505, 1909.58008, -1708.08728, 12.14866,   0.00000, 0.00000, 89.91272);
-	CreateObject(1507, 1909.53870, -1699.33984, 12.30817,   0.00000, 0.00000, 269.92120);
+	#include "module/objects.pwn"
 }
 
 stock textLabel_init(){
