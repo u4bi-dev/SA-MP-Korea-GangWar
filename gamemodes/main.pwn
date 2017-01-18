@@ -61,7 +61,7 @@
 
 #define DL_GAMBLE_CHOICE                  1110
 #define DL_GAMBLE_REGAMBLE                1111
-
+#define DL_GAMBLE_RESULT                  1112
 #define COL_SYS  0xAFAFAF99
 
 /* IS CHECK */
@@ -554,7 +554,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MYCAR_SETUP : return showDialog(playerid, DL_MYCAR);
 			case DL_MYCAR_SETUP_SPAWN : return showDialog(playerid, DL_MYCAR_SETUP);
 			case DL_GARAGE_REPAIR, DL_GARAGE_PAINT, DL_GARAGE_TURNING : return showDialog(playerid, DL_GARAGE);
-			case DL_GAMBLE_CHOICE : return showMisson(playerid, 4);
+			case DL_GAMBLE_CHOICE : return ShowPlayerDialog(playerid, DL_MISSON_GAMBLE, DIALOG_STYLE_INPUT,DIALOG_TITLE, MISSON_GAMBLE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+			case DL_GAMBLE_REGAMBLE, DL_GAMBLE_RESULT : return 0;
 		}
 	}
 	
@@ -637,6 +638,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		/* GAMBLE */
 		case DL_GAMBLE_CHOICE      : gambleChoice(playerid, listitem);
 		case DL_GAMBLE_REGAMBLE    : gambleRegamble(playerid);
+		case DL_GAMBLE_RESULT      : gambleResult(playerid);
 		
     }
     return 1;
@@ -698,9 +700,15 @@ stock duel(playerid,listitem){
 
 stock gamble(playerid,inputtext[]){
     new money = strval(inputtext);
-    if(money < 5000) return SendClientMessage(playerid, COL_SYS, GAMBLE_MIN_MONEY),showMisson(playerid, 4);
-    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS, GAMBLE_NOT_MONEY);
-    INGAME[playerid][GAMBLE] = money;
+    if(money > 0 && money < 500){
+	    SendClientMessage(playerid, COL_SYS, GAMBLE_MIN_MONEY);
+		showMisson(playerid, 4);
+	    return 0;
+    }
+    if(USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS, GAMBLE_NOT_MONEY);
+
+    if(money == 0)INGAME[playerid][GAMBLE] = 500;
+    else INGAME[playerid][GAMBLE] = money;
     
     showDialog(playerid, DL_GAMBLE_CHOICE);
     return 0;
@@ -978,7 +986,7 @@ stock shopSkin(playerid, inputtext[]){
     new skin = strval(inputtext);
     if(skin < 0 || skin > 299) return SendClientMessage(playerid, COL_SYS, SKIN_MAX_299);
     if(skin == 0 || skin == 74) return SendClientMessage(playerid, COL_SYS, SKIN_NOT_CJ);
-    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS,SKIN_BUY_NOT_MONEY);
+    if(USER[playerid][MONEY] < 2000) return SendClientMessage(playerid,COL_SYS,SKIN_BUY_NOT_MONEY);
 
     INGAME[playerid][BUY_SKINID] = skin;
 	showDialog(playerid, DL_SHOP_SKIN_BUY);
@@ -1040,7 +1048,7 @@ stock shopWeaponBuy(playerid){
 stock shopSkinBuy(playerid){
     sync(playerid);
     formatMsg(playerid, COL_SYS, SKIN_BUY_SUCCESS,INGAME[playerid][BUY_SKINID]);
-    giveMoney(playerid, -5000);
+    giveMoney(playerid, -2000);
 
     USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
     INGAME[playerid][BUY_SKINID] = 0;
@@ -1219,11 +1227,13 @@ stock turnCar(playerid){
 
 /* GAMBLE
    @ gambleChoice(playerid, listitem)
+   @ gambling(playerid, dice, listitem, result);
    @ gambleRegamble(playerid)
+   @ gambleResult(playerid)
 */
 
 stock gambleChoice(playerid,listitem){
-	new dice = random(6), result;
+	new dice = random(5)+1, result;
 			
 	switch(dice){
 	    case 1,3:{
@@ -1236,32 +1246,32 @@ stock gambleChoice(playerid,listitem){
 	    }
 	}
 	
-    gambleResult(playerid, dice, result);
+    gambling(playerid, dice, listitem, result);
     return 0;
 }
 
-stock gambleResult(playerid, dice, result){
-    new str[256], diceText[128];
-	format(diceText, sizeof(diceText), "{8D8DFF} 주사위를 던져서 나온 수는?{FFFFFF}\t\t배팅금액 : %d원\n\n 딜러가 던진 주사위 : {8D8DFF}%d{FFFFFF}\n\n",INGAME[playerid][GAMBLE],dice);
+stock gambling(playerid, dice, choice, result){
+    new str[289], diceText[256], choiceText[2][20] = {{"홀"},{"짝"}};
+	format(diceText, sizeof(diceText), GAMBLE_RESULT_TEXT ,INGAME[playerid][GAMBLE], dice, choiceText[choice]);
 	
 	if(result){
 		format(str, sizeof(str), GAMBLE_DL_WIN, diceText);
-		ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+		ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
 		
 		giveMoney(playerid, INGAME[playerid][GAMBLE]);
 	}else{
 		format(str, sizeof(str), GAMBLE_DL_LOSE, diceText);
-		ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+		ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
 		
 		giveMoney(playerid, -INGAME[playerid][GAMBLE]);
 		
 		if(dice == 5){
 			format(str, sizeof(str), GAMBLE_DL_REGAMBLE, diceText);
-			ShowPlayerDialog(playerid, DL_GAMBLE_REGAMBLE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+			ShowPlayerDialog(playerid, DL_GAMBLE_REGAMBLE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
 		}
 		if(dice == 6){
 			format(str, sizeof(str), GAMBLE_DL_FAIL, diceText);
-			ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+			ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
 			
 			giveMoney(playerid, -INGAME[playerid][GAMBLE]);
 		}
@@ -1270,6 +1280,10 @@ stock gambleResult(playerid, dice, result){
 
 stock gambleRegamble(playerid){
     showDialog(playerid, DL_GAMBLE_CHOICE);
+}
+
+stock gambleResult(playerid){
+    showMisson(playerid, 4);
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -1350,7 +1364,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_MONEY_TEXT);
 
 		new money = strval(str);
-        if(USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS,GIVE_NOT_MONEY_LENGTH);
+        if(money < 0 && USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS,GIVE_NOT_MONEY_LENGTH);
         
         giveMoney(playerid, -money);
         giveMoney(giveid, money);
@@ -1370,8 +1384,9 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         
         str = strtok(cmdtext, idx);
         if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_GIVEMONEY_TEXT);
-
 		new money = strval(str);
+        if(money < 0)return 0;
+        
         giveMoney(giveid, money);
         formatMsg(giveid, COL_SYS, ADMIN_GIVEMONEY_GET,money);
         formatMsg(playerid, COL_SYS, ADMIN_GIVEMONEY_SEND,USER[giveid][NAME], money);
