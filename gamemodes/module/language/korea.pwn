@@ -117,6 +117,7 @@
 #define MISSON_CLAN_TEXT        "{FFFFFF}클랜 생성\n클랜 목록\n클랜 랭킹\n클랜 정보\n클랜 탈퇴"
 #define MISSON_SHOP_TEXT        "{FFFFFF}무기\n스킨\n악세사리\n닉네임 변경"
 #define MISSON_NOTICE_TEXT      "{FFFFFF}시즌 랭킹"
+#define MISSON_DUEL_TEXT        "{FFFFFF}주먹\n데글\n데글&샷건\n스나&샷건\n스파&샷건\n엠포&샷건"
 #define LOGIN_DL_TEXT           "{FFFFFF}로그인을 해주세요"
 #define REGIST_DL_TEXT          "{FFFFFF}회원가입을 해주세요."
 #define INFO_DL_TEXT            "서버 규정\n내 프로필\n명령어 도움말\n시즌랭크 도움말\n\n어드민 도움말"

@@ -12,6 +12,7 @@
 #define DL_MYWEP                          107
 #define DL_MYCAR                          108
 #define DL_GARAGE                         109
+#define DL_MISSON_DUEL                    110
 
 #define DL_CLAN_INSERT                    1040
 #define DL_CLAN_INSERT_COLOR              10400
@@ -325,7 +326,10 @@ public OnGameModeInit(){
 public OnPlayerText(playerid, text[]){
     new send[256];
     if(text[0] == '!'){
-        if(USER[playerid][CLANID] == 0) return SendClientMessage(playerid,COL_SYS, YOU_NOT_CLAN_CHAT);
+        if(USER[playerid][CLANID] == 0){
+		    SendClientMessage(playerid,COL_SYS, YOU_NOT_CLAN_CHAT);
+            return 0;
+        }
         foreach (new i : Player){
 	        if(USER[i][CLANID] == USER[playerid][CLANID]){
                 new str[256];
@@ -334,10 +338,13 @@ public OnPlayerText(playerid, text[]){
                 PlayerPlaySound(i, 1137, 0.0, 0.0, 0.0);
 	        }
         }
-        return 1;
+        return 0;
     }
     if(text[0] == '@'){
-        if(USER[playerid][ADMIN] == 0) return SendClientMessage(playerid,COL_SYS, YOU_NOT_ADMIN);
+        if(USER[playerid][ADMIN] == 0){
+			SendClientMessage(playerid,COL_SYS, YOU_NOT_ADMIN);
+			return 0;
+		}
         foreach (new i : Player){
 	        if(USER[i][ADMIN] > 0){
                 new str[256];
@@ -346,7 +353,7 @@ public OnPlayerText(playerid, text[]){
                 PlayerPlaySound(i, 1137, 0.0, 0.0, 0.0);
 	        }
         }
-        return 1;
+        return 0;
     }
 	if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s(%d) : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME],playerid, text);
 	else format(send,sizeof(send),"{E6E6E6} %s(%d) : %s", USER[playerid][NAME], playerid, text);
@@ -522,7 +529,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE,DL_MISSON_DUEL, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
@@ -558,6 +565,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_MISSON_CLAN    : clan(playerid,listitem);
         case DL_MISSON_SHOP    : shop(playerid,listitem);
         case DL_MISSON_NOTICE  : notice(playerid,listitem);
+        case DL_MISSON_DUEL    : duel(playerid,listitem);
 
         /* CLAN */
         case DL_CLAN_INSERT : clanInsert(playerid, inputtext);
@@ -626,6 +634,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
    @ clan(playerid,listitem)
    @ shop(playerid,listitem)
    @ notice(playerid,listitem)
+   @ duel(playerid,listitem)
    @ mywep(playerid,listitem)
    @ mycar(playerid,listitem)
    @ garage(playerid,listitem)
@@ -668,6 +677,10 @@ stock notice(playerid,listitem){
 	switch(listitem){
         case 0 : showDialog(playerid, DL_NOTICE_SEASON);
 	}
+}
+
+stock duel(playerid,listitem){
+    formatMsg(playerid, COL_SYS, "µà¾óÀå %d - %d",playerid, listitem);
 }
 
 stock mywep(playerid,listitem){
@@ -2473,6 +2486,7 @@ stock loadMisson(){
 	missonInit("´ëÇÑ ÀüÀï ÇùÈ¸",1910.2273,-1714.3197,13.3307);
 	missonInit("Ä«ÇªÄ¡³ë »óÁ¡",1909.9907,-1707.3611,13.3251);
 	missonInit("¸¸³²ÀÇ ±¤Àå",1909.9747,-1700.0070,13.3236);
+	missonInit("µà¾óÀå",1927.1864,-1699.6194,13.5469);
 }
 stock missonInit(name[],Float:pos_x,Float:pos_y,Float:pos_z){
 	new num = missonTick++;
@@ -2608,6 +2622,7 @@ stock showMisson(playerid, type){
 		case 0: ShowPlayerDialog(playerid, DL_MISSON_CLAN, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_CLAN_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_SHOP_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 		case 2: ShowPlayerDialog(playerid, DL_MISSON_NOTICE, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_NOTICE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+		case 3: ShowPlayerDialog(playerid, DL_MISSON_DUEL, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_DUEL_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 	}
     ClearAnimations(playerid);
 	return 1;
