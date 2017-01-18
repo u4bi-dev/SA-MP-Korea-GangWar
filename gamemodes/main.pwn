@@ -334,7 +334,19 @@ public OnPlayerText(playerid, text[]){
                 PlayerPlaySound(i, 1137, 0.0, 0.0, 0.0);
 	        }
         }
-        return 0;
+        return 1;
+    }
+    if(text[0] == '@'){
+        if(USER[playerid][ADMIN] == 0) return SendClientMessage(playerid,COL_SYS, YOU_NOT_ADMIN);
+        foreach (new i : Player){
+	        if(USER[i][ADMIN] > 0){
+                new str[256];
+                strmid(str, text, 1, strlen(text));
+	            formatMsg(i, 0x2184DEFF,ADMIN_CHAT, USER[playerid][NAME], playerid, str);
+                PlayerPlaySound(i, 1137, 0.0, 0.0, 0.0);
+	        }
+        }
+        return 1;
     }
 	if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s(%d) : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME],playerid, text);
 	else format(send,sizeof(send),"{E6E6E6} %s(%d) : %s", USER[playerid][NAME], playerid, text);
@@ -365,6 +377,7 @@ public OnPlayerSpawn(playerid){
 }
 
 public OnVehicleSpawn(vehicleid){
+    if(!strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
 	vehicleSapwn(vehicleid);
     return 1;
 }
@@ -620,7 +633,10 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 stock info(playerid, listitem){
 	new result[502], clanName[50];
 	
-	if(listitem == 3) return ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,tierInfo(), DIALOG_CLOSE, "");
+	switch(listitem){
+		case 3 : ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,tierInfo(), DIALOG_CLOSE, "");
+		case 4 : ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,adminInfo(), DIALOG_CLOSE, "");
+	}
 	
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
@@ -1231,16 +1247,6 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         formatMsg(giveid, 0xFFFF00AA, PM_GET_TEXT,USER[playerid][NAME],playerid, str);
         return 1;
 	}
- 	if(!strcmp("/restart", cmdtext)){
-        if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
-        SendClientMessageToAll(COL_SYS, SERVER_RESTART_TEXT);
-        for(new i=0; i<GetMaxPlayers(); i++){
-			out(i);
-			INGAME[i][RESTART] = true;
-        }
-        SendRconCommand("gmx");
-        return 1;
- 	}
  	if(!strcmp("/money", cmd)){
 
         tmp = strtok(cmdtext, idx);
@@ -1280,18 +1286,147 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         formatMsg(playerid, COL_SYS, ADMIN_GIVEMONEY_SEND,USER[giveid][NAME], money);
         return 1;
  	}
- 	if(!strcmp("/settime", cmd)){
-        if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+ 	if(!strcmp("/time", cmd)){
+        if(USER[playerid][ADMIN] < 1) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
         
         tmp = strtok(cmdtext, idx);
-        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_SETTIME_TEXT);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_TIME_TEXT);
         
         new time = strval(tmp);
        	SetWorldTime(time);
         formatMsgAll(COL_SYS, ADMIN_SETTIME_NOTICE, time);
         return 1;
  	}
- 	
+ 	if(!strcmp("/kick", cmd)){
+        if(USER[playerid][ADMIN] < 1) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_KICK_TEXT);
+
+        giveid  = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        formatMsg(giveid, COL_SYS, ADMIN_KICK_GET);
+        formatMsg(playerid, COL_SYS, ADMIN_KICK_SEND,USER[giveid][NAME]);
+       	Kick(giveid);
+        return 1;
+ 	}
+ 	if(!strcmp("/bomb", cmd)){
+        if(USER[playerid][ADMIN] < 2) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_BOMB_TEXT);
+
+        giveid  = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        formatMsg(giveid, COL_SYS, ADMIN_BOMB_GET);
+        formatMsg(playerid, COL_SYS, ADMIN_BOMB_SEND,USER[giveid][NAME]);
+
+        GetPlayerPos(giveid, USER[giveid][POS_X], USER[giveid][POS_Y],USER[giveid][POS_Z]);
+	    CreateExplosion(USER[giveid][POS_X], USER[giveid][POS_Y],USER[giveid][POS_Z], 16, 32.0);
+        return 1;
+ 	}
+ 	if(!strcmp("/ip", cmd)){
+        if(USER[playerid][ADMIN] < 2) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_IP_TEXT);
+
+        giveid  = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        GetPlayerIp(giveid, USER[giveid][USERIP], 16);
+        formatMsg(playerid, COL_SYS, ADMIN_IP_SEND,USER[giveid][NAME], USER[giveid][USERIP]);
+        return 1;
+ 	}
+ 	if(!strcmp("/ban", cmd)){
+        if(USER[playerid][ADMIN] < 3) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_BAN_TEXT);
+
+        giveid  = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        formatMsg(giveid, COL_SYS, ADMIN_BAN_GET);
+        formatMsg(playerid, COL_SYS, ADMIN_BAN_SEND,USER[giveid][NAME]);
+       	Ban(giveid);
+        return 1;
+ 	}
+ 	if(!strcmp("/call", cmd)){
+        if(USER[playerid][ADMIN] < 3) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_CALL_TEXT);
+
+        giveid  = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        formatMsg(giveid, COL_SYS, ADMIN_CALL_GET);
+        formatMsg(playerid, COL_SYS, ADMIN_CALL_SEND,USER[giveid][NAME]);
+
+	    GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+        GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+        new inter = GetPlayerInterior(playerid);
+		new world = GetPlayerVirtualWorld(playerid);
+		
+	    SetPlayerPos(giveid, USER[playerid][POS_X], USER[playerid][POS_Y]+1, USER[playerid][POS_Z]);
+	    SetPlayerFacingAngle(giveid, USER[playerid][ANGLE]);
+		SetPlayerInterior(giveid, inter);
+		SetPlayerVirtualWorld(giveid, world);
+		
+        return 1;
+ 	}
+ 	if(!strcmp("/go", cmd)){
+        if(USER[playerid][ADMIN] < 3) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_GO_TEXT);
+
+        giveid  = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+        formatMsg(giveid, COL_SYS, ADMIN_GO_GET);
+        formatMsg(playerid, COL_SYS, ADMIN_GO_SEND,USER[giveid][NAME]);
+
+	    GetPlayerPos(giveid, USER[giveid][POS_X], USER[giveid][POS_Y], USER[giveid][POS_Z]);
+        GetPlayerFacingAngle(giveid, USER[giveid][ANGLE]);
+        new inter = GetPlayerInterior(giveid);
+		new world = GetPlayerVirtualWorld(giveid);
+
+	    SetPlayerPos(playerid, USER[giveid][POS_X], USER[giveid][POS_Y]+1, USER[giveid][POS_Z]);
+	    SetPlayerFacingAngle(playerid, USER[giveid][ANGLE]);
+		SetPlayerInterior(playerid, inter);
+		SetPlayerVirtualWorld(playerid, world);
+
+        return 1;
+ 	}
+ 	if(!strcmp("/amdin", cmd)){
+        if(USER[playerid][ADMIN] < 4) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_ADMIN_TEXT);
+
+        giveid = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+
+        str = strtok(cmdtext, idx);
+        if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_GIVEMONEY_TEXT);
+        
+		new admin = strval(str);
+        if(admin > 4) return SendClientMessage(playerid,COL_SYS,ADMIN_NOT_MAX_LENGTH);
+
+		USER[giveid][ADMIN] = admin;
+        save(giveid);
+        formatMsg(giveid, COL_SYS, ADMIN_ADMIN_GET,admin);
+        formatMsg(playerid, COL_SYS, ADMIN_ADMIN_SEND,USER[giveid][NAME], admin);
+        return 1;
+ 	}
+ 	if(!strcmp("/restart", cmdtext)){
+        if(USER[playerid][ADMIN] < 4) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
+        SendClientMessageToAll(COL_SYS, SERVER_RESTART_TEXT);
+        for(new i=0; i<GetMaxPlayers(); i++){
+			out(i);
+			INGAME[i][RESTART] = true;
+        }
+        SendRconCommand("gmx");
+        return 1;
+ 	}
     return 0;
 }
 
@@ -1931,9 +2066,10 @@ stock zoneSave(id, owner_clan){
     mysql_query(mysql, query);
 }
 stock vehicleSave(vehicleid){
-    if(!strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
     GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
     GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
+
+    if(!strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
 	new query[400],sql[400];
 	strcat(sql, "UPDATE `vehicle_info`");
 	strcat(sql, " SET POS_X = %f, POS_Y = %f, POS_Z = %f, ANGLE = %f WHERE ID = %d");
