@@ -118,6 +118,7 @@
 #define MISSON_SHOP_TEXT        "{FFFFFF}무기\n스킨\n악세사리\n닉네임 변경"
 #define MISSON_NOTICE_TEXT      "{FFFFFF}시즌 랭킹"
 #define MISSON_DUEL_TEXT        "{FFFFFF}주먹\n데글\n데글&샷건\n스나&샷건\n스파&샷건\n엠포&샷건"
+#define MISSON_GAMBLE_TEXT      "{8D8DFF}홀짝 규칙{FFFFFF}: 짝수 승 / 홀수 패 / 5 다시 / 6 꽝\n\n최대 배팅금액 한도 없음! 상금 두배!\n{AFAFAF}최소 5천원부터 배팅 가능합니다.{FFFFFF}"
 #define LOGIN_DL_TEXT           "{FFFFFF}로그인을 해주세요"
 #define REGIST_DL_TEXT          "{FFFFFF}회원가입을 해주세요."
 #define INFO_DL_TEXT            "서버 규정\n내 프로필\n명령어 도움말\n시즌랭크 도움말\n\n어드민 도움말"

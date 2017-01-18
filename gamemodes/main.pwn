@@ -13,6 +13,7 @@
 #define DL_MYCAR                          108
 #define DL_GARAGE                         109
 #define DL_MISSON_DUEL                    110
+#define DL_MISSON_GAMBLE                  111
 
 #define DL_CLAN_INSERT                    1040
 #define DL_CLAN_INSERT_COLOR              10400
@@ -74,7 +75,7 @@
 #define USED_VEHICLE  230
 #define USED_HOUSE    500
 #define USED_CLAN     100
-#define USED_MISSON   3
+#define USED_MISSON   5
 #define USED_GARAGE   5
 
 #define PRESSED(%0) \
@@ -529,7 +530,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE,DL_MISSON_DUEL, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE,DL_MISSON_DUEL,DL_MISSON_GAMBLE, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
@@ -566,6 +567,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
         case DL_MISSON_SHOP    : shop(playerid,listitem);
         case DL_MISSON_NOTICE  : notice(playerid,listitem);
         case DL_MISSON_DUEL    : duel(playerid,listitem);
+        case DL_MISSON_GAMBLE  : gamble(playerid, inputtext);
 
         /* CLAN */
         case DL_CLAN_INSERT : clanInsert(playerid, inputtext);
@@ -635,6 +637,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
    @ shop(playerid,listitem)
    @ notice(playerid,listitem)
    @ duel(playerid,listitem)
+   @ gamble(playerid,inputtext[])
    @ mywep(playerid,listitem)
    @ mycar(playerid,listitem)
    @ garage(playerid,listitem)
@@ -681,6 +684,10 @@ stock notice(playerid,listitem){
 
 stock duel(playerid,listitem){
     formatMsg(playerid, COL_SYS, "µà¾óÀå %d - %d",playerid, listitem);
+}
+
+stock gamble(playerid,inputtext[]){
+    formatMsg(playerid, COL_SYS, "È¦Â¦¸Ó½Å %d - %s",playerid, inputtext);
 }
 
 stock mywep(playerid,listitem){
@@ -2263,10 +2270,6 @@ stock enterZone(playerid){
 
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
-    if(GetPlayerWeapon(playerid) != 0){
-	    SetPlayerArmedWeapon(playerid, 0);
-        SendClientMessage(playerid,COL_SYS,NOT_DM_NO_WEAPON);
-	}
 	return 0;
 }
 
@@ -2486,7 +2489,8 @@ stock loadMisson(){
 	missonInit("´ëÇÑ ÀüÀï ÇùÈ¸",1910.2273,-1714.3197,13.3307);
 	missonInit("Ä«ÇªÄ¡³ë »óÁ¡",1909.9907,-1707.3611,13.3251);
 	missonInit("¸¸³²ÀÇ ±¤Àå",1909.9747,-1700.0070,13.3236);
-	missonInit("µà¾óÀå",1927.1864,-1699.6194,13.5469);
+	missonInit("Å¾°Ç µà¾óÀå",1927.1864,-1699.6194,13.5469);
+	missonInit("È¦Â¦¸Ó½Å",1910.2163,-1728.9521,13.3305);
 }
 stock missonInit(name[],Float:pos_x,Float:pos_y,Float:pos_z){
 	new num = missonTick++;
@@ -2623,6 +2627,7 @@ stock showMisson(playerid, type){
 		case 1: ShowPlayerDialog(playerid, DL_MISSON_SHOP, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_SHOP_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 		case 2: ShowPlayerDialog(playerid, DL_MISSON_NOTICE, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_NOTICE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 		case 3: ShowPlayerDialog(playerid, DL_MISSON_DUEL, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_DUEL_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+		case 4: ShowPlayerDialog(playerid, DL_MISSON_GAMBLE, DIALOG_STYLE_INPUT,DIALOG_TITLE, MISSON_GAMBLE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 	}
     ClearAnimations(playerid);
 	return 1;
