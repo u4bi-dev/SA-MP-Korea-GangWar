@@ -1241,7 +1241,28 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         SendRconCommand("gmx");
         return 1;
  	}
- 	if(!strcmp("/givemoney", cmd)){
+ 	if(!strcmp("/money", cmd)){
+
+        tmp = strtok(cmdtext, idx);
+        if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_MONEY_TEXT);
+
+        giveid = strval(tmp);
+        if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
+
+        str = strtok(cmdtext, idx);
+        if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_MONEY_TEXT);
+
+		new money = strval(str);
+        if(USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS,GIVE_NOT_MONEY_LENGTH);
+        
+        giveMoney(playerid, -money);
+        giveMoney(giveid, money);
+        
+        formatMsg(giveid, COL_SYS, GIVE_MONEY_GET, USER[playerid][NAME],playerid, money);
+        formatMsg(playerid, COL_SYS, GIVE_MONEY_SEND, money,USER[giveid][NAME],giveid );
+        return 1;
+ 	}
+ 	if(!strcmp("/servermoney", cmd)){
         if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
 
         tmp = strtok(cmdtext, idx);
@@ -1910,7 +1931,7 @@ stock zoneSave(id, owner_clan){
     mysql_query(mysql, query);
 }
 stock vehicleSave(vehicleid){
-    if(strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
+    if(!strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
     GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
     GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
 	new query[400],sql[400];
@@ -2692,13 +2713,11 @@ stock showDialog(playerid, type){
 				cache_get_field_content(i, "NAME", name, mysql, 24);
 
 				format(temp, sizeof(temp), SEASON_DL_CONTENT_TEXT,
-					i+1,
-					name,
 					cache_get_field_content_int(i, "LEVEL"),
 					cache_get_field_content_int(i, "KILLS"),
 					cache_get_field_content_int(i, "DEATHS"),
 					kdRatio(cache_get_field_content_int(i, "KILLS"), cache_get_field_content_int(i, "DEATHS")),
-					kdTier(cache_get_field_content_int(i, "LEVEL"), cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
+					kdTier(cache_get_field_content_int(i, "LEVEL"), cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")), i+1,name);
                 strcat(str, temp);
 		    }
 		    
@@ -2951,16 +2970,16 @@ stock wepNameTD(model){
 stock wepPrice(model){
 	new price;
     switch(model){
-        case 24 : price = 10000;
-        case 25 : price = 10000;
-        case 26 : price = 10000;
-        case 27 : price = 10000;
-        case 28 : price = 60000;
-        case 29 : price = 10000;
-        case 30 : price = 10000;
-        case 31 : price = 30000;
-        case 32 : price = 10000;
-        case 33 : price = 10000;
+        case 24 : price = 8000;
+        case 25 : price = 8000;
+        case 26 : price = 40000;
+        case 27 : price = 80000;
+        case 28 : price = 15000;
+        case 29 : price = 8000;
+        case 30 : price = 17000;
+        case 31 : price = 32000;
+        case 32 : price = 20000;
+        case 33 : price = 20000;
         case 34 : price = 50000;
 	}
 	return price;
