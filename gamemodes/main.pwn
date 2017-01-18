@@ -118,6 +118,7 @@ new missonTick=0;
 new garageTick=0;
 #include "module/language/korea.pwn"
 #include "module/resource.pwn"
+#include "module/directive.pwn"
 #include "module/sql.pwn"
 
 /* static */
@@ -335,7 +336,7 @@ public OnPlayerText(playerid, text[]){
         }
         return 0;
     }
-	if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME], text);
+	if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s(%d) : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME],playerid, text);
 	else format(send,sizeof(send),"{E6E6E6} %s(%d) : %s", USER[playerid][NAME], playerid, text);
     SendClientMessageToAll(-1, send);
     return 0;
@@ -416,7 +417,7 @@ public OnPlayerClickPlayer(playerid, clickedplayerid, source){
 	if(USER[clickedplayerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[clickedplayerid][CLANID]-1][NAME]);
 
-    format(result,sizeof(result), infoMessege[1],USER[clickedplayerid][NAME],clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]));
+    format(result,sizeof(result), infoMessege[1],USER[clickedplayerid][NAME],clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][LEVEL], USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]));
     ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
     
     return 1;
@@ -619,12 +620,15 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 stock info(playerid, listitem){
 	new result[502], clanName[50];
 	
+	if(listitem == 3) return ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,tierInfo(), DIALOG_CLOSE, "");
+	
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][LEVEL],USER[playerid][KILLS],USER[playerid][DEATHS]));
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
+	return 0;
 }
 
 stock clan(playerid,listitem){
@@ -726,6 +730,7 @@ stock clanLeave(playerid){
     formatMsg(playerid, COL_SYS, YOU_CLAN_LEAVE, CLAN[USER[playerid][CLANID]-1][NAME]);
 	USER[playerid][CLANID] = 0;
 	SetPlayerColor(playerid, 0xE6E6E699);
+    SetPlayerTeam(playerid, NO_TEAM);
     save(playerid);
 	return 0;
 }
@@ -733,6 +738,7 @@ stock clanLeave(playerid){
 stock clanJoin(playerid, clanid){
 	USER[playerid][CLANID] = clanid;
 	SetPlayerColor(playerid,CLAN[clanid-1][COLOR]);
+    SetPlayerTeam(playerid, USER[playerid][CLANID]);
     save(playerid);
 }
 
@@ -1202,7 +1208,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         return 1;
  	}
     if(!strcmp("/carbuy", cmdtext)){
-        if(!IsPlayerInAnyVehicle(playerid))return 1;
+		if(isMaxHaveCar(playerid)) return SendClientMessage(playerid, COL_SYS, CAR_HAVE_MAX_LENTH);
+        if(!IsPlayerInAnyVehicle(playerid))return SendClientMessage(playerid,COL_SYS,CAR_NOT_IN);
         if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,CAR_BUY_NOT_MONEY);
         if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS,CAR_ALREADY_SELL);
         
@@ -1228,8 +1235,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
         SendClientMessageToAll(COL_SYS, SERVER_RESTART_TEXT);
         for(new i=0; i<GetMaxPlayers(); i++){
-			out(playerid);
-			INGAME[playerid][RESTART] = true;
+			out(i);
+			INGAME[i][RESTART] = true;
         }
         SendRconCommand("gmx");
         return 1;
@@ -1501,11 +1508,14 @@ stock spawn(playerid){
 	USER[playerid][AM] = 100.0;
 	SetPlayerHealth(playerid, USER[playerid][HP]);
 	SetPlayerArmour(playerid, USER[playerid][AM]);
-	
-    SetPlayerTeam(playerid, USER[playerid][CLANID]);
     
-	if(USER[playerid][CLANID] == 0)SetPlayerColor(playerid, 0xE6E6E699);
-    else SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
+	if(USER[playerid][CLANID] == 0){
+	    SetPlayerTeam(playerid, NO_TEAM);
+	    SetPlayerColor(playerid, 0xE6E6E699);
+	}else{
+        SetPlayerTeam(playerid, USER[playerid][CLANID]);
+	    SetPlayerColor(playerid, CLAN[USER[playerid][CLANID]-1][COLOR]);
+	}
     
     save(playerid);
 }
@@ -1850,6 +1860,7 @@ public ServerThread(){
    @ isClan(playerid, type)
    @ isClanHangul(playerid, str[])
    @ isNameHangul(playerid, str[])
+   @ isMaxHaveCar(playerid)
    @ randomColor()
    @ packet(playerid)
    @ fps(playerid)
@@ -1861,7 +1872,7 @@ public ServerThread(){
    @ wepNameTD(model)
    @ sync(playerid)
    @ kdRatio(kill, death)
-   @ kdTier(kill, death)
+   @ kdTier(level, kill, death)
 */
 
 stock vehicleInit(){
@@ -2005,7 +2016,7 @@ stock showEnvi(playerid){
 stock showRank(playerid){
 	new str[50];
     if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
-    else format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][KILLS],USER[playerid][DEATHS]));
+    else format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][LEVEL], USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
     return 0;
 }
@@ -2082,7 +2093,10 @@ stock enterZone(playerid){
 
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
-    SetPlayerArmedWeapon(playerid, 0);
+    if(GetPlayerWeapon(playerid) != 0){
+	    SetPlayerArmedWeapon(playerid, 0);
+        SendClientMessage(playerid,COL_SYS,NOT_DM_NO_WEAPON);
+	}
 	return 0;
 }
 
@@ -2451,6 +2465,7 @@ stock showDialog(playerid, type){
         case DL_MYWEP :{
             new str[256];
             strcat(str, "{FFFFFF}");
+            if(INGAME[playerid][WEPBAG_INDEX] == 0)formatMsg(playerid, COL_SYS, YOU_WEAPON_NOT_HAVE);
 		    for(new i=0; i < INGAME[playerid][WEPBAG_INDEX]; i++){
 				new temp[20];
                 format(temp, sizeof(temp), "%s\n", wepName(WEPBAG[playerid][i][MODEL]));
@@ -2472,7 +2487,8 @@ stock showDialog(playerid, type){
 			new rows, fields;
 			cache_get_data(rows, fields);
 			strcat(str, "{FFFFFF}");
-
+			if(rows == 0)formatMsg(playerid, COL_SYS, YOU_CAR_NOT_HAVE);
+			
 		    for(new i=0; i < rows; i++){
                 new temp[60];
                 
@@ -2597,7 +2613,7 @@ stock showDialog(playerid, type){
 					cache_get_field_content_int(i, "KILLS"),
 					cache_get_field_content_int(i, "DEATHS"),
 					kdRatio(cache_get_field_content_int(i, "KILLS"), cache_get_field_content_int(i, "DEATHS")),
-					kdTier(cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
+					kdTier(cache_get_field_content_int(i, "LEVEL"),cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
                 strcat(str, temp);
 		    }
 
@@ -2652,7 +2668,7 @@ stock showDialog(playerid, type){
 	            case 1:{
 		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
 		            strcat(sql," FROM `user_info` ");
-		            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
+		            strcat(sql," ORDER BY KILLS DESC LIMIT 10");
 		            strcat(str, SEASON_DL_KILL_TITLE);
 	            }
             }
@@ -2675,7 +2691,7 @@ stock showDialog(playerid, type){
 					cache_get_field_content_int(i, "KILLS"),
 					cache_get_field_content_int(i, "DEATHS"),
 					kdRatio(cache_get_field_content_int(i, "KILLS"), cache_get_field_content_int(i, "DEATHS")),
-					kdTier(cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
+					kdTier(cache_get_field_content_int(i, "LEVEL"), cache_get_field_content_int(i, "KILLS"),  cache_get_field_content_int(i, "DEATHS")));
                 strcat(str, temp);
 		    }
 		    
@@ -2778,6 +2794,22 @@ stock isNameHangul(playerid, str[]){
 		return SendClientMessage(playerid,COL_SYS, NAME_NOT_ENG);
     }
     return 0;
+}
+
+stock isMaxHaveCar(playerid){
+	new query[400], sql[400];
+
+	strcat(sql,"SELECT ID");
+	strcat(sql," FROM `vehicle_info` ");
+	strcat(sql," WHERE NAME='%s'");
+
+	mysql_format(mysql, query, sizeof(query), sql, USER[playerid][NAME]);
+	mysql_query(mysql, query);
+
+	new rows, fields;
+	cache_get_data(rows, fields);
+	if(rows > 5)return 1;
+	return 0;
 }
 
 stock isBike(vehicleid){
@@ -2962,18 +2994,21 @@ public Float:kdRatio(kill, death){
     return float(kill*100) / float(kill+death);
 }
 
-stock kdTier(kill, death){
+stock kdTier(level, kill, death){
     new rank[30];
-	new Float:kd = kdRatio(kill, death);
+    if(level < 10)rank = "unrank";
+    else{
+		new Float:kd = kdRatio(kill, death);
 
-    switch(floatround(kd, floatround_round)){
-        case 0..9    : rank = "unrank";
-        case 10..49  : rank = "{804040}◎Bronze";
-        case 50..54  : rank = "{C0C0C0}▼Sliver";
-        case 55..59  : rank = "{FFFF00}▣Gold";
-        case 60..69  : rank = "{00FFFF}⊙Platinum";
-        case 70..79  : rank = "{1229FA}◈Diamond";
-        case 80..100 : rank = "{FF0000}▩Challenger";
+	    switch(floatround(kd, floatround_round)){
+	        case 0..9    : rank = "unrank";
+	        case 10..49  : rank = "{804040}◎Bronze";
+	        case 50..54  : rank = "{C0C0C0}▼Sliver";
+	        case 55..59  : rank = "{FFFF00}▣Gold";
+	        case 60..69  : rank = "{00FFFF}⊙Platinum";
+	        case 70..79  : rank = "{1229FA}◈Diamond";
+	        case 80..100 : rank = "{FF0000}▩Challenger";
+	    }
     }
     return rank;
 }
