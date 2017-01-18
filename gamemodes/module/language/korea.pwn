@@ -62,7 +62,7 @@
 #define ALREADY_HOLD_WEAPON     "    이미 주무기로 설정하신 무기입니다."
 #define SKIN_MAX_299            "    1번부터 299번까지 스킨이 존재합니다."
 #define SKIN_NOT_CJ             "    CJ 스킨은 규정상 선택하실 수 없습니다."
-#define SKIN_BUY_NOT_MONEY      "    스킨을 구매할 자금이 부족합니다."
+#define SKIN_BUY_NOT_MONEY      "    스킨을 구매할 자금이 부족합니다. (5000원)"
 #define NAME_EDIT_NOT_MONEY     "    닉네임을 변경할 자금이 부족합니다."
 #define ALREADY_NAME            "    이미 존재하는 닉네임입니다."
 #define WEAPON_BUY_NOT_MONEY    "    무기를 구매할 자금이 부족합니다."

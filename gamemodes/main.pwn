@@ -2136,8 +2136,14 @@ stock tickZone(playerid){
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
             formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE], USER[playerid][NAME]);
 			holdZone(playerid);
-			giveMoney(playerid, 2000);
-            giveExp(playerid, 2);
+			giveMoney(playerid, 3000);
+            giveExp(playerid, 3);
+            for(new i=0; i<GetMaxPlayers(); i++){
+				if(INGAME[playerid][ENTER_ZONE] == INGAME[i][ENTER_ZONE] && USER[playerid][CLANID] == USER[i][CLANID]){
+                    giveMoney(playerid, 2000);
+                    giveExp(playerid, 2);
+				}
+            }
             CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
             GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
         }
@@ -2281,11 +2287,12 @@ stock killCombo(playerid){
 	format(str, sizeof(str), "~r~~>~~y~%s~r~~<~",comboText[INGAME[playerid][COMBO]]);
 	GameTextForPlayer(playerid, str, 2500, 6);
 	switch(INGAME[playerid][COMBO]){
-		case 3 : giveExp(playerid, 2);
-		case 5 : giveExp(playerid, 3);
-		case 7 : giveExp(playerid, 4);
-		case 8 : giveExp(playerid, 5);
-		case 10: giveExp(playerid, 7);
+		case 2 : giveExp(playerid, 2);
+		case 3 : giveExp(playerid, 3);
+		case 5 : giveExp(playerid, 4);
+		case 7 : giveExp(playerid, 5);
+		case 8 : giveExp(playerid, 6);
+		case 10: giveExp(playerid, 8);
 	}
 }
 
