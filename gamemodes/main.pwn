@@ -59,6 +59,9 @@
 #define DL_GARAGE_PAINT                   1091
 #define DL_GARAGE_TURNING                 1092
 
+#define DL_GAMBLE_CHOICE                  1110
+#define DL_GAMBLE_REGAMBLE                1111
+
 #define COL_SYS  0xAFAFAF99
 
 /* IS CHECK */
@@ -266,7 +269,8 @@ enum INGAME_MODEL{
     TAKE_DAMAGE_ALPHA,
     GIVE_DAMAGE_ALPHA,
     DEATH_PICKUP_HP,
-    DEATH_PICKUP_AM
+    DEATH_PICKUP_AM,
+    GAMBLE
 }
 new INGAME[USED_PLAYER][INGAME_MODEL];
 
@@ -550,6 +554,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_MYCAR_SETUP : return showDialog(playerid, DL_MYCAR);
 			case DL_MYCAR_SETUP_SPAWN : return showDialog(playerid, DL_MYCAR_SETUP);
 			case DL_GARAGE_REPAIR, DL_GARAGE_PAINT, DL_GARAGE_TURNING : return showDialog(playerid, DL_GARAGE);
+			case DL_GAMBLE_CHOICE : return showMisson(playerid, 4);
 		}
 	}
 	
@@ -628,6 +633,11 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_GARAGE_REPAIR      : repairCar(playerid);
 		case DL_GARAGE_PAINT       : paintCar(playerid, inputtext);
 		case DL_GARAGE_TURNING     : turnCar(playerid);
+		
+		/* GAMBLE */
+		case DL_GAMBLE_CHOICE      : gambleChoice(playerid, listitem);
+		case DL_GAMBLE_REGAMBLE    : gambleRegamble(playerid);
+		
     }
     return 1;
 }
@@ -687,7 +697,13 @@ stock duel(playerid,listitem){
 }
 
 stock gamble(playerid,inputtext[]){
-    formatMsg(playerid, COL_SYS, "홀짝머신 %d - %s",playerid, inputtext);
+    new money = strval(inputtext);
+    if(money < 5000) return SendClientMessage(playerid, COL_SYS, GAMBLE_MIN_MONEY),showMisson(playerid, 4);
+    if(USER[playerid][MONEY] < 5000) return SendClientMessage(playerid,COL_SYS, GAMBLE_NOT_MONEY);
+    INGAME[playerid][GAMBLE] = money;
+    
+    showDialog(playerid, DL_GAMBLE_CHOICE);
+    return 0;
 }
 
 stock mywep(playerid,listitem){
@@ -1199,6 +1215,61 @@ stock paintCar(playerid, inputtext[]){
 }
 stock turnCar(playerid){
     formatMsg(playerid, COL_SYS, "주유소 튜닝 %d",playerid);
+}
+
+/* GAMBLE
+   @ gambleChoice(playerid, listitem)
+   @ gambleRegamble(playerid)
+*/
+
+stock gambleChoice(playerid,listitem){
+	new dice = random(6), result;
+			
+	switch(dice){
+	    case 1,3:{
+			if(listitem == 0) result =1;
+			else result =0;
+		}
+	    case 2,4:{
+			if(listitem == 1) result =1;
+			else result =0;
+	    }
+	}
+	
+    gambleResult(playerid, dice, result);
+    return 0;
+}
+
+stock gambleResult(playerid, dice, result){
+    new str[256], diceText[128];
+	format(diceText, sizeof(diceText), "{8D8DFF} 주사위를 던져서 나온 수는?{FFFFFF}\t\t배팅금액 : %d원\n\n 딜러가 던진 주사위 : {8D8DFF}%d{FFFFFF}\n\n",INGAME[playerid][GAMBLE],dice);
+	
+	if(result){
+		format(str, sizeof(str), GAMBLE_DL_WIN, diceText);
+		ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+		
+		giveMoney(playerid, INGAME[playerid][GAMBLE]);
+	}else{
+		format(str, sizeof(str), GAMBLE_DL_LOSE, diceText);
+		ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+		
+		giveMoney(playerid, -INGAME[playerid][GAMBLE]);
+		
+		if(dice == 5){
+			format(str, sizeof(str), GAMBLE_DL_REGAMBLE, diceText);
+			ShowPlayerDialog(playerid, DL_GAMBLE_REGAMBLE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+		}
+		if(dice == 6){
+			format(str, sizeof(str), GAMBLE_DL_FAIL, diceText);
+			ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_CLOSE, "");
+			
+			giveMoney(playerid, -INGAME[playerid][GAMBLE]);
+		}
+	}
+}
+
+stock gambleRegamble(playerid){
+    showDialog(playerid, DL_GAMBLE_CHOICE);
 }
 
 public OnPlayerCommandText(playerid, cmdtext[]){
@@ -2917,9 +2988,11 @@ stock showDialog(playerid, type){
 	        format(str, sizeof(str), MYCAR_DL_SPAWN_TEXT, vehicleName[model - 400]);
 	        ShowPlayerDialog(playerid, DL_MYCAR_SETUP_SPAWN, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
-		case DL_GARAGE_REPAIR  : ShowPlayerDialog(playerid, DL_GARAGE_REPAIR, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, GARAGE_DL_REPAIR_TEXT, DIALOG_ENTER, DIALOG_PREV);
-		case DL_GARAGE_PAINT   : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_INPUT, DIALOG_TITLE, GARAGE_DL_PAINT_SETUP, DIALOG_ENTER, DIALOG_PREV);
-		case DL_GARAGE_TURNING : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TURNING_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_REPAIR     : ShowPlayerDialog(playerid, DL_GARAGE_REPAIR, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, GARAGE_DL_REPAIR_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_PAINT      : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_INPUT, DIALOG_TITLE, GARAGE_DL_PAINT_SETUP, DIALOG_ENTER, DIALOG_PREV);
+		case DL_GARAGE_TURNING    : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TURNING_TEXT, DIALOG_ENTER, DIALOG_PREV);
+
+		case DL_GAMBLE_CHOICE     : ShowPlayerDialog(playerid, DL_GAMBLE_CHOICE, DIALOG_STYLE_LIST, DIALOG_TITLE, GAMBLE_DL_CHOICE_TEXT, DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
 }
