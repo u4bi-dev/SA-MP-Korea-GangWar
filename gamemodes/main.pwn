@@ -455,7 +455,8 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
 	
 	if(INGAME[issuerid][ENTER_ZONE] == 714 && USER[issuerid][HP] > 90 && USER[issuerid][AM] > 90 && INGAME[playerid][ENTER_ZONE] != 714){
         formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT2);
-        spawn(issuerid);
+	    SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
+	    SetPlayerFacingAngle(playerid, 89.3591);
 	}
     if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90){
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
@@ -1038,6 +1039,7 @@ stock shopWeaponBuy(playerid){
 
 	INGAME[playerid][WEPBAG_INDEX] +=1;
     WEPBAG[playerid][INGAME[playerid][WEPBAG_INDEX]-1][MODEL] = INGAME[playerid][BUY_WEAPONID];
+    giveMoney(playerid, -wepPrice(INGAME[playerid][BUY_WEAPONID]));
     INGAME[playerid][BUY_WEAPONID] = 0;
     return 0;
 }
