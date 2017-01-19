@@ -59,9 +59,15 @@
 #define DL_GARAGE_PAINT                   1091
 #define DL_GARAGE_TURNING                 1092
 
+#define DL_DUEL_TYPE                      1100
+#define DL_DUEL_MONEY                     1101
+#define DL_DUEL_SUCCESS                   1102
+#define DL_DUEL_INFO                      1103
+
 #define DL_GAMBLE_CHOICE                  1110
 #define DL_GAMBLE_REGAMBLE                1111
 #define DL_GAMBLE_RESULT                  1112
+
 #define COL_SYS  0xAFAFAF99
 
 /* IS CHECK */
@@ -80,6 +86,7 @@
 #define USED_CLAN     100
 #define USED_MISSON   5
 #define USED_GARAGE   5
+#define USED_DUEL     2
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -129,6 +136,17 @@ new garageTick=0;
 /* static */
 static mysql;
 
+enum DUEL_MODEL{
+	INDEX,
+	PLAYERID1,
+	PLAYERID2,
+	TYPE,
+	MONEY,
+	WIN_INDEX,
+	bool:SETUP
+}
+new DUEL[DUEL_MODEL];
+
 enum DAMAGE_MODEL{
 	Float:TAKE,
 	Float:GIVE
@@ -147,6 +165,15 @@ enum CLAN_CP_MODEL{
    INDEX
 }
 new CLAN_CP[USED_ZONE][USED_CLAN][CLAN_CP_MODEL];
+
+enum NODMZONE_MODEL{
+	ID,
+    Float:MIN_X,
+    Float:MIN_Y,
+    Float:MAX_X,
+    Float:MAX_Y
+}
+new NODMZONE[NODMZONE_MODEL];
 
 enum ZONE_MODEL{
 	ID,
@@ -258,6 +285,7 @@ enum INGAME_MODEL{
     bool:SYNC,
     bool:SPAWN,
 	bool:RESTART,
+	bool:NODM,
 	EVENT_TICK,
 	SEASON,
     PAINT_TYPE,
@@ -270,7 +298,8 @@ enum INGAME_MODEL{
     GIVE_DAMAGE_ALPHA,
     DEATH_PICKUP_HP,
     DEATH_PICKUP_AM,
-    GAMBLE
+    GAMBLE,
+    JOIN_DUEL
 }
 new INGAME[USED_PLAYER][INGAME_MODEL];
 
@@ -354,7 +383,7 @@ public OnPlayerText(playerid, text[]){
 	        if(USER[i][ADMIN] > 0){
                 new str[256];
                 strmid(str, text, 1, strlen(text));
-	            formatMsg(i, 0x2184DEFF,ADMIN_CHAT, USER[playerid][NAME], playerid, str);
+	            formatMsg(i, 0x2184DEFF,ADMIN_CHAT, USER[playerid][ADMIN],USER[playerid][NAME], playerid, str);
                 PlayerPlaySound(i, 1137, 0.0, 0.0, 0.0);
 	        }
         }
@@ -453,12 +482,12 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
 	
-	if(INGAME[issuerid][ENTER_ZONE] == 714 && USER[issuerid][HP] > 90 && USER[issuerid][AM] > 90 && INGAME[playerid][ENTER_ZONE] != 714){
+	if(INGAME[issuerid][NODM] && USER[issuerid][HP] > 50 && USER[issuerid][AM] > 50 && !INGAME[playerid][NODM]){
         formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT2);
 	    SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
 	    SetPlayerFacingAngle(playerid, 89.3591);
 	}
-    if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90){
+    if(INGAME[playerid][NODM] && USER[playerid][HP] > 50 && USER[playerid][AM] > 50){
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
 
 		SetPlayerHealth(playerid, 100);
@@ -535,7 +564,8 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 	if(!response){
 		switch(dialogid){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
-			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE,DL_MISSON_DUEL,DL_MISSON_GAMBLE, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
+			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MISSON_GAMBLE, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
+            case DL_MISSON_DUEL : return DUEL[SETUP] = false;
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
 			case DL_CLAN_INSERT_COLOR : return showDialog(playerid, DL_CLAN_INSERT);
 			case DL_CLAN_INSERT_COLOR_RANDOM : return clanInsertColorRandom(playerid);
@@ -557,6 +587,10 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_GARAGE_REPAIR, DL_GARAGE_PAINT, DL_GARAGE_TURNING : return showDialog(playerid, DL_GARAGE);
 			case DL_GAMBLE_CHOICE : return ShowPlayerDialog(playerid, DL_MISSON_GAMBLE, DIALOG_STYLE_INPUT,DIALOG_TITLE, MISSON_GAMBLE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 			case DL_GAMBLE_REGAMBLE, DL_GAMBLE_RESULT : return 0;
+            case DL_DUEL_INFO: return 0;
+			case DL_DUEL_TYPE: return ShowPlayerDialog(playerid, DL_MISSON_DUEL, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_DUEL_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+			case DL_DUEL_MONEY : return showDialog(playerid, DL_DUEL_TYPE);
+			case DL_DUEL_SUCCESS : return showDialog(playerid, DL_DUEL_MONEY);
 		}
 	}
 	
@@ -636,6 +670,12 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_GARAGE_PAINT       : paintCar(playerid, inputtext);
 		case DL_GARAGE_TURNING     : turnCar(playerid);
 		
+		/* DUEL */
+		case DL_DUEL_INFO          : duelInfo(playerid);
+		case DL_DUEL_TYPE          : duelType(playerid, listitem);
+		case DL_DUEL_MONEY         : duelMoney(playerid, inputtext);
+		case DL_DUEL_SUCCESS       : duelSuccess(playerid);
+		
 		/* GAMBLE */
 		case DL_GAMBLE_CHOICE      : gambleChoice(playerid, listitem);
 		case DL_GAMBLE_REGAMBLE    : gambleRegamble(playerid);
@@ -696,7 +736,20 @@ stock notice(playerid,listitem){
 }
 
 stock duel(playerid,listitem){
-    formatMsg(playerid, COL_SYS, "듀얼장 %d - %d",playerid, listitem);
+	switch(listitem){
+        case 0 :{
+			if(DUEL[SETUP]){
+			}else{
+			    DUEL[SETUP] = true;
+			}
+			formatMsg(playerid, COL_SYS, "듀얼장 %d - %d 설정상태 : %d",playerid, listitem, DUEL[SETUP]);
+			showDialog(playerid, DL_DUEL_TYPE);
+        }
+        case 1:{
+            formatMsg(playerid, COL_SYS, "최근 듀얼 경기조회 %d",playerid);
+            showDialog(playerid, DL_DUEL_INFO);
+        }
+    }
 }
 
 stock gamble(playerid,inputtext[]){
@@ -1228,6 +1281,33 @@ stock turnCar(playerid){
 }
 
 /* GAMBLE
+	@ duelInfo(playerid)
+	@ duelType(playerid, listitem)
+	@ duelMoney(playerid, inputtext[])
+	@ duelSuccess(playerid)
+*/
+stock duelInfo(playerid){
+    formatMsg(playerid, COL_SYS, "최근 듀얼 경기조회 %d",playerid);
+}
+stock duelType(playerid, listitem){
+	DUEL[TYPE] = listitem;
+	
+    formatMsg(playerid, COL_SYS, "듀얼장 타입 %d - %d",playerid, DUEL[TYPE]);
+    showDialog(playerid, DL_DUEL_MONEY);
+}
+stock duelMoney(playerid, inputtext[]){
+	new money = strval(inputtext);
+	DUEL[MONEY] = money;
+	
+    formatMsg(playerid, COL_SYS, "듀얼장 배팅 %d - %d",playerid, DUEL[MONEY]);
+    showDialog(playerid, DL_DUEL_SUCCESS);
+}
+stock duelSuccess(playerid){
+    DUEL[INDEX] += 1;
+    formatMsg(playerid, COL_SYS, "듀얼장 확인 %d 인덱스 - %d",playerid, DUEL[INDEX]);
+}
+
+/* GAMBLE
    @ gambleChoice(playerid, listitem)
    @ gambling(playerid, dice, listitem, result);
    @ gambleRegamble(playerid)
@@ -1414,6 +1494,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         giveid  = strval(tmp);
         if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
         formatMsg(giveid, COL_SYS, ADMIN_KICK_GET);
+
         formatMsg(playerid, COL_SYS, ADMIN_KICK_SEND,USER[giveid][NAME]);
        	Kick(giveid);
         return 1;
@@ -1504,7 +1585,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 
         return 1;
  	}
- 	if(!strcmp("/amdin", cmd)){
+ 	if(!strcmp("/admin", cmd)){
         if(USER[playerid][ADMIN] < 4) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
 
         tmp = strtok(cmdtext, idx);
@@ -2218,6 +2299,11 @@ stock zoneSetup(){
 		pos[0] = fix + pos[0];
 		pos[2] = fix + pos[2];
 	}
+	NODMZONE[MIN_X] = 1904.296875;
+	NODMZONE[MIN_Y] = -1750;
+	NODMZONE[MAX_X] = 1933.59375;
+	NODMZONE[MAX_Y] = -1623.046875;
+    NODMZONE[ID] = GangZoneCreate(NODMZONE[MIN_X],NODMZONE[MIN_Y],NODMZONE[MAX_X],NODMZONE[MAX_Y]);
 }
 
 stock showZone(playerid){
@@ -2246,6 +2332,7 @@ stock showZone(playerid){
             GangZoneShowForPlayer(playerid, ZONE[i][ID], CLAN[ZONE[i][OWNER_CLAN]-1][COLOR]);
 		}
 	}
+	GangZoneShowForPlayer(playerid, NODMZONE[ID], 0xFFFFFFFF);
 	return 0;
 }
 
@@ -2280,7 +2367,7 @@ stock showEnvi(playerid){
 
 stock showRank(playerid){
 	new str[50];
-    if(INGAME[playerid][ENTER_ZONE] == 714 && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
+    if(INGAME[playerid][NODM] && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
     else format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][LEVEL], USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
     return 0;
@@ -2320,11 +2407,16 @@ stock isPlayerZone(playerid, zoneid){
 */
 
 stock checkZone(playerid){
-	for(new z = 0; z < USED_ZONE; z++){
-	    if(isPlayerZone(playerid, z)){
-			if(INGAME[playerid][ENTER_ZONE] == z)return enterZone(playerid);
+    INGAME[playerid][NODM] = false;
+	new	Float:x, Float:y, Float:z;
+	GetPlayerPos(playerid, x, y, z);
+	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y])return notDmZone(playerid);
+	
+	for(new i = 0; i < USED_ZONE; i++){
+	    if(isPlayerZone(playerid, i)){
+			if(INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
 			if(INGAME[playerid][ENTER_ZONE] != 0)exitZone(playerid);
-            joinZone(playerid, z);
+            joinZone(playerid, i);
 	    }
 	}
 	return 0;
@@ -2344,7 +2436,6 @@ stock exitZone(playerid){
     if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
 }
 stock enterZone(playerid){
-    if(INGAME[playerid][ENTER_ZONE] == 714)return notDmZone(playerid);
 	if(ZONE[INGAME[playerid][ENTER_ZONE]][OWNER_CLAN] == USER[playerid][CLANID])return ownerZone(playerid);
 	
     if(USER[playerid][CLANID] != 0)stayClanCheck(playerid), tickZone(playerid);
@@ -2358,6 +2449,7 @@ stock enterZone(playerid){
 
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
+	INGAME[playerid][NODM] = true;
 	return 0;
 }
 
@@ -2417,7 +2509,7 @@ stock tickZone(playerid){
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
     if(ZONE[zoneid][OWNER_CLAN] == USER[playerid][CLANID])return 0;
-    if(zoneid == 714)return 0;
+    if(INGAME[playerid][NODM])return 0;
     
     new zoneOwner;
     new query[400];
@@ -2567,18 +2659,18 @@ stock deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pick
 	if(USER[killerid][AM] >= 1.00)INGAME[playerid][DEATH_PICKUP_AM] = CreatePickup(1242,8, pickup_x, pickup_y+1.0, pickup_z, 0);
 }
 stock loadGarage(){
-    garageInit("남부 주유소",1936.2174,-1774.7317,13.0537);
-    garageInit("남부 주유소 2층",1941.7302,-1772.3066,19.5250);
-    garageInit("카워셔 정비소",2454.6113,-1461.0303,23.7785);
-    garageInit("북부 주유소",1002.5181,-941.1222,41.8907);
-    garageInit("플린트 카운티 주유소",-91.1692,-1169.8002,2.1782);
+    garageInit(GARAGE1_TEXT,1936.2174,-1774.7317,13.0537);
+    garageInit(GARAGE2_TEXT,1941.7302,-1772.3066,19.5250);
+    garageInit(GARAGE3_TEXT,2454.6113,-1461.0303,23.7785);
+    garageInit(GARAGE4_TEXT,1002.5181,-941.1222,41.8907);
+    garageInit(GARAGE5_TEXT,-91.1692,-1169.8002,2.1782);
 }
 stock loadMisson(){
-	missonInit("대한 전쟁 협회",1910.2273,-1714.3197,13.3307);
-	missonInit("카푸치노 상점",1909.9907,-1707.3611,13.3251);
-	missonInit("만남의 광장",1909.9747,-1700.0070,13.3236);
-	missonInit("탑건 듀얼장",1927.1864,-1699.6194,13.5469);
-	missonInit("홀짝머신",1910.2163,-1728.9521,13.3305);
+	missonInit(MISSON1_TEXT,1910.2273,-1714.3197,13.3307);
+	missonInit(MISSON2_TEXT,1909.9907,-1707.3611,13.3251);
+	missonInit(MISSON3_TEXT,1909.9747,-1700.0070,13.3236);
+	missonInit(MISSON4_TEXT,1926.5613,-1702.1071,13.5469);
+	missonInit(MISSON5_TEXT,1910.2163,-1728.9521,13.3305);
 }
 stock missonInit(name[],Float:pos_x,Float:pos_y,Float:pos_z){
 	new num = missonTick++;
@@ -3009,6 +3101,15 @@ stock showDialog(playerid, type){
 		case DL_GARAGE_PAINT      : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_INPUT, DIALOG_TITLE, GARAGE_DL_PAINT_SETUP, DIALOG_ENTER, DIALOG_PREV);
 		case DL_GARAGE_TURNING    : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TURNING_TEXT, DIALOG_ENTER, DIALOG_PREV);
 
+		case DL_DUEL_INFO         : ShowPlayerDialog(playerid, DL_DUEL_INFO, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, DUEL_DL_INFO_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_DUEL_TYPE         : ShowPlayerDialog(playerid, DL_DUEL_TYPE, DIALOG_STYLE_LIST, DIALOG_TITLE, DUEL_DL_TYPE_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_DUEL_MONEY        : ShowPlayerDialog(playerid, DL_DUEL_MONEY, DIALOG_STYLE_INPUT, DIALOG_TITLE, DUEL_DL_MONEY_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_DUEL_SUCCESS      :{
+            new str[256];
+	        format(str, sizeof(str), DUEL_DL_SUCCESS_TEXT, duelTypeName[DUEL[TYPE]],DUEL[MONEY]);
+		    ShowPlayerDialog(playerid, DL_DUEL_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
+		}
+
 		case DL_GAMBLE_CHOICE     : ShowPlayerDialog(playerid, DL_GAMBLE_CHOICE, DIALOG_STYLE_LIST, DIALOG_TITLE, GAMBLE_DL_CHOICE_TEXT, DIALOG_ENTER, DIALOG_PREV);
     }
     return 1;
@@ -3152,7 +3253,7 @@ stock damage(playerid){
 stock getPlayerId(name[]){
   for(new i = 0; i <= GetMaxPlayers(); i++){
     if(IsPlayerConnected(i)){
-      if(strcmp(USER[i][NAME], name, true, strlen(name)) == 0)return i;
+      if(!strcmp(USER[i][NAME], name))return i;
     }
   }
   return INVALID_PLAYER_ID;
@@ -3282,3 +3383,4 @@ stock kdTier(level, kill, death){
     }
     return rank;
 }
+
