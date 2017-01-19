@@ -123,7 +123,7 @@ forward load(playerid);
 forward ServerThread();
 forward Float:kdRatio(kill, death);
 forward vehicleSapwn(vehicleid);
-
+forward duelTimer(p1, p2);
 
 /* global variable */
 new missonTick=0;
@@ -138,11 +138,12 @@ static mysql;
 
 enum DUEL_MODEL{
 	INDEX,
-	PLAYERID1,
-	PLAYERID2,
+	PLAYERID1[24],
+	PLAYERID2[24],
 	TYPE,
 	MONEY,
-	WIN_INDEX,
+	JOIN_LENGTH,
+	TICK,
 	bool:SETUP
 }
 new DUEL[DUEL_MODEL];
@@ -286,6 +287,9 @@ enum INGAME_MODEL{
     bool:SPAWN,
 	bool:RESTART,
 	bool:NODM,
+    bool:JOIN_DUEL,
+    DUEL_PTYPE,
+    DUEL_WIN,
 	EVENT_TICK,
 	SEASON,
     PAINT_TYPE,
@@ -298,8 +302,7 @@ enum INGAME_MODEL{
     GIVE_DAMAGE_ALPHA,
     DEATH_PICKUP_HP,
     DEATH_PICKUP_AM,
-    GAMBLE,
-    JOIN_DUEL
+    GAMBLE
 }
 new INGAME[USED_PLAYER][INGAME_MODEL];
 
@@ -322,7 +325,7 @@ new GARAGE[USED_GARAGE][GARAGE_MODEL];
 enum CLAN_SETUP_MODEL{
 	NAME[50],
 	MEMBER,
-	COLOR,
+	COLOR
 }
 new CLAN_SETUP[USED_PLAYER][CLAN_SETUP_MODEL];
 
@@ -395,9 +398,9 @@ public OnPlayerText(playerid, text[]){
     return 0;
 }
 public OnPlayerRequestClass(playerid, classid){
-	SetPlayerPos(playerid, 1958.3783, 1343.1572, 15.3746);
-	SetPlayerCameraPos(playerid, 1958.3783, 1343.1572, 15.3746);
-	SetPlayerCameraLookAt(playerid, 1958.3783, 1343.1572, 15.3746);
+	SetPlayerPos(playerid, 1922.8679,-1704.9960,13.5469);
+	SetPlayerCameraPos(playerid, 1922.8679,-1704.9960,13.5469);
+	SetPlayerCameraLookAt(playerid, 1916.9664,-1692.0807,26.5082);
 	
     if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,ALREADY_LOGIN);
 
@@ -431,6 +434,12 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger){
 }
 
 public OnPlayerExitVehicle(playerid, vehicleid){
+	if(INGAME[playerid][NODM] && !strcmp("N", VEHICLE[vehicleid][NAME])){
+	    vehicleSapwn(vehicleid);
+	    formatMsg(playerid, COL_SYS, "    비전투구역에 주차를 할 시 미입찰 차량은 즉시 스폰됩니다.");
+	    return 1;
+	}
+	
 	vehicleSave(vehicleid);
     SetTimerEx("vehicleSapwn", 1500, false, "i", vehicleid);
     return 1;
@@ -441,23 +450,22 @@ public OnPlayerPickUpPickup(playerid, pickupid){
     GetPlayerArmour(playerid, USER[playerid][AM]);
     
     for(new i=0; i<GetMaxPlayers(); i++){
-	    if(USER[playerid][HP] <= 69.00 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
+	    if(USER[playerid][HP] < 70 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
             USER[playerid][HP] += 30;
 	        SetPlayerHealth(playerid, USER[playerid][HP]);
 	        DestroyPickup(INGAME[i][DEATH_PICKUP_HP]);
-	    }
-	    if(USER[playerid][HP] >= 70.00 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
+	    }else if(USER[playerid][HP] > 70 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
             USER[playerid][HP] = 100;
 		    SetPlayerHealth(playerid, USER[playerid][HP]);
 		    DestroyPickup(INGAME[i][DEATH_PICKUP_HP]);
 		}
 
-		if(USER[playerid][AM] <= 69.00 && pickupid == INGAME[i][DEATH_PICKUP_AM]){
+		if(USER[playerid][AM] < 70 && pickupid == INGAME[i][DEATH_PICKUP_AM]){
             USER[playerid][AM] += 30;
 	        SetPlayerArmour(playerid, USER[playerid][AM]);
 	        DestroyPickup(INGAME[i][DEATH_PICKUP_AM]);
-	    }
-	    if(USER[playerid][AM] >= 70.00 && pickupid == INGAME[i][DEATH_PICKUP_AM]){
+	        
+	    }else if(USER[playerid][AM] > 70 && pickupid == INGAME[i][DEATH_PICKUP_AM]){
             USER[playerid][AM] = 100;
 	        SetPlayerArmour(playerid, USER[playerid][AM]);
 	        DestroyPickup(INGAME[i][DEATH_PICKUP_AM]);
@@ -477,17 +485,17 @@ public OnPlayerClickPlayer(playerid, clickedplayerid, source){
     return 1;
 }
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
-    if(!isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0 && weaponid != 47 &&  weaponid != 49 && weaponid != 50 && weaponid != 51 && weaponid != 54 &&  weaponid != 53 && weaponid != 54) return Kick(issuerid);
+    if(!INGAME[playerid][JOIN_DUEL] && !isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0 && weaponid != 47 &&  weaponid != 49 && weaponid != 50 && weaponid != 51 && weaponid != 54 &&  weaponid != 53 && weaponid != 54) return Kick(issuerid);
     
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
 	
-	if(INGAME[issuerid][NODM] && USER[issuerid][HP] > 50 && USER[issuerid][AM] > 50 && !INGAME[playerid][NODM]){
+	if(!INGAME[playerid][JOIN_DUEL] && INGAME[issuerid][NODM] && USER[issuerid][HP] > 50 && USER[issuerid][AM] > 50 && !INGAME[playerid][NODM]){
         formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT2);
-	    SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
-	    SetPlayerFacingAngle(playerid, 89.3591);
+	    SetPlayerPos(issuerid, 1913.1345, -1710.5565, 13.4003);
+	    SetPlayerFacingAngle(issuerid, 89.3591);
 	}
-    if(INGAME[playerid][NODM] && USER[playerid][HP] > 50 && USER[playerid][AM] > 50){
+    if(!INGAME[playerid][JOIN_DUEL] && INGAME[playerid][NODM] && USER[playerid][HP] > 50 && USER[playerid][AM] > 50){
 		formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
 
 		SetPlayerHealth(playerid, 100);
@@ -588,7 +596,17 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_GAMBLE_CHOICE : return ShowPlayerDialog(playerid, DL_MISSON_GAMBLE, DIALOG_STYLE_INPUT,DIALOG_TITLE, MISSON_GAMBLE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 			case DL_GAMBLE_REGAMBLE, DL_GAMBLE_RESULT : return 0;
             case DL_DUEL_INFO: return 0;
-			case DL_DUEL_TYPE: return ShowPlayerDialog(playerid, DL_MISSON_DUEL, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_DUEL_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+			case DL_DUEL_TYPE:{
+			    if(INGAME[playerid][JOIN_DUEL]){
+					duelResult(playerid);
+					SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
+					SetPlayerFacingAngle(playerid, 89.3591);
+					return 0;
+			    }else{
+				    ShowPlayerDialog(playerid, DL_MISSON_DUEL, DIALOG_STYLE_LIST,DIALOG_TITLE, MISSON_DUEL_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+				    return 0;
+				}
+			}
 			case DL_DUEL_MONEY : return showDialog(playerid, DL_DUEL_TYPE);
 			case DL_DUEL_SUCCESS : return showDialog(playerid, DL_DUEL_MONEY);
 		}
@@ -738,18 +756,26 @@ stock notice(playerid,listitem){
 stock duel(playerid,listitem){
 	switch(listitem){
         case 0 :{
-			if(DUEL[SETUP]){
-			}else{
-			    DUEL[SETUP] = true;
+            if(DUEL[JOIN_LENGTH] == 2){
+			    formatMsg(playerid, COL_SYS, "    현재 %s님과 %s님이 듀얼중입니다.",DUEL[PLAYERID1],DUEL[PLAYERID2]);
+			    return 0;
 			}
-			formatMsg(playerid, COL_SYS, "듀얼장 %d - %d 설정상태 : %d",playerid, listitem, DUEL[SETUP]);
-			showDialog(playerid, DL_DUEL_TYPE);
+            if(DUEL[JOIN_LENGTH] == 1){
+                showDialog(playerid, DL_DUEL_SUCCESS);
+            }else{
+				if(DUEL[SETUP]) formatMsg(playerid, COL_SYS, "    현재 듀얼장 타입 설정중에 있습니다.");
+				else{
+				    DUEL[SETUP] = true;
+                    showDialog(playerid, DL_DUEL_TYPE);
+				}
+			}
         }
         case 1:{
             formatMsg(playerid, COL_SYS, "최근 듀얼 경기조회 %d",playerid);
             showDialog(playerid, DL_DUEL_INFO);
         }
     }
+    return 0;
 }
 
 stock gamble(playerid,inputtext[]){
@@ -1285,28 +1311,165 @@ stock turnCar(playerid){
 	@ duelType(playerid, listitem)
 	@ duelMoney(playerid, inputtext[])
 	@ duelSuccess(playerid)
+	@ duelSpawn(playerid, ptype)
 */
 stock duelInfo(playerid){
     formatMsg(playerid, COL_SYS, "최근 듀얼 경기조회 %d",playerid);
 }
 stock duelType(playerid, listitem){
+    DUEL[JOIN_LENGTH]=0;
 	DUEL[TYPE] = listitem;
 	
-    formatMsg(playerid, COL_SYS, "듀얼장 타입 %d - %d",playerid, DUEL[TYPE]);
     showDialog(playerid, DL_DUEL_MONEY);
 }
 stock duelMoney(playerid, inputtext[]){
 	new money = strval(inputtext);
+    if( 0 > money || USER[playerid][MONEY] < money){
+        formatMsg(playerid, COL_SYS,"   현재 설정하려는 배팅금액만큼의 자금이 없습니다.");
+	    showDialog(playerid, DL_DUEL_MONEY);
+	    return 0;
+	}
 	DUEL[MONEY] = money;
 	
-    formatMsg(playerid, COL_SYS, "듀얼장 배팅 %d - %d",playerid, DUEL[MONEY]);
     showDialog(playerid, DL_DUEL_SUCCESS);
+    return 0;
 }
 stock duelSuccess(playerid){
-    DUEL[INDEX] += 1;
-    formatMsg(playerid, COL_SYS, "듀얼장 확인 %d 인덱스 - %d",playerid, DUEL[INDEX]);
+    if(DUEL[JOIN_LENGTH] == 1 && USER[playerid][MONEY] < DUEL[MONEY]){
+	    formatMsg(playerid, COL_SYS,"    배팅 금액만큼의 자금이 없어 난입할 수 없습니다. (배팅금액 : %s)",DUEL[MONEY]);
+        return 0;
+	}
+	if(DUEL[JOIN_LENGTH] == 2){
+	    formatMsg(playerid, COL_SYS, "    현재 %s님과 %s님이 듀얼중입니다.",DUEL[PLAYERID1],DUEL[PLAYERID2]);
+	    return 0;
+    }
+	if(DUEL[JOIN_LENGTH] == 0){
+        DUEL[INDEX] += 1;
+        DUEL[SETUP] = false;
+        formatMsgAll(COL_SYS, "    [제 %d회 탑건 듀얼전] %s님이 듀얼전을 개최하였습니다. (배팅금 : %d원) (듀얼무기 : %s)",DUEL[INDEX],USER[playerid][NAME],DUEL[MONEY], duelTypeName[DUEL[TYPE]]);
+        SendClientMessageToAll(COL_SYS, "    비전투구역에서 난입 가능합니다.");
+        formatMsg(playerid, COL_SYS, "    나가시려면 [/re] 명령어를 입력하세요.");
+        DUEL[JOIN_LENGTH] =1;
+    }else if(DUEL[JOIN_LENGTH] == 1){
+        INGAME[playerid][JOIN_DUEL] = true;
+        DUEL[JOIN_LENGTH] =2;
+    }
+    
+    if(!strcmp("N", DUEL[PLAYERID1])){
+	    duelSpawn(playerid, 1);
+	}else if(!strcmp("N", DUEL[PLAYERID2])){
+	    duelSpawn(playerid, 0);
+	}
+    
+    return 0;
 }
 
+stock duelSpawn(playerid, ptype){
+	INGAME[playerid][DUEL_PTYPE] = ptype;
+
+	if(ptype){
+        format(DUEL[PLAYERID1],24,USER[playerid][NAME]);
+	}else{
+        format(DUEL[PLAYERID2],24,USER[playerid][NAME]);
+	}
+	
+	SetPlayerPos(playerid, DUEL_POS[ptype][0],DUEL_POS[ptype][1],DUEL_POS[ptype][2]);
+	SetPlayerFacingAngle(playerid, DUEL_POS[ptype][3]);
+	
+    ResetPlayerWeapons(playerid);
+    switch(DUEL[TYPE]){
+		case 0: GivePlayerWeapon(playerid, 0, 0);
+		case 1: GivePlayerWeapon(playerid, 24, 9999);
+		case 2: GivePlayerWeapon(playerid, 24, 9999),GivePlayerWeapon(playerid, 25, 9999);
+		case 3: GivePlayerWeapon(playerid, 34, 9999),GivePlayerWeapon(playerid, 25, 9999);
+		case 4: GivePlayerWeapon(playerid, 27, 9999),GivePlayerWeapon(playerid, 33, 9999);
+		case 5: GivePlayerWeapon(playerid, 31, 9999),GivePlayerWeapon(playerid, 25, 9999);
+    }
+    
+    SetPlayerHealth(playerid, 100);
+    SetPlayerArmour(playerid, 100);
+    
+    if(DUEL[JOIN_LENGTH] == 2){
+        new pid1 = getPlayerId(DUEL[PLAYERID1]);
+        new pid2 = getPlayerId(DUEL[PLAYERID2]);
+        
+        formatMsgAll(COL_SYS, "    [제 %d회 탑건 듀얼전] %s님과 %s님이 경기를 진행합니다. (배팅금 : %d)",DUEL[INDEX], DUEL[PLAYERID1],DUEL[PLAYERID2],DUEL[MONEY]);
+
+		SetPlayerPos(pid1, DUEL_POS[0][0],DUEL_POS[0][1],DUEL_POS[0][2]);
+		SetPlayerPos(pid2, DUEL_POS[1][0],DUEL_POS[1][1],DUEL_POS[1][2]);
+		
+		SetPlayerFacingAngle(pid1, DUEL_POS[0][3]);
+		SetPlayerFacingAngle(pid2, DUEL_POS[1][3]);
+
+		TogglePlayerControllable(pid1,0);
+		TogglePlayerControllable(pid2,0);
+		
+		SetCameraBehindPlayer(pid1);
+		SetCameraBehindPlayer(pid2);
+
+        SetPlayerArmedWeapon(pid1, 0);
+        SetPlayerArmedWeapon(pid2, 0);
+        
+        SetTimerEx("duelTimer", 1500, false, "ii", pid1,pid2);
+	}
+    return 0;
+}
+
+public duelTimer(p1, p2){
+    new str[32];
+	DUEL[TICK]+=1;
+	
+	if(DUEL[TICK] == 4){
+        PlayerPlaySound(p1, 3200, 0.0, 0.0, 0.0);
+        PlayerPlaySound(p2, 3200, 0.0, 0.0, 0.0);
+        TogglePlayerControllable(p1,1);
+        TogglePlayerControllable(p2,1);
+		format(str,sizeof(str), "~b~~h~START DUEL!");
+        GameTextForPlayer(p1, str,1400,1);
+        GameTextForPlayer(p2, str,1400,1);
+        
+        DUEL[TICK] = 0;
+	}else{
+        PlayerPlaySound(p1, 5201, 0.0, 0.0, 0.0);
+        PlayerPlaySound(p2, 5201, 0.0, 0.0, 0.0);
+		format(str,sizeof(str), "~b~~h~%d!",DUEL[TICK]);
+        GameTextForPlayer(p1, str,1400,6);
+        GameTextForPlayer(p2, str,1400,6);
+        SetTimerEx("duelTimer", 1500, false, "ii", p1,p2);
+	}
+}
+
+stock duelResult(playerid){
+	if(DUEL[JOIN_LENGTH] == 2){
+        new killerid;
+        if(INGAME[playerid][DUEL_PTYPE]) killerid = getPlayerId(DUEL[PLAYERID2]);
+        else killerid = getPlayerId(DUEL[PLAYERID1]);
+        
+		GetPlayerHealth(killerid, USER[killerid][HP]);
+		GetPlayerArmour(killerid, USER[killerid][AM]);
+		INGAME[killerid][DUEL_WIN]+=1;
+        giveMoney(killerid, DUEL[MONEY]);
+        giveMoney(playerid, -DUEL[MONEY]);
+	    formatMsgAll(COL_SYS, "    [제 %d회 탑건 듀얼전 종료] %s님이 %s님을 이겼습니다. (배팅금 : %d) (HP/AM : %.01f%/%.01f%) (%d연승)",DUEL[INDEX], USER[killerid][NAME],USER[playerid][NAME],DUEL[MONEY], USER[killerid][HP], USER[killerid][AM], INGAME[killerid][DUEL_WIN]);
+	    formatMsg(killerid, COL_SYS, "    [/re] 명령어를 통해 나가실 수 있습니다.");
+	    DUEL[SETUP] = true;
+        showDialog(killerid, DL_DUEL_TYPE);
+   }
+
+	if(INGAME[playerid][DUEL_PTYPE]){
+        format(DUEL[PLAYERID1],24,"N");
+	}else{
+        format(DUEL[PLAYERID2],24,"N");
+	}
+	
+	if(DUEL[JOIN_LENGTH] == 1){
+	    DUEL[JOIN_LENGTH] =0;
+	    DUEL[SETUP] = false;
+	    DUEL[INDEX] -=1;
+	}
+	INGAME[playerid][DUEL_WIN]=0;
+	INGAME[playerid][JOIN_DUEL] = false;
+}
 /* GAMBLE
    @ gambleChoice(playerid, listitem)
    @ gambling(playerid, dice, listitem, result);
@@ -1385,6 +1548,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         return 1;
     }
     if(!strcmp("/lobby", cmdtext)){
+        if(INGAME[playerid][JOIN_DUEL])return 1;
+        
         if(USER[playerid][MONEY] < 3000) return SendClientMessage(playerid,COL_SYS,LOBBY_TEL_NOT_MONEY);
         if(USER[playerid][HP] < 90 && USER[playerid][AM] < 90) return SendClientMessage(playerid,COL_SYS, "    비전투구역은 피 90 아머90 이상일때만 이동이 가능합니다.");
 
@@ -1394,6 +1559,15 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         giveMoney(playerid, -3000);
         return 1;
  	}
+    if(!strcmp("/re", cmdtext)){
+        if(!INGAME[playerid][JOIN_DUEL])return 1;
+
+		duelResult(playerid);
+   	    SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
+    	SetPlayerFacingAngle(playerid, 89.3591);
+	    return 1;
+	}
+    
    	if(!strcmp("/help", cmdtext)){
 		showDialog(playerid, DL_INFO);
         return 1;
@@ -1407,6 +1581,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         return 1;
  	}
    	if(!strcmp("/kill", cmdtext)){
+        if(INGAME[playerid][JOIN_DUEL])return 0;
         SetPlayerHealth(playerid, 0);
         return 1;
  	}
@@ -1435,7 +1610,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         return 1;
 	}
  	if(!strcmp("/money", cmd)){
-
+        if(INGAME[playerid][JOIN_DUEL])return 0;
+        
         tmp = strtok(cmdtext, idx);
         if(!strlen(tmp))return SendClientMessage(playerid, COL_SYS,HELP_MONEY_TEXT);
 
@@ -1621,6 +1797,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 
 public OnPlayerDisconnect(playerid, reason){
     if(INGAME[playerid][RESTART]) return 0;
+    if(INGAME[playerid][JOIN_DUEL])duelResult(playerid);
     
     out(playerid);
     return 1;
@@ -1629,6 +1806,8 @@ public OnPlayerDisconnect(playerid, reason){
 public OnPlayerDeath(playerid, killerid, reason){
     if(INGAME[playerid][SYNC]) return 0;
     
+	if(INGAME[playerid][JOIN_DUEL])duelResult(playerid);
+	
 	death(playerid, killerid, reason);
 	return 1;
 }
@@ -1719,8 +1898,10 @@ public regist(playerid, pass[]){
 	spawn(playerid);
 }
 public save(playerid){
-	GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
-	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+	if(!INGAME[playerid][JOIN_DUEL]){
+	    GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
+	    GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+	}
 
 	new sql[400];
 	strcat(sql, "UPDATE `user_info` SET");
@@ -2350,6 +2531,8 @@ stock vehicleBuy(playerid, vehicleid){
     vehicleid
 	);
 	mysql_query(mysql, query);
+	
+	giveMoney(playerid, -30000);
 }
 
 stock showEnvi(playerid){
@@ -2367,7 +2550,8 @@ stock showEnvi(playerid){
 
 stock showRank(playerid){
 	new str[50];
-    if(INGAME[playerid][NODM] && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
+    if(INGAME[playerid][JOIN_DUEL]) format(str, sizeof(str),"{CC0033}FPS : %d PING : %d",INGAME[playerid][FPS], GetPlayerPing(playerid));
+    else if(INGAME[playerid][NODM] && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
     else format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][LEVEL], USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
     return 0;
@@ -2622,9 +2806,11 @@ stock death(playerid, killerid, reason){
 	format(str, sizeof(str), "~y~You got killed by ~r~%s", USER[killerid][NAME]);
     GameTextForPlayer( playerid, str, 3000, 1 );
     
-	USER[killerid][KILLS] += 1;
-	giveMoney(killerid, 1000);
-    giveExp(killerid, 1);
+	if(!INGAME[killerid][JOIN_DUEL]){
+	    USER[killerid][KILLS] += 1;
+	    giveMoney(killerid, 1000);
+        giveExp(killerid, 1);
+    }
     
 	if(INGAME[killerid][COMBO] < 10){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
@@ -3331,6 +3517,7 @@ stock wepPrice(model){
 }
 
 stock sync(playerid){
+	if(INGAME[playerid][JOIN_DUEL])return 0;
     if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10){
         new wep[2];
         GetPlayerWeaponData(playerid, 2, wep[0], wep[1]);
@@ -3359,6 +3546,7 @@ stock sync(playerid){
 
     if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, INGAME[playerid][AMMO]);
     SetPlayerArmedWeapon(playerid, 0);
+    return 0;
 }
 
 public Float:kdRatio(kill, death){
