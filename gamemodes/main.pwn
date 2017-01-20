@@ -2554,10 +2554,16 @@ stock checkZone(playerid){
     
 	for(new i = 0; i < USED_ZONE; i++){
 		if(isPlayerZone(playerid, i)){
-		    if(isNotDmZone(playerid)) return notDmZone(playerid), INGAME[playerid][NODM] = true;
+		    if(isDmZone(playerid))notDmZone(playerid);
+		    else if(INGAME[playerid][NODM]){
+				threadZone(playerid, i);
+			    INGAME[playerid][NODM] =false;
+			    return 0;
+			}
 		    
-            if(INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
-            if(INGAME[playerid][ENTER_ZONE] != 0) leaveZone(playerid);
+            if(!INGAME[playerid][NODM] && INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
+
+		    leaveZone(playerid);
 			threadZone(playerid, i);
 		}
 	}
@@ -2570,19 +2576,20 @@ stock threadZone(playerid, zoneid){
 	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]+=1;
     INGAME[playerid][ZONE_TICK] = 0;
 }
-stock isNotDmZone(playerid){
+stock isDmZone(playerid){
 	new	Float:x, Float:y, Float:z;
 	GetPlayerPos(playerid, x, y, z);
 	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y]){
+		if(!INGAME[playerid][NODM]){
+	        leaveZone(playerid);
+            INGAME[playerid][NODM] =true;
+	    }
 	    return 1;
 	}
-	INGAME[playerid][NODM] = false;
 	return 0;
 }
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
-	if(!INGAME[playerid][NODM]) if(INGAME[playerid][ENTER_ZONE] != 0) leaveZone(playerid);
-	
 	return 0;
 }
 
@@ -2664,21 +2671,7 @@ stock tickZone(playerid){
 				formatMsgAll(COL_SYS, ZONE_CLAN_HOLD_TEXT ,INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
 				GangZoneFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID], GetPlayerColor(playerid));
 		    }
-		    case 100:{
-				holdZone(playerid);
-				
-				formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE], USER[playerid][NAME]);
-				giveMoney(playerid, 1000);
-				giveExp(playerid, 3);
-				for(new i=0; i<GetMaxPlayers(); i++){
-					if(INGAME[playerid][ENTER_ZONE] == INGAME[i][ENTER_ZONE] && USER[playerid][CLANID] == USER[i][CLANID]){
-				        giveMoney(playerid, 500);
-				        giveExp(playerid, 2);
-					}
-				}
-				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
-				GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
-		    }
+		    case 100:holdZone(playerid);
 		}
     }
     
@@ -2690,7 +2683,20 @@ stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
     new zoneOwner;
     new query[400];
-    
+
+
+	formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], zoneid, USER[playerid][NAME]);
+	giveMoney(playerid, 1000);
+	giveExp(playerid, 3);
+	for(new i=0; i<GetMaxPlayers(); i++){
+		if(zoneid == INGAME[i][ENTER_ZONE] && USER[playerid][CLANID] == USER[i][CLANID]){
+	        giveMoney(playerid, 500);
+	        giveExp(playerid, 2);
+		}
+	}
+	CLAN_CP[zoneid][USER[playerid][CLANID]][CP] = 0;
+	GangZoneStopFlashForAll(ZONE[zoneid][ID]);
+
     if(ZONE[zoneid][OWNER_CLAN] == -1)zoneOwner = ZONE[zoneid][OWNER_CLAN]+1;
 	else zoneOwner = ZONE[zoneid][OWNER_CLAN]-1;
 	
