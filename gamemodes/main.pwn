@@ -1352,6 +1352,7 @@ stock duelSuccess(playerid){
 }
 
 stock duelSpawn(playerid, order){
+    SetPlayerTeam(playerid, NO_TEAM);
 	SetPlayerPos(playerid, DUEL_POS[order][0],DUEL_POS[order][1],DUEL_POS[order][2]);
 	SetPlayerFacingAngle(playerid, DUEL_POS[order][3]);
     ResetPlayerWeapons(playerid);
@@ -2564,6 +2565,7 @@ stock threadZone(playerid, zoneid){
 
 	INGAME[playerid][ENTER_ZONE] = zoneid;
 	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]+=1;
+    INGAME[playerid][ZONE_TICK] = 0;
 }
 stock isNotDmZone(playerid){
     INGAME[playerid][NODM] = false;
