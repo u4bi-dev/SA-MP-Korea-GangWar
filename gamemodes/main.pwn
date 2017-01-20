@@ -2546,72 +2546,98 @@ stock isPlayerZone(playerid, zoneid){
 	   @ exitZone(playerid)
 	   @ joinZone(playerid, z)
 */
-
 stock checkZone(playerid){
-    INGAME[playerid][NODM] = false;
-	new	Float:x, Float:y, Float:z;
-	GetPlayerPos(playerid, x, y, z);
-	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y])return notDmZone(playerid);
+	if(isNotDmZone(playerid)) return notDmZone(playerid);
 	
 	for(new i = 0; i < USED_ZONE; i++){
-	    if(isPlayerZone(playerid, i)){
-			if(INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
-			if(INGAME[playerid][ENTER_ZONE] != 0)exitZone(playerid);
-            joinZone(playerid, i);
-	    }
+		if(isPlayerZone(playerid, i)){
+            if(INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
+			else if(INGAME[playerid][ENTER_ZONE] != 0) leaveZone(playerid);
+			
+            threadZone(playerid, i);
+		}
 	}
 	return 0;
 }
-stock joinZone(playerid, zoneid){
-    if(USER[playerid][CLANID] != 0)CLAN_CP[zoneid][USER[playerid][CLANID]][INDEX]+=1;
+stock threadZone(playerid, zoneid){
+	if(!isNotClanUser(playerid))CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]+=1;
 
-	ZONE[zoneid][STAY_HUMAN]+=1;
 	INGAME[playerid][ENTER_ZONE] = zoneid;
-	INGAME[playerid][ZONE_TICK] = 0;
+	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]+=1;
 }
-stock exitZone(playerid){
-	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
-	CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-
-	if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] == 0)GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
-    if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0)CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+stock isNotDmZone(playerid){
+    INGAME[playerid][NODM] = false;
+    
+	new	Float:x, Float:y, Float:z;
+	GetPlayerPos(playerid, x, y, z);
+	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y])return 1;
+	return 0;
 }
-stock enterZone(playerid){
-	if(ZONE[INGAME[playerid][ENTER_ZONE]][OWNER_CLAN] == USER[playerid][CLANID])return ownerZone(playerid);
-	
-    if(USER[playerid][CLANID] != 0)stayClanCheck(playerid), tickZone(playerid);
-    else{
-		new str[120];
-	    format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
-		TextDrawSetString(TDraw[playerid][CP],str);
-    }
-    return 0;
-}
-
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
 	INGAME[playerid][NODM] = true;
 	return 0;
 }
 
-stock ownerZone(playerid){
+stock enterZone(playerid){
+	if(isNotClanUser(playerid)) return notClanUser(playerid);
+	if(isBattleZone(playerid)) return battleZone(playerid);
+	if(isHavedZone(playerid)) return havedZone(playerid);
+
+	tickZone(playerid);
+	return 0;
+}
+stock leaveZone(playerid){
+	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] -=1;
+	
+	if(!isNotClanUser(playerid)){
+		CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
+		if(isNotStayUser(playerid))GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
+		if(isNotStayClan(playerid))CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+	}
+	return 0;
+}
+
+stock isNotStayUser(playerid){
+    if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] == 0) return 1;
+    return 0;
+}
+stock isNotStayClan(playerid){
+    if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0) return 1;
+    return 0;
+}
+
+stock isNotClanUser(playerid){
+    if(USER[playerid][CLANID] == 0)return 1;
+    return 0;
+}
+stock notClanUser(playerid){
+	new str[120];
+	format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
+	TextDrawSetString(TDraw[playerid][CP],str);
+    return 0;
+}
+stock isBattleZone(playerid){
+	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] = 0;
+	for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][i][INDEX]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] +=1;
+	if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] > 1)return 1;
+	return 0;
+}
+stock battleZone(playerid){
+	new str[120];
+	format(str,sizeof(str),"~r~~h~%d ZONE IN - ~w~BATTLE ~r~~h~IN CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN]);
+	TextDrawSetString(TDraw[playerid][CP],str);
+	return 0;
+}
+stock isHavedZone(playerid){
+    if(ZONE[INGAME[playerid][ENTER_ZONE]][OWNER_CLAN] == USER[playerid][CLANID])return 1;
+    return 0;
+}
+stock havedZone(playerid){
 	new str[120];
 	format(str,sizeof(str),"~r~~h~%d ZONE IN ~w~HUMAN %d ~r~~h~- CP : ~w~CLAN HAVED",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]);
 	TextDrawSetString(TDraw[playerid][CP],str);
 	return 0;
-}
-
-stock stayClanCheck(playerid){
-	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] = 0;
-	
-	for(new i=0; i < USED_CLAN; i++){
-        if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][i][INDEX]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] +=1;
-	}
-	if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] > 1){
-		new str[120];
-		format(str,sizeof(str),"~r~~h~%d ZONE IN - ~w~BATTLE ~r~~h~IN CLAN LENGTH : ~w~%d",INGAME[playerid][ENTER_ZONE], ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN]);
-		TextDrawSetString(TDraw[playerid][CP],str);
-	}
 }
 
 stock tickZone(playerid){
@@ -2621,26 +2647,29 @@ stock tickZone(playerid){
     if(INGAME[playerid][ZONE_TICK] == 2){
         INGAME[playerid][ZONE_TICK] = 0;
         CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] +=1;
-
-		if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 80){
-			formatMsgAll(COL_SYS, ZONE_CLAN_HOLD_TEXT ,INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
-            GangZoneFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID], GetPlayerColor(playerid));
-		}
         if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] > 80)PlayerPlaySound(playerid, 1137, 0.0, 0.0, 0.0);
-        if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] == 100){
-            formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE], USER[playerid][NAME]);
-			holdZone(playerid);
-			giveMoney(playerid, 3000);
-            giveExp(playerid, 3);
-            for(new i=0; i<GetMaxPlayers(); i++){
-				if(INGAME[playerid][ENTER_ZONE] == INGAME[i][ENTER_ZONE] && USER[playerid][CLANID] == USER[i][CLANID]){
-                    giveMoney(playerid, 2000);
-                    giveExp(playerid, 2);
+        
+		switch(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP]){
+		    case 80:{
+				formatMsgAll(COL_SYS, ZONE_CLAN_HOLD_TEXT ,INGAME[playerid][ENTER_ZONE], GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME]);
+				GangZoneFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID], GetPlayerColor(playerid));
+		    }
+		    case 100:{
+				holdZone(playerid);
+				
+				formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], INGAME[playerid][ENTER_ZONE], USER[playerid][NAME]);
+				giveMoney(playerid, 1000);
+				giveExp(playerid, 3);
+				for(new i=0; i<GetMaxPlayers(); i++){
+					if(INGAME[playerid][ENTER_ZONE] == INGAME[i][ENTER_ZONE] && USER[playerid][CLANID] == USER[i][CLANID]){
+				        giveMoney(playerid, 500);
+				        giveExp(playerid, 2);
+					}
 				}
-            }
-            CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
-            GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
-        }
+				CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+				GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
+		    }
+		}
     }
     
 	new str[120];
@@ -2649,9 +2678,6 @@ stock tickZone(playerid){
 }
 stock holdZone(playerid){
 	new zoneid = INGAME[playerid][ENTER_ZONE];
-    if(ZONE[zoneid][OWNER_CLAN] == USER[playerid][CLANID])return 0;
-    if(INGAME[playerid][NODM])return 0;
-    
     new zoneOwner;
     new query[400];
     
