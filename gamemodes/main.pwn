@@ -410,6 +410,7 @@ public OnPlayerRequestClass(playerid, classid){
     return 1;
 }
 public OnPlayerSpawn(playerid){
+    if(!INGAME[playerid][LOGIN]) return Kick(playerid);
     if(!INGAME[playerid][SPAWN] && !isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10){
 	    GivePlayerWeapon(playerid, 24, 500);
 		SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
@@ -2294,11 +2295,13 @@ stock weapon_data(){
 /* SERVER THREAD*/
 public ServerThread(){
     foreach (new i : Player){
-    	fps(i);
-	    event(i);
-	    checkZone(i);
-	    checkWarp(i);
-        damage(i);
+        if(INGAME[i][LOGIN]){
+	    	fps(i);
+		    event(i);
+		    checkZone(i);
+		    checkWarp(i);
+	        damage(i);
+        }
     }
 }
 
@@ -2548,36 +2551,38 @@ stock isPlayerZone(playerid, zoneid){
 	   @ joinZone(playerid, z)
 */
 stock checkZone(playerid){
-	if(isNotDmZone(playerid)) return notDmZone(playerid);
-	
+    
 	for(new i = 0; i < USED_ZONE; i++){
 		if(isPlayerZone(playerid, i)){
+		    if(isNotDmZone(playerid)) return notDmZone(playerid), INGAME[playerid][NODM] = true;
+		    
             if(INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
-			else if(INGAME[playerid][ENTER_ZONE] != 0) leaveZone(playerid);
-			
-            threadZone(playerid, i);
+            if(INGAME[playerid][ENTER_ZONE] != 0) leaveZone(playerid);
+			threadZone(playerid, i);
 		}
 	}
 	return 0;
 }
 stock threadZone(playerid, zoneid){
-	if(!isNotClanUser(playerid))CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]+=1;
-
 	INGAME[playerid][ENTER_ZONE] = zoneid;
+
+	if(!isNotClanUser(playerid))CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]+=1;
 	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]+=1;
     INGAME[playerid][ZONE_TICK] = 0;
 }
 stock isNotDmZone(playerid){
-    INGAME[playerid][NODM] = false;
-    
 	new	Float:x, Float:y, Float:z;
 	GetPlayerPos(playerid, x, y, z);
-	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y])return 1;
+	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y]){
+	    return 1;
+	}
+	INGAME[playerid][NODM] = false;
 	return 0;
 }
 stock notDmZone(playerid){
 	TextDrawSetString(TDraw[playerid][CP], "~g~~h~NOT DEATH MATCH ZONE");
-	INGAME[playerid][NODM] = true;
+	if(!INGAME[playerid][NODM]) if(INGAME[playerid][ENTER_ZONE] != 0) leaveZone(playerid);
+	
 	return 0;
 }
 
@@ -2594,15 +2599,13 @@ stock leaveZone(playerid){
 	
 	if(!isNotClanUser(playerid)){
 		CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX]-=1;
-		if(isNotStayUser(playerid))GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
-		if(isNotStayClan(playerid))CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+		
+		if(isNotStayClan(playerid)){
+            CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][CP] = 0;
+            GangZoneStopFlashForAll(ZONE[INGAME[playerid][ENTER_ZONE]][ID]);
+        }
 	}
 	return 0;
-}
-
-stock isNotStayUser(playerid){
-    if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN] == 0) return 1;
-    return 0;
 }
 stock isNotStayClan(playerid){
     if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][USER[playerid][CLANID]][INDEX] == 0) return 1;
@@ -2621,7 +2624,12 @@ stock notClanUser(playerid){
 }
 stock isBattleZone(playerid){
 	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] = 0;
-	for(new i=0; i < USED_CLAN; i++)if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][i][INDEX]) ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] +=1;
+	
+	for(new i=0; i < USED_CLAN; i++){
+	    if(CLAN_CP[INGAME[playerid][ENTER_ZONE]][i][INDEX]){
+		    ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] +=1;
+		}
+    }
 	if(ZONE[INGAME[playerid][ENTER_ZONE]][STAY_CLAN] > 1)return 1;
 	return 0;
 }
@@ -2790,10 +2798,12 @@ stock death(playerid, killerid, reason){
 	new str[128];
 	format(str, sizeof(str), "~y~You got killed by ~r~%s", USER[killerid][NAME]);
     GameTextForPlayer( playerid, str, 3000, 1 );
-    
-    USER[killerid][KILLS] += 1;
-    giveMoney(killerid, 1000);
-    giveExp(killerid, 1);
+
+    if(!INGAME[playerid][DUEL_JOIN]){
+	    USER[killerid][KILLS] += 1;
+	    giveMoney(killerid, 1000);
+	    giveExp(killerid, 1);
+    }
     
 	if(INGAME[killerid][COMBO] < 10){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
