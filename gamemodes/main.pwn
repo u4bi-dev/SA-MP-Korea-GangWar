@@ -227,7 +227,8 @@ new CARBAG[USED_PLAYER][USED_WEAPON][CARBAG_MODEL];
 
 enum VEHICLE_MODEL{
  	ID,
-	NAME[MAX_PLAYER_NAME],
+	OWNER_ID[MAX_PLAYER_NAME],
+	OWNER_NAME[MAX_PLAYER_NAME],
  	COLOR1,
  	COLOR2,
 	Float:POS_X,
@@ -239,7 +240,7 @@ new VEHICLE[USED_VEHICLE][VEHICLE_MODEL];
 
 enum HOUSE_MODEL{
  	ID,
- 	NAME[MAX_PLAYER_NAME],
+ 	OWNER_ID,
  	OPEN,
 	INTERIOR,
 	WORLD,
@@ -255,6 +256,7 @@ new HOUSE[USED_HOUSE][HOUSE_MODEL];
 enum CLAN_MODEL{
  	ID,
  	NAME[50],
+ 	LEADER_ID,
  	LEADER_NAME[MAX_PLAYER_NAME],
  	KILLS,
  	DEATHS,
@@ -348,6 +350,7 @@ new TDraw[USED_PLAYER][TDraw_MODEL];
 public OnGameModeExit(){return 1;
 }
 public OnGameModeInit(){
+    printf(SQL_DATA_LOAD_USER);
 	#include "module/vehicles.pwn"
 	dbcon();
     mode();
@@ -421,7 +424,7 @@ public OnPlayerSpawn(playerid){
 }
 
 public OnVehicleSpawn(vehicleid){
-    if(!strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
+    if(!strcmp("N", VEHICLE[vehicleid][OWNER_NAME]))return 0;
 	vehicleSapwn(vehicleid);
     return 1;
 }
@@ -434,7 +437,7 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger){
 }
 
 public OnPlayerExitVehicle(playerid, vehicleid){
-	if(INGAME[playerid][NODM] && !strcmp("N", VEHICLE[vehicleid][NAME])){
+	if(INGAME[playerid][NODM] && !strcmp("N", VEHICLE[vehicleid][OWNER_NAME])){
         ClearAnimations(playerid);
 	    vehicleSapwn(vehicleid);
 	    formatMsg(playerid, COL_SYS, "    비전투구역에 주차를 할 시 미입찰 차량은 즉시 스폰됩니다.");
@@ -534,8 +537,8 @@ public OnPlayerStateChange(playerid, newstate, oldstate){
     
     if(newstate == PLAYER_STATE_DRIVER){
         new vehicleid = GetPlayerVehicleID(playerid);
-	    if(!strcmp("N", VEHICLE[vehicleid][NAME])) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
-	    else formatMsg(playerid, COL_SYS, IN_CAR_WHO_OWNER, VEHICLE[vehicleid][NAME]);
+	    if(!strcmp("N", VEHICLE[vehicleid][OWNER_NAME])) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
+	    else formatMsg(playerid, COL_SYS, IN_CAR_WHO_OWNER, VEHICLE[vehicleid][OWNER_NAME]);
 	}
     return 1;
 }
@@ -801,11 +804,11 @@ stock garage(playerid,listitem){
 	switch(listitem){
         case 0 : showDialog(playerid, DL_GARAGE_REPAIR);
         case 1 :{
-            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
+            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][OWNER_NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
 		    showDialog(playerid, DL_GARAGE_PAINT);
 		}
         case 2 :{
-            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
+            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][OWNER_NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
             showDialog(playerid, DL_GARAGE_TURNING);
 		}
 	}
@@ -829,7 +832,7 @@ stock clanInsert(playerid, inputtext[]){
     if(isClanHangul(playerid, CLAN_SETUP[playerid][NAME])) return showDialog(playerid, DL_CLAN_INSERT);
 
 	new query[400],row;
-    mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `clan_info` WHERE `NAME` = '%s' LIMIT 1", escape(CLAN_SETUP[playerid][NAME]));
+    mysql_format(mysql, query, sizeof(query), SQL_CLAN_NAME_CHECK, escape(CLAN_SETUP[playerid][NAME]));
     mysql_query(mysql, query);
     
     row = cache_num_rows();
@@ -884,7 +887,7 @@ stock clanInsertColor(playerid, listitem){
             CLAN_SETUP[playerid][COLOR] = randomColor();
             
             new query[400],row, field[50];
-            mysql_format(mysql, query, sizeof(query), "SELECT NAME,COLOR FROM `clan_info` WHERE `COLOR` = %d LIMIT 1", CLAN_SETUP[playerid][COLOR]);
+            mysql_format(mysql, query, sizeof(query), SQL_CLAN_COLOR_CHECK, CLAN_SETUP[playerid][COLOR]);
             mysql_query(mysql, query);
 
             row = cache_num_rows();
@@ -914,13 +917,10 @@ stock clanInsertSuccess(playerid){
 	formatMsg(playerid, COL_SYS, YOU_CLAN_INSERT_SUCCESS, CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
     giveMoney(playerid, -20000);
 	
-	new query[400],sql[400];
-	strcat(sql, "INSERT INTO `clan_info`");
-	strcat(sql, " (`NAME`,`LEADER_NAME`,`KILLS`,`DEATHS`,`COLOR`,`ZONE_LENGTH`,`SKIN`)");
-	strcat(sql, " VALUES ('%s','%s',0,0,%d,0,0)");
-	mysql_format(mysql, query, sizeof(query), sql,
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), SQL_CLAN_INSERT_SUCCESS,
         CLAN_SETUP[playerid][NAME],
-        USER[playerid][NAME],
+        USER[playerid][ID],
         CLAN_SETUP[playerid][COLOR]
 	);
 	
@@ -1001,7 +1001,7 @@ stock clanSkinSetup(playerid, inputtext[]){
     CLAN[USER[playerid][CLANID]-1][SKIN] = skin;
 
     new query[400];
-	mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `SKIN` = %d WHERE `CLANID` = %d", skin, USER[playerid][CLANID]);
+	mysql_format(mysql, query, sizeof(query), SQL_CLAN_SKIN_UPDATE, skin, USER[playerid][CLANID]);
 	mysql_query(mysql, query);
 	
     formatMsg(playerid, COL_SYS, CLAN_SKIN_EDIT_SUCCESS,CLAN[USER[playerid][CLANID]-1][SKIN]);
@@ -1042,7 +1042,7 @@ stock shopWeapon(playerid, listitem){
 	}
 
 	new query[400],row;
-    mysql_format(mysql, query, sizeof(query), "SELECT USER_ID FROM `weapon_info` WHERE `USER_ID` = %d AND `MODEL` = %d LIMIT 1", USER[playerid][ID], INGAME[playerid][BUY_WEAPONID]);
+    mysql_format(mysql, query, sizeof(query), SQL_WEAPON_BUY_CHECK, USER[playerid][ID], INGAME[playerid][BUY_WEAPONID]);
     mysql_query(mysql, query);
 
     row = cache_num_rows();
@@ -1075,7 +1075,7 @@ stock shopName(playerid, inputtext[]){
     if(isNameHangul(playerid, inputtext)) return showDialog(playerid, DL_SHOP_NAME);
     
 	new query[400],row;
-    mysql_format(mysql, query, sizeof(query), "SELECT NAME FROM `user_info` WHERE `NAME` = '%s' LIMIT 1", inputtext);
+    mysql_format(mysql, query, sizeof(query),SQL_NAME_EDIT_CHECK, inputtext);
     mysql_query(mysql, query);
 
     row = cache_num_rows();
@@ -1100,7 +1100,7 @@ stock shopWeaponBuy(playerid){
     formatMsg(playerid, COL_SYS, WEAPON_BUY_HELP_TEXT);
 
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "INSERT INTO `weapon_info` (`USER_ID`,`MODEL`) VALUES (%d,%d)",
+	mysql_format(mysql, query, sizeof(query), SQL_WEAPON_BUY_SUCCESS,
         USER[playerid][ID],
         INGAME[playerid][BUY_WEAPONID]
 	);
@@ -1136,12 +1136,12 @@ stock shopNameEdit(playerid){
 
 	new query[400];
 	if(USER[playerid][NAME] == CLAN[USER[playerid][CLANID]-1][LEADER_NAME]){
-		mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `LEADER_NAME` = '%s' WHERE `LEADER_NAME` = '%s'", escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
+		mysql_format(mysql, query, sizeof(query), SQL_NAME_CLAN_EDIT_LEADER, escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
 		mysql_query(mysql, query);
 		format(CLAN[USER[playerid][CLANID]-1][LEADER_NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
     }
 
-    mysql_format(mysql, query, sizeof(query), "UPDATE `user_info` SET `NAME` = '%s'  WHERE `NAME` = '%s'", escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
+    mysql_format(mysql, query, sizeof(query), SQL_NAME_CLAN_EDIT, escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
     mysql_query(mysql, query);
     
     format(USER[playerid][NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
@@ -1278,11 +1278,8 @@ stock paintCar(playerid, inputtext[]){
             
             ChangeVehicleColor(GetPlayerVehicleID(playerid), VEHICLE[vehicleid][COLOR1], VEHICLE[vehicleid][COLOR2]);
             
-			new query[400],sql[400];
-			strcat(sql, "UPDATE `vehicle_info`");
-			strcat(sql, " SET COLOR1 = %d, COLOR2 = %d WHERE ID = %d");
-			
-			mysql_format(mysql, query, sizeof(query), sql,
+			new query[400];
+			mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_COLOR_UPDATE,
 			VEHICLE[vehicleid][COLOR1],
 			VEHICLE[vehicleid][COLOR2],
 			vehicleid);
@@ -1550,7 +1547,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		if(isMaxHaveCar(playerid)) return SendClientMessage(playerid, COL_SYS, CAR_HAVE_MAX_LENTH);
         if(!IsPlayerInAnyVehicle(playerid))return SendClientMessage(playerid,COL_SYS,CAR_NOT_IN);
         if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,CAR_BUY_NOT_MONEY);
-        if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][NAME]))return SendClientMessage(playerid,COL_SYS,CAR_ALREADY_SELL);
+        if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][OWNER_NAME]))return SendClientMessage(playerid,COL_SYS,CAR_ALREADY_SELL);
         
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
 		return 1;
@@ -1805,7 +1802,7 @@ public check(playerid){
     new query[128], result;
     GetPlayerName(playerid, USER[playerid][NAME], MAX_PLAYER_NAME);
 
-    mysql_format(mysql, query, sizeof(query), "SELECT ID, PASS FROM `user_info` WHERE `NAME` = '%s' LIMIT 1", escape(USER[playerid][NAME]));
+    mysql_format(mysql, query, sizeof(query), SQL_USER_PASS_CHECK, escape(USER[playerid][NAME]));
     mysql_query(mysql, query);
 
     result = cache_num_rows();
@@ -1818,16 +1815,9 @@ public check(playerid){
 public regist(playerid, pass[]){
     GetPlayerIp(playerid, USER[playerid][USERIP], 16);
 	format(USER[playerid][PASS],24, "%s",pass);
-	new query[400], sql[400];
-    strcat(sql, "INSERT INTO `user_info`");
-    strcat(sql, " (`NAME`,`PASS`,`USERIP`,`ADMIN`,`CLANID`");
-    strcat(sql, ",`MONEY`,`LEVEL`,`EXP`,`KILLS`,`DEATHS`");
-    strcat(sql, ",`SKIN`,`WEP1`,`WEP2`,`WEP3`,`INTERIOR`");
-    strcat(sql, ",`WORLD`,`POS_X`,`POS_Y`,`POS_Z`");
-    strcat(sql, ",`ANGLE`,`HP`,`AM`)");
-    strcat(sql, " VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)");
+	new query[400];
     
-	mysql_format(mysql, query, sizeof(query), sql,
+	mysql_format(mysql, query, sizeof(query), SQL_USER_INSERT,
 	USER[playerid][NAME], USER[playerid][PASS], USER[playerid][USERIP],
 	USER[playerid][ADMIN] = 0,
 	USER[playerid][CLANID] = 0,
@@ -1929,7 +1919,7 @@ public save(playerid){
 }
 public load(playerid){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `user_info` WHERE `ID` = %d LIMIT 1", USER[playerid][ID]);
+	mysql_format(mysql, query, sizeof(query), SQL_USER_SELECT, USER[playerid][ID]);
 	mysql_query(mysql, query);
 
 	USER[playerid][USERIP]   = cache_get_field_content_int(0, "USERIP");
@@ -1951,14 +1941,7 @@ public load(playerid){
 	USER[playerid][HP]      = cache_get_field_content_float(0, "HP");
 	USER[playerid][AM]      = cache_get_field_content_float(0, "AM");
 
-	new sql[400];
-	strcat(sql, "SELECT weapon.MODEL FROM");
-	strcat(sql, " `user_info` as user INNER JOIN");
-	strcat(sql, " `weapon_info` as weapon");
-	strcat(sql, " on user.ID = weapon.USER_ID");
-	strcat(sql, " WHERE user.ID = %d");
-
-	mysql_format(mysql, query, sizeof(query), sql, USER[playerid][ID]);
+	mysql_format(mysql, query, sizeof(query), SQL_USER_WEAPON_JOIN, USER[playerid][ID]);
 	mysql_query(mysql, query);
 
 	new rows, fields;
@@ -2159,7 +2142,7 @@ stock hide(playerid){
 */
 stock user_data(){
     new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `user_info` LIMIT 1");
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_USER);
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("유저 : 정상");
 	else{
@@ -2175,7 +2158,7 @@ stock user_data(){
 }
 stock house_data(){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `house_info`");
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_HOUSE);
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("건물 : 정상");
 	else{
@@ -2192,7 +2175,7 @@ stock house_data(){
     for(new i=0; i < rows; i++){
 	    HOUSE[i][ID]            = cache_get_field_content_int(i, "ID");
 	    HOUSE[i][OPEN]          = cache_get_field_content_int(i, "OPEM");
-		cache_get_field_content(i, "NAME", HOUSE[i][NAME], mysql, 24);
+	    HOUSE[i][OWNER_ID]      = cache_get_field_content_int(i, "OWNER_ID");
         HOUSE[i][ENTER_POS_X]   = cache_get_field_content_float(i, "ENTER_POS_X");
         HOUSE[i][ENTER_POS_Y]   = cache_get_field_content_float(i, "ENTER_POS_Y");
         HOUSE[i][ENTER_POS_Z]   = cache_get_field_content_float(i, "ENTER_POS_Z");
@@ -2204,7 +2187,7 @@ stock house_data(){
 }
 stock vehicle_data(){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `vehicle_info`");
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_VEHICLE);
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("차량 : 정상");
 	else{
@@ -2220,7 +2203,7 @@ stock vehicle_data(){
 	
     for(new i=0; i < rows; i++){
 	    VEHICLE[i+1][ID]           = cache_get_field_content_int(i, "ID");
-		cache_get_field_content(i, "NAME", VEHICLE[i+1][NAME], mysql, 24);
+	    VEHICLE[i+1][OWNER_ID]     = cache_get_field_content_int(i, "OWNER_ID");
 	    VEHICLE[i+1][POS_X]        = cache_get_field_content_float(i, "POS_X");
 	    VEHICLE[i+1][POS_Y]        = cache_get_field_content_float(i, "POS_Y");
 	    VEHICLE[i+1][POS_Z]        = cache_get_field_content_float(i, "POS_Z");
@@ -2233,7 +2216,7 @@ stock vehicle_data(){
 
 stock clan_data(){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `clan_info`");
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_CALN);
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("클랜 : 정상");
 	else{
@@ -2249,7 +2232,7 @@ stock clan_data(){
     for(new i=0; i < rows; i++){
 	    CLAN[i][ID]             = cache_get_field_content_int(i, "ID");
 		cache_get_field_content(i, "NAME", CLAN[i][NAME], mysql, 50);
-		cache_get_field_content(i, "LEADER_NAME", CLAN[i][LEADER_NAME], mysql, 24);
+	    CLAN[i][LEADER_ID]      = cache_get_field_content_int(i, "LEADER_ID");
 	    CLAN[i][KILLS]          = cache_get_field_content_int(i, "KILLS");
 	    CLAN[i][DEATHS]         = cache_get_field_content_int(i, "DEATHS");
 	    CLAN[i][COLOR]          = cache_get_field_content_int(i, "COLOR");
@@ -2259,7 +2242,7 @@ stock clan_data(){
 }
 stock zone_data(){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `zone_info`");
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_ZONE);
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("갱존 : 정상");
 	else{
@@ -2281,7 +2264,7 @@ stock zone_data(){
 
 stock weapon_data(){
     new query[400];
-	mysql_format(mysql, query, sizeof(query), "SELECT * FROM `weapon_info` LIMIT 1");
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_WEAPON);
 	mysql_query(mysql, query);
 	if(!mysql_errno(mysql))print("총기 : 정상");
 	else{
@@ -2367,11 +2350,8 @@ stock vehicleInit(){
 	for(new vehicleid=1; vehicleid<USED_VEHICLE; vehicleid++){
 	    GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
 	    GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
-		new query[400],sql[400];
-		strcat(sql, "INSERT INTO `vehicle_info`");
-		strcat(sql, " (NAME, POS_X, POS_Y, POS_Z, ANGLE, COLOR1, COLOR2)");
-		strcat(sql, " VALUES ('N', %f, %f, %f, %f, 0, 0)");
-		mysql_format(mysql, query, sizeof(query), sql,
+		new query[400];
+		mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_INIT_INSERT,
 		VEHICLE[vehicleid][POS_X],
 		VEHICLE[vehicleid][POS_Y],
 		VEHICLE[vehicleid][POS_Z],
@@ -2385,7 +2365,7 @@ stock zoneInit(){
 	new query[400];
 	printf("갱존 데이터 초기화 실행");
 	for(new i = 0; i < USED_ZONE; i++){
-	    mysql_format(mysql, query, sizeof(query), "INSERT INTO `zone_info` (OWNER_CLAN) VALUES (%d)",-1);
+	    mysql_format(mysql, query, sizeof(query), SQL_ZONE_INIT_INSERT,-1);
         mysql_query(mysql, query);
         printf("%d/%d",i,USED_ZONE);
 	}
@@ -2393,18 +2373,16 @@ stock zoneInit(){
 
 stock zoneSave(id, owner_clan){
 	new query[400];
-    mysql_format(mysql, query, sizeof(query), "UPDATE `zone_info` SET `OWNER_CLAN` = %d WHERE `ID` = %d",owner_clan, id);
+    mysql_format(mysql, query, sizeof(query), SQL_ZONE_DATA_UPDATE,owner_clan, id);
     mysql_query(mysql, query);
 }
 stock vehicleSave(vehicleid){
     GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
     GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
 
-    if(!strcmp("N", VEHICLE[vehicleid][NAME]))return 0;
-	new query[400],sql[400];
-	strcat(sql, "UPDATE `vehicle_info`");
-	strcat(sql, " SET POS_X = %f, POS_Y = %f, POS_Z = %f, ANGLE = %f WHERE ID = %d");
-	mysql_format(mysql, query, sizeof(query), sql,
+    if(!strcmp("N", VEHICLE[vehicleid][OWNER_NAME]))return 0;
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_DATA_UPDATE,
 	VEHICLE[vehicleid][POS_X],
 	VEHICLE[vehicleid][POS_Y],
 	VEHICLE[vehicleid][POS_Z],
@@ -2453,7 +2431,7 @@ stock showZone(playerid){
 	new flag = 0, flag2 = 0, tick = 0;
 
 	new query[400];
-    mysql_format(mysql, query, sizeof(query), "SELECT OWNER_CLAN From `zone_info`");
+    mysql_format(mysql, query, sizeof(query), SQL_ZONE_DATA_SELECT);
     mysql_query(mysql, query);
     
 	for(new i = 0; i < USED_ZONE; i++){
@@ -2479,18 +2457,16 @@ stock showZone(playerid){
 }
 
 stock vehicleBuy(playerid, vehicleid){
-    new query[400],sql[400];
+    new query[400];
     new model = GetVehicleModel(vehicleid);
     
-    format(VEHICLE[vehicleid][NAME], 24, "%s",USER[playerid][NAME]);
+    format(VEHICLE[vehicleid][OWNER_NAME], 24, "%s",USER[playerid][NAME]);
     formatMsg(playerid, COL_SYS, CAR_BUY_SUCCESS, vehicleName[model - 400]);
     
-	strcat(sql, "UPDATE `vehicle_info`");
-	strcat(sql, " SET NAME = '%s' WHERE ID = %d");
-	mysql_format(mysql, query, sizeof(query), sql,
-	USER[playerid][NAME],
-    vehicleid
-	);
+	mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_BUY_UPDATE,
+	USER[playerid][ID],
+    vehicleid);
+    
 	mysql_query(mysql, query);
 	
 	giveMoney(playerid, -30000);
@@ -2702,12 +2678,12 @@ stock holdZone(playerid){
 	
 	if(ZONE[zoneid][OWNER_CLAN] != -1){
         CLAN[zoneOwner][ZONE_LENGTH] -=1;
-        mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[zoneOwner][ZONE_LENGTH], zoneOwner);
+        mysql_format(mysql, query, sizeof(query), SQL_CLAN_ZONE_LENGTH, CLAN[zoneOwner][ZONE_LENGTH], zoneOwner);
         mysql_query(mysql, query);
 	}
 	
     CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH] +=1;
-    mysql_format(mysql, query, sizeof(query), "UPDATE `clan_info` SET `ZONE_LENGTH` = %d WHERE `ID` = %d", CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH], USER[playerid][CLANID]);
+    mysql_format(mysql, query, sizeof(query), SQL_CLAN_ZONE_LENGTH, CLAN[USER[playerid][CLANID]-1][ZONE_LENGTH], USER[playerid][CLANID]);
     mysql_query(mysql, query);
 
 	ZONE[zoneid][OWNER_CLAN] = USER[playerid][CLANID];
@@ -3025,13 +3001,9 @@ stock showDialog(playerid, type){
 		    ShowPlayerDialog(playerid, DL_MYWEP, DIALOG_STYLE_LIST, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_MYCAR :{
-            new query[400], sql[400], str[600];
+            new query[400], str[600];
 
-            strcat(sql,"SELECT ID");
-            strcat(sql," FROM `vehicle_info` ");
-            strcat(sql," WHERE NAME='%s'");
-
-			mysql_format(mysql, query, sizeof(query), sql, USER[playerid][NAME]);
+			mysql_format(mysql, query, sizeof(query), SQL_MYCAR_SELECT, USER[playerid][NAME]);
 			mysql_query(mysql, query);
 
 			new rows, fields;
@@ -3055,13 +3027,9 @@ stock showDialog(playerid, type){
 		}
         case DL_GARAGE :ShowPlayerDialog(playerid, DL_GARAGE, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TEXT, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_LIST :{
-            new query[400], sql[400], str[1286];
+            new query[400], str[1286];
 
-            strcat(sql,"SELECT NAME");
-            strcat(sql," FROM `clan_info` ");
-            strcat(sql," LIMIT 10");
-
-			mysql_format(mysql, query, sizeof(query), sql);
+			mysql_format(mysql, query, sizeof(query), SQL_CLAN_LIST);
 			mysql_query(mysql, query);
 
 			new rows, fields;
@@ -3080,13 +3048,9 @@ stock showDialog(playerid, type){
             ShowPlayerDialog(playerid, DL_CLAN_LIST, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
         case DL_CLAN_RANK :{
-            new query[400], sql[400], str[1286];
+            new query[400], str[1286];
 
-            strcat(sql,"SELECT NAME, ZONE_LENGTH");
-            strcat(sql," FROM `clan_info` ");
-            strcat(sql," ORDER BY ZONE_LENGTH DESC LIMIT 10");
-
-			mysql_format(mysql, query, sizeof(query), sql);
+			mysql_format(mysql, query, sizeof(query), SQL_CLAN_RANK);
 			mysql_query(mysql, query);
 
 			new rows, fields;
@@ -3139,13 +3103,9 @@ stock showDialog(playerid, type){
         case DL_CLAN_SETUP_SKIN_SETUP   : ShowPlayerDialog(playerid, DL_CLAN_SETUP_SKIN_SETUP, DIALOG_STYLE_INPUT, DIALOG_TITLE, CLAN_MEMBER_SKIN_SETUP, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_SKIN_UPDATE : ShowPlayerDialog(playerid, DL_CLAN_SETUP_SKIN_UPDATE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, CLAN_MEMBER_SKIN_UPDATE, DIALOG_ENTER, DIALOG_PREV);
         case DL_CLAN_SETUP_MEMBER :{
-			new query[400], sql[400], str[256];
+			new query[400], str[256];
 			
-			strcat(sql, "SELECT ID , NAME, LEVEL, KILLS, DEATHS");
-			strcat(sql, " FROM`user_info`");
-			strcat(sql, " WHERE CLANID = %d");
-			
-			mysql_format(mysql, query, sizeof(query), sql,USER[playerid][CLANID]);
+			mysql_format(mysql, query, sizeof(query), SQL_CLAN_MEMBER_LIST,USER[playerid][CLANID]);
 			mysql_query(mysql, query);
 
 			new rows, fields;
@@ -3210,15 +3170,11 @@ stock showDialog(playerid, type){
             
 			switch(INGAME[playerid][SEASON]){
 				case 0:{
-		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
-		            strcat(sql," FROM `user_info` ");
-		            strcat(sql," ORDER BY LEVEL DESC LIMIT 10");
+		            strcat(sql, SQL_USER_LEVEL_RANK);
 		            strcat(str, SEASON_DL_LEVEL_TITLE);
 	            }
 	            case 1:{
-		            strcat(sql,"SELECT ID , NAME, LEVEL, KILLS, DEATHS ");
-		            strcat(sql," FROM `user_info` ");
-		            strcat(sql," ORDER BY KILLS DESC LIMIT 10");
+		            strcat(sql, SQL_USER_KILL_RANK);
 		            strcat(str, SEASON_DL_KILL_TITLE);
 	            }
             }
@@ -3355,13 +3311,8 @@ stock isNameHangul(playerid, str[]){
 }
 
 stock isMaxHaveCar(playerid){
-	new query[400], sql[400];
-
-	strcat(sql,"SELECT ID");
-	strcat(sql," FROM `vehicle_info` ");
-	strcat(sql," WHERE NAME='%s'");
-
-	mysql_format(mysql, query, sizeof(query), sql, USER[playerid][NAME]);
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), SQL_MYCAR_LENGTH, USER[playerid][NAME]);
 	mysql_query(mysql, query);
 
 	new rows, fields;
