@@ -1771,7 +1771,7 @@ stock mode(){
 
 stock thread(){ SetTimer("ServerThread", 500, true); }
 stock server(){
-	SetGameModeText("Blank Script");
+	SetGameModeText("samp.war.korea.ver.0.12");
 	UsePlayerPedAnims();
 	EnableStuntBonusForAll(0);
 	DisableInteriorEnterExits();
