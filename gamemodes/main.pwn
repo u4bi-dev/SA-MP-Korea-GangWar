@@ -44,7 +44,7 @@ public OnGameModeInit(){
 
 public OnPlayerText(playerid, text[]){
     new send[256];
-    
+
     if(text[0] == '!'){
         if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS, YOU_NOT_CLAN_CHAT);
         foreach (new i : Player){
@@ -56,7 +56,7 @@ public OnPlayerText(playerid, text[]){
         }
         return 0;
     }
-    
+
     if(text[0] == '@'){
         if(USER[playerid][ADMIN] == 0)return SendClientMessage(playerid,COL_SYS, YOU_NOT_ADMIN);
         foreach (new i : Player){
@@ -68,11 +68,11 @@ public OnPlayerText(playerid, text[]){
         }
         return 0;
     }
-    
+
     if(USER[playerid][CLANID])format(send,sizeof(send),"{%06x}[%s]{E6E6E6} %s(%d) : %s", GetPlayerColor(playerid) >>> 8 , CLAN[USER[playerid][CLANID]-1][NAME], USER[playerid][NAME],playerid, text);
     else format(send,sizeof(send),"{E6E6E6} %s(%d) : %s", USER[playerid][NAME], playerid, text);
     SendClientMessageToAll(-1, send);
-    
+
     return 0;
 }
 public OnPlayerRequestClass(playerid, classid){
@@ -93,7 +93,7 @@ public OnPlayerSpawn(playerid){
     if(!INGAME[playerid][LOGIN]) return Kick(playerid);
     if(!INGAME[playerid][SPAWN] && !isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10){
         GivePlayerWeapon(playerid, 24, 500);
-        
+
         SendClientMessage(playerid,COL_SYS,LEVEL_TEN_BY_DEAGLE);
         INGAME[playerid][SPAWN] = true;
     }
@@ -116,9 +116,9 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger){
 public OnPlayerExitVehicle(playerid, vehicleid){
     if(INGAME[playerid][NODM] && VEHICLE[vehicleid][OWNER_ID] == 0){
 
-		ClearAnimations(playerid);
+        ClearAnimations(playerid);
         vehicleSpawn(vehicleid);
-        
+
         SendClientMessage(playerid,COL_SYS, "비전투구역에 주차를 할 시 미입찰 차량은 즉시 스폰됩니다.");
         return 1;
     }
@@ -137,7 +137,7 @@ public OnPlayerPickUpPickup(playerid, pickupid){
             USER[playerid][HP] += 30;
             SetPlayerHealth(playerid, USER[playerid][HP]);
             DestroyPickup(INGAME[i][DEATH_PICKUP_HP]);
-            
+
         }else if(USER[playerid][HP] > 70 && pickupid == INGAME[i][DEATH_PICKUP_HP]){
             USER[playerid][HP] = 100;
             SetPlayerHealth(playerid, USER[playerid][HP]);
@@ -178,28 +178,28 @@ public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
         GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
         SetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
 
-	    formatMsg(issuerid, COL_SYS, "    압사를 지속적으로 할 시 추방됩니다.");
+        formatMsg(issuerid, COL_SYS, "    압사를 지속적으로 할 시 추방됩니다.");
     }
 
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
 
-	if(!INGAME[playerid][DUEL_JOIN] && INGAME[playerid][NODM]){
-	    if(USER[issuerid][HP] > 50 && USER[issuerid][AM] > 50 && !INGAME[playerid][NODM]){
-	        formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT2);
-	        SetPlayerPos(issuerid, 1913.1345, -1710.5565, 13.4003);
-	        SetPlayerFacingAngle(issuerid, 89.3591);
-	    }
-	    if(USER[playerid][HP] > 50 && USER[playerid][AM] > 50){
-	        formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
+    if(!INGAME[playerid][DUEL_JOIN] && INGAME[playerid][NODM]){
+        if(USER[issuerid][HP] > 50 && USER[issuerid][AM] > 50 && !INGAME[playerid][NODM]){
+            formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT2);
+            SetPlayerPos(issuerid, 1913.1345, -1710.5565, 13.4003);
+            SetPlayerFacingAngle(issuerid, 89.3591);
+        }
+        if(USER[playerid][HP] > 50 && USER[playerid][AM] > 50){
+            formatMsg(issuerid, COL_SYS, NO_DM_ZONE_TEXT);
 
-	        SetPlayerHealth(playerid, 100);
-	        SetPlayerArmour(playerid, 100);
-	        
-	        GetPlayerHealth(playerid, USER[playerid][HP]);
-	        GetPlayerArmour(playerid, USER[playerid][AM]);
-	        return 0;
-	    }
+            SetPlayerHealth(playerid, 100);
+            SetPlayerArmour(playerid, 100);
+
+            GetPlayerHealth(playerid, USER[playerid][HP]);
+            GetPlayerArmour(playerid, USER[playerid][AM]);
+            return 0;
+        }
     }
 
     if(weaponid != 18 && weaponid != 37){
@@ -230,7 +230,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate){
 
     if(newstate == PLAYER_STATE_DRIVER){
         new vehicleid = GetPlayerVehicleID(playerid);
-        
+
         if(VEHICLE[vehicleid][OWNER_ID] == 0) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
         else formatMsg(playerid, COL_SYS, IN_CAR_WHO_OWNER, VEHICLE[vehicleid][OWNER_NAME]);
     }
@@ -242,7 +242,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
     if(RELEASED(KEY_FIRE) && GetPlayerState(playerid)==PLAYER_STATE_DRIVER)RemoveVehicleComponent(GetPlayerVehicleID(playerid),1010);
 
     if(newkeys == 160 && GetPlayerWeapon(playerid) == 0 && !IsPlayerInAnyVehicle(playerid))sync(playerid);
-    
+
     if(PRESSED(KEY_YES)){
         if(INGAME[playerid][INVITE_CLANID]){
             clanJoin(playerid, INGAME[playerid][INVITE_CLANID]);
@@ -252,7 +252,7 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
             INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
         }
     }
-    
+
     if(PRESSED(KEY_NO)){
         if(INGAME[playerid][INVITE_CLANID]){
             formatMsg(playerid, COL_SYS, CLAN_INVITE_NOT, CLAN[USER[INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID]][CLANID]-1][NAME]);
@@ -261,10 +261,10 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys){
             INGAME[playerid][INVITE_CLAN_REQUEST_MEMBERID] = 0;
         }
     }
-    
+
     if(PRESSED(KEY_SECONDARY_ATTACK))searchMissonRange(playerid);
     if(PRESSED(KEY_CROUCH) && IsPlayerInAnyVehicle(playerid))searchGarageRange(playerid);
-    
+
     return 1;
 }
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
@@ -419,9 +419,9 @@ stock info(playerid, listitem){
 
     if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][LEVEL],USER[playerid][KILLS],USER[playerid][DEATHS]),USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS],kdRatio(USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS]));
     else format(result,sizeof(result), infoMessege[listitem]);
-    
+
     ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
-	return 0;
+    return 0;
 }
 
 stock clan(playerid,listitem){
@@ -555,21 +555,21 @@ stock clanSetup(playerid, listitem){
 stock clanLeave(playerid){
     formatMsg(playerid, COL_SYS, YOU_CLAN_LEAVE, CLAN[USER[playerid][CLANID]-1][NAME]);
     USER[playerid][CLANID] = 0;
-    
+
     SetPlayerColor(playerid, 0xE6E6E699);
     SetPlayerTeam(playerid, NO_TEAM);
 
-	save(playerid);
+    save(playerid);
 
-	return 0;
+    return 0;
 }
 
 stock clanJoin(playerid, clanid){
     USER[playerid][CLANID] = clanid;
-    
+
     SetPlayerColor(playerid,CLAN[clanid-1][COLOR]);
     SetPlayerTeam(playerid, USER[playerid][CLANID]);
-    
+
     save(playerid);
 }
 
@@ -622,7 +622,7 @@ stock clanInsertSuccess(playerid){
         CLAN_SETUP[playerid][COLOR]);
 
     mysql_query(mysql, query);
-    
+
     new num = cache_insert_id();
     CLAN[num-1][COLOR] = CLAN_SETUP[playerid][COLOR];
 
@@ -1093,11 +1093,11 @@ public duelTimer(p1, p2){
     if(DUEL_CORE[TICK] == 4){
         PlayerPlaySound(p1, 3200, 0.0, 0.0, 0.0);
         PlayerPlaySound(p2, 3200, 0.0, 0.0, 0.0);
-        
+
         TogglePlayerControllable(p1,1);
         TogglePlayerControllable(p2,1);
 
-		format(str,sizeof(str), "~b~~h~START DUEL!");
+        format(str,sizeof(str), "~b~~h~START DUEL!");
         GameTextForPlayer(p1, str,1400,1);
         GameTextForPlayer(p2, str,1400,1);
 
@@ -1105,11 +1105,11 @@ public duelTimer(p1, p2){
     }else{
         PlayerPlaySound(p1, 5201, 0.0, 0.0, 0.0);
         PlayerPlaySound(p2, 5201, 0.0, 0.0, 0.0);
-        
+
         format(str,sizeof(str), "~b~~h~%d!",DUEL_CORE[TICK]);
         GameTextForPlayer(p1, str,1400,6);
         GameTextForPlayer(p2, str,1400,6);
-        
+
         SetTimerEx("duelTimer", 1500, false, "ii", p1,p2);
     }
 }
@@ -1152,11 +1152,11 @@ stock duelLeave(playerid){
     DUEL_CORE[ON]=false;
 
     ResetPlayerWeapons(playerid);
-    
+
     GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
     GivePlayerWeapon(playerid, USER[playerid][WEP2], 9999);
     GivePlayerWeapon(playerid, USER[playerid][WEP3], 9999);
-    
+
     if(!isHaveWeapon(playerid , 24) && USER[playerid][LEVEL] < 10)GivePlayerWeapon(playerid, 24, INGAME[playerid][AMMO]);
     SetPlayerArmedWeapon(playerid, 0);
 }
@@ -1245,15 +1245,15 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 
         SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
         SetPlayerFacingAngle(playerid, 89.3591);
-        
+
         SendClientMessage(playerid,COL_SYS, LOBBY_GO_TEXT);
-		giveMoney(playerid, -2000);
+        giveMoney(playerid, -2000);
         return 1;
     }
     if(!strcmp("/re", cmdtext)){
         if(!INGAME[playerid][DUEL_JOIN])return 1;
         if(DUEL_CORE[LENGTH] != 1)return 1;
-        
+
         duelLeave(playerid);
         return 1;
     }
@@ -1263,13 +1263,13 @@ public OnPlayerCommandText(playerid, cmdtext[]){
     }
     if(!strcmp("/wep", cmdtext)){
         if(INGAME[playerid][DUEL_JOIN])return SendClientMessage(playerid,COL_SYS, DUEL_NOT_CMD);
-        
+
         showDialog(playerid, DL_MYWEP);
         return 1;
     }
     if(!strcmp("/car", cmdtext)){
         if(INGAME[playerid][DUEL_JOIN])return SendClientMessage(playerid,COL_SYS, DUEL_NOT_CMD);
-        
+
         showDialog(playerid, DL_MYCAR);
         return 1;
     }
@@ -1377,7 +1377,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 
         giveid  = strval(tmp);
         if(!INGAME[giveid][LOGIN]) return SendClientMessage(playerid,COL_SYS,NOT_JOIN_USER);
-        
+
         formatMsg(giveid, COL_SYS, ADMIN_BOMB_GET);
         formatMsg(playerid, COL_SYS, ADMIN_BOMB_SEND,USER[giveid][NAME]);
 
@@ -1490,7 +1490,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(!IsPlayerAdmin(playerid)) return SendClientMessage(playerid,COL_SYS,YOU_NOT_ADMIN);
 
         SendClientMessageToAll(COL_SYS, SERVER_RESTART_TEXT);
-        
+
         for(new i=0; i<GetMaxPlayers(); i++)out(i),INGAME[i][RESTART] = true;
         SendRconCommand("gmx");
         return 1;
@@ -1731,7 +1731,7 @@ stock spawn(playerid){
 
     USER[playerid][HP] = 100.0;
     USER[playerid][AM] = 100.0;
-    
+
     SetPlayerHealth(playerid, USER[playerid][HP]);
     SetPlayerArmour(playerid, USER[playerid][AM]);
 
@@ -3291,9 +3291,9 @@ stock sync(playerid){
     INGAME[playerid][SYNC] = true;
     new Float:pos[4],world, inter;
 
-	GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
+    GetPlayerPos(playerid, pos[0], pos[1], pos[2]);
     GetPlayerFacingAngle(playerid, pos[3]);
-    
+
     inter = GetPlayerInterior(playerid);
     world = GetPlayerVirtualWorld(playerid);
 
@@ -3301,11 +3301,11 @@ stock sync(playerid){
 
     SetPlayerPos(playerid, pos[0], pos[1], pos[2]);
     SetPlayerFacingAngle(playerid, pos[3]);
-    
+
     SetPlayerInterior(playerid, inter);
     SetPlayerVirtualWorld(playerid, world);
 
-	INGAME[playerid][SYNC] = false;
+    INGAME[playerid][SYNC] = false;
 
     ResetPlayerWeapons(playerid);
     GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
