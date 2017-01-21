@@ -173,7 +173,17 @@ public OnPlayerClickPlayer(playerid, clickedplayerid, source){
 }
 public OnPlayerTakeDamage(playerid, issuerid, Float: amount, weaponid){
     if(!INGAME[playerid][DUEL_JOIN] && !isHaveWeapon(issuerid,weaponid) && weaponid != 24 && weaponid != 0 && weaponid != 47 &&  weaponid != 49 && weaponid != 50 && weaponid != 51 && weaponid != 54 &&  weaponid != 53 && weaponid != 54) return Kick(issuerid);
-    
+
+	if(weaponid == 50){
+	    Kick(issuerid);
+	    formatMsg(playerid, COL_SYS, "    프로펠러 날갈기를 한 상대방은 추방당했습니다.");
+	}
+	if(weaponid == 49){
+		GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+		SetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+	    formatMsg(issuerid, COL_SYS, "    압사를 지속적으로 할 시 추방됩니다.");
+	}
+
     GetPlayerHealth(playerid, USER[playerid][HP]);
     GetPlayerArmour(playerid, USER[playerid][AM]);
 	
@@ -3070,7 +3080,8 @@ stock isClan(playerid, type){
 stock isClanHangul(playerid, str[]){
     for (new i=0, j=strlen(str); i<j; i++){
         if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
-        if(str[i] > '9' || str[i] < '0')return SendClientMessage(playerid,COL_SYS, CLAN_NOT_ENG);
+        if(str[i] > '9' || str[i] < '0')
+        if(str[i] != '_' && str[i] != '[' && str[i] != ']' && str[i] != '.' && str[i] != '@')return SendClientMessage(playerid,COL_SYS, CLAN_NOT_ENG);
     }
     return 0;
 }
@@ -3078,7 +3089,7 @@ stock isNameHangul(playerid, str[]){
     for (new i=0, j=strlen(str); i<j; i++){
         if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
         if(str[i] > '9' || str[i] < '0')
-		return SendClientMessage(playerid,COL_SYS, NAME_NOT_ENG);
+		if(str[i] != '_' && str[i] != '[' && str[i] != ']' && str[i] != '.' && str[i] != '@')return SendClientMessage(playerid,COL_SYS, NAME_NOT_ENG);
     }
     return 0;
 }
