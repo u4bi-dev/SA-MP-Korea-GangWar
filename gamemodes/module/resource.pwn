@@ -1,6 +1,6 @@
 new infoMessege[3][502] = {
 	"{8D8DFF}모드설명{FFFFFF}\n\n샘프워 코리아 모드입니다.\n세력을 넑혀가는 갱전쟁 형식의 모드입니다.\n\n{8D8DFF}게임방법{FFFFFF}\n\n샘프워코리아 전쟁 규정을 따릅니다.",
-	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%\n랭크\t\t%s\n\n{8D8DFF}듀얼전 기록{FFFFFF}\n승 : %d\n패 : %d\n승률 : %.01f%",
+	"{8D8DFF}프로필란{FFFFFF}\n\n이름\t\t%s\n클랜\t\t%s\n레벨\t\t%d\n경험치\t\t%d\n머니\t\t%d\n사살\t\t%d\n죽음\t\t%d\nK/D\t\t%.01f%\n랭크\t\t%s\n\n{8D8DFF}듀얼전 기록{FFFFFF}\n\n승리 : %d회\n패배 : %d회\n승률 : %.01f%",
 	"{8D8DFF}기본 명령어{FFFFFF}\n\n/help\n/lobby\n/kill\n/car\n/wep\n/carbuy\n/pm\n\n! : 클랜채팅\n/money\n/animhelp\n\n{8D8DFF}게임 방법{FFFFFF}\n\n알함브라(/lobby) 비전투구역에서는 총기, 스킨구매 클랜생성등 모든 활동이 가능합니다.\n\n{8D8DFF}갱존 점령방법{FFFFFF}\n\n갱존의 CP(Check Point)가 100퍼센트가 될시 해당 갱존은 당신의 클랜 소유가 됩니다.\nCP는 초당 해당 갱존에 머무르는 클랜원수만큼 비례하여 오릅니다."
 };
 new wepModel[11][50] = {

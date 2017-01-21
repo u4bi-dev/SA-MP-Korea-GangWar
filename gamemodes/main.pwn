@@ -81,9 +81,9 @@ public OnPlayerText(playerid, text[]){
     return 0;
 }
 public OnPlayerRequestClass(playerid, classid){
-	SetPlayerPos(playerid, 1922.8679,-1704.9960,13.5469);
-	SetPlayerCameraPos(playerid, 1922.8679,-1704.9960,13.5469);
-	SetPlayerCameraLookAt(playerid, 1916.9664,-1692.0807,26.5082);
+	SetPlayerPos(playerid, 1934.9633,-1678.8534,24.6377);
+	SetPlayerCameraPos(playerid, 1954.9316,-1697.1252,26.3828);
+	SetPlayerCameraLookAt(playerid, 1934.9633,-1678.8534,24.6377);
 	
     if(INGAME[playerid][LOGIN]) return SendClientMessage(playerid,COL_SYS,ALREADY_LOGIN);
 
@@ -1551,8 +1551,16 @@ public regist(playerid, pass[]){
 	spawn(playerid);
 }
 public save(playerid){
-    GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
-    GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+
+    if(INGAME[playerid][DUEL_JOIN]){
+		USER[playerid][POS_X] = 1913.1345;
+		USER[playerid][POS_Y] = -1710.5565;
+		USER[playerid][POS_Z] = 13.4003;
+	    USER[playerid][ANGLE] = 89.3591;
+    }else{
+	    GetPlayerPos(playerid,USER[playerid][POS_X],USER[playerid][POS_Y],USER[playerid][POS_Z]);
+	    GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+    }
 
 	new sql[400];
 	strcat(sql, "UPDATE `user_info` SET");
@@ -2191,8 +2199,10 @@ stock vehicleBuy(playerid, vehicleid){
     new model = GetVehicleModel(vehicleid);
     
     format(VEHICLE[vehicleid][OWNER_NAME], 24, "%s",USER[playerid][NAME]);
-    formatMsg(playerid, COL_SYS, CAR_BUY_SUCCESS, vehicleName[model - 400]);
+    VEHICLE[vehicleid][OWNER_ID] = USER[playerid][ID];
     
+    formatMsg(playerid, COL_SYS, CAR_BUY_SUCCESS, vehicleName[model - 400]);
+
 	mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_BUY_UPDATE,
 	USER[playerid][ID],
     vehicleid);
@@ -2541,15 +2551,16 @@ stock killCombo(playerid){
 }
 
 stock deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pickup_z){
-    if(INGAME[playerid][DUEL_JOIN])return 1;
     
     DestroyPickup(INGAME[playerid][DEATH_PICKUP_HP]);
     DestroyPickup(INGAME[playerid][DEATH_PICKUP_AM]);
     
-	GetPlayerHealth(killerid, USER[killerid][HP]);
-	GetPlayerArmour(killerid, USER[killerid][AM]);
-	if(USER[killerid][HP] >= 1.00)INGAME[playerid][DEATH_PICKUP_HP] = CreatePickup(1240,8, pickup_x, pickup_y, pickup_z, 0);
-	if(USER[killerid][AM] >= 1.00)INGAME[playerid][DEATH_PICKUP_AM] = CreatePickup(1242,8, pickup_x, pickup_y+1.0, pickup_z, 0);
+    if(!INGAME[playerid][DUEL_JOIN]){
+		GetPlayerHealth(killerid, USER[killerid][HP]);
+		GetPlayerArmour(killerid, USER[killerid][AM]);
+		if(USER[killerid][HP] >= 1.00)INGAME[playerid][DEATH_PICKUP_HP] = CreatePickup(1240,8, pickup_x, pickup_y, pickup_z, 0);
+		if(USER[killerid][AM] >= 1.00)INGAME[playerid][DEATH_PICKUP_AM] = CreatePickup(1242,8, pickup_x, pickup_y+1.0, pickup_z, 0);
+	}
 	return 0;
 }
 stock loadGarage(){
