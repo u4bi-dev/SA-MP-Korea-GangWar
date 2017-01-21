@@ -2403,12 +2403,10 @@ stock holdZone(playerid){
 
 
 	formatMsgAll(COL_SYS, ZONE_CLAN_HAVED_TEXT ,GetPlayerColor(playerid) >>> 8, CLAN[USER[playerid][CLANID]-1][NAME], zoneid, USER[playerid][NAME]);
-	giveMoney(playerid, 1000);
-	giveExp(playerid, 3);
 	for(new i=0; i<GetMaxPlayers(); i++){
 		if(zoneid == INGAME[i][ENTER_ZONE] && USER[playerid][CLANID] == USER[i][CLANID]){
-	        giveMoney(playerid, 500);
-	        giveExp(playerid, 2);
+	        giveMoney(i, 2000);
+	        giveExp(i, 2);
 		}
 	}
 	CLAN_CP[zoneid][USER[playerid][CLANID]][CP] = 0;
@@ -2530,9 +2528,10 @@ stock death(playerid, killerid, reason){
     
 	if(INGAME[killerid][COMBO] < 10){
         TextDrawShowForPlayer(killerid, TDrawG[INGAME[killerid][COMBO]][COMBO]);
-        INGAME[killerid][COMBO]+=1;
     }
     killCombo(killerid);
+    INGAME[killerid][COMBO]+=1;
+    
 	save(killerid);
 	return 1;
 }
@@ -2542,12 +2541,12 @@ stock killCombo(playerid){
 	format(str, sizeof(str), "~r~~>~~y~%s~r~~<~",comboText[INGAME[playerid][COMBO]]);
 	GameTextForPlayer(playerid, str, 2500, 6);
 	switch(INGAME[playerid][COMBO]){
-		case 2 : giveExp(playerid, 2);
-		case 3 : giveExp(playerid, 3);
-		case 5 : giveExp(playerid, 4);
-		case 7 : giveExp(playerid, 5);
-		case 8 : giveExp(playerid, 6);
-		case 10: giveExp(playerid, 8);
+		case 2 : giveExp(playerid, 1);
+		case 3 : giveExp(playerid, 2);
+		case 5 : giveExp(playerid, 3);
+		case 7 : giveExp(playerid, 4);
+		case 8 : giveExp(playerid, 5);
+		case 10: giveExp(playerid, 6);
 	}
 }
 
