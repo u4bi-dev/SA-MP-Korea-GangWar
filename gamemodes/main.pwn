@@ -691,7 +691,6 @@ stock clanSkinSetup(playerid, inputtext[]){
 }
 stock clanSkinUpdate(playerid){
     if(CLAN[USER[playerid][CLANID]-1][SKIN] == 0) return SendClientMessage(playerid, COL_SYS, YOU_CLAN_NOT_SKIN);
-	sync(playerid);
     formatMsg(playerid, COL_SYS, CLAN_SKIN_GET_SUCCESS, CLAN[USER[playerid][CLANID]-1][SKIN]);
 
 	USER[playerid][SKIN] = CLAN[USER[playerid][CLANID]-1][SKIN];
@@ -701,7 +700,8 @@ stock clanSkinUpdate(playerid){
 
     new ammo = 9999;
     SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
-
+	sync(playerid);
+	
 	save(playerid);
 	return 0;
 }
@@ -810,12 +810,13 @@ stock shopSkinBuy(playerid){
 
     USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
     INGAME[playerid][BUY_SKINID] = 0;
-    
+
 	GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
 	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
 
     new ammo = 9999;
     SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
+	sync(playerid);
 
 	save(playerid);
 }
@@ -2270,17 +2271,17 @@ stock checkZone(playerid){
     
 	for(new i = 0; i < USED_ZONE; i++){
 		if(isPlayerZone(playerid, i)){
-		    if(isDmZone(playerid))notDmZone(playerid);
+		    if(isNotDmZone(playerid))notDmZone(playerid);
 		    else if(INGAME[playerid][NODM]){
                 threadZone(playerid, i);
 			    INGAME[playerid][NODM] =false;
 			    return 0;
 			}
-		    
-            if(!INGAME[playerid][NODM] && INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
-
-            leaveZone(playerid);
-			threadZone(playerid, i);
+            if(!INGAME[playerid][NODM]){
+                if(INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
+				leaveZone(playerid);
+				threadZone(playerid, i);
+            }
 		}
 	}
 	return 0;
@@ -2292,7 +2293,7 @@ stock threadZone(playerid, zoneid){
 	ZONE[INGAME[playerid][ENTER_ZONE]][STAY_HUMAN]+=1;
     INGAME[playerid][ZONE_TICK] = 0;
 }
-stock isDmZone(playerid){
+stock isNotDmZone(playerid){
 	new	Float:x, Float:y, Float:z;
 	GetPlayerPos(playerid, x, y, z);
 	if(x > NODMZONE[MIN_X] && x < NODMZONE[MAX_X] && y > NODMZONE[MIN_Y] && y < NODMZONE[MAX_Y]){
@@ -3009,11 +3010,11 @@ stock showDialog(playerid, type){
 				DUEL[i][MONEY]          = cache_get_field_content_int(i, "MONEY");
 				DUEL[i][WIN_HP]         = cache_get_field_content_float(i, "WIN_HP");
 				DUEL[i][WIN_AM]         = cache_get_field_content_float(i, "WIN_AM");
-				
-				format(temp, sizeof(temp), DUEL_LIST_DL_CONTENT, DUEL[i][ID], DUEL[i][WIN_ID], DUEL[i][LOSS_ID], duelTypeName[DUEL[i][TYPE]], DUEL[i][MONEY], DUEL[i][WIN_HP], DUEL[i][WIN_AM]);
+				printf("%s",DUEL[i][LOSS_NAME]);
+				format(temp, sizeof(temp), DUEL_LIST_DL_CONTENT, DUEL[i][ID], duelTypeName[DUEL[i][TYPE]], DUEL[i][MONEY], DUEL[i][WIN_HP], DUEL[i][WIN_AM], DUEL[i][WIN_NAME], DUEL[i][LOSS_NAME]);
                 strcat(str, temp);
 		    }
-		    ShowPlayerDialog(playerid, DL_DUEL_INFO, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, "", DIALOG_ENTER);
+		    ShowPlayerDialog(playerid, DL_DUEL_INFO, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER,"");
         }
 		case DL_DUEL_TYPE         : ShowPlayerDialog(playerid, DL_DUEL_TYPE, DIALOG_STYLE_LIST, DIALOG_TITLE, DUEL_DL_TYPE_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_DUEL_MONEY        : ShowPlayerDialog(playerid, DL_DUEL_MONEY, DIALOG_STYLE_INPUT, DIALOG_TITLE, DUEL_DL_MONEY_TEXT, DIALOG_ENTER, DIALOG_PREV);

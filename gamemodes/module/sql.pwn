@@ -395,7 +395,8 @@ VALUES( \
 
 #define SQL_DUEL_SELECT "\
 SELECT \
-WIN_ID \
+ID \
+,WIN_ID \
 ,(SELECT NAME FROM user_info WHERE ID = duel.WIN_ID) AS WIN_NAME \
 ,LOSS_ID \
 ,(SELECT NAME FROM user_info WHERE ID = duel.LOSS_ID) AS LOSS_NAME \
