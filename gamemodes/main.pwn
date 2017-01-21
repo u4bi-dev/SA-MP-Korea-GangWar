@@ -77,16 +77,17 @@
 #define IS_CLEN_INSERT_MONEY  503
 
 /*ZONE BASE */
-#define USED_PLAYER   51
-#define USED_ZONE     932
-#define USED_TEXTDRAW 200
-#define USED_WEAPON   11
-#define USED_VEHICLE  230
-#define USED_HOUSE    500
-#define USED_CLAN     100
-#define USED_MISSON   5
-#define USED_GARAGE   5
-#define USED_DUEL     2
+#define USED_PLAYER    51
+#define USED_ZONE      932
+#define USED_TEXTDRAW  200
+#define USED_WEAPON    11
+#define USED_VEHICLE   230
+#define USED_HOUSE     500
+#define USED_CLAN      100
+#define USED_MISSON    5
+#define USED_GARAGE    5
+#define USED_DUEL      2
+#define USED_DUEL_LIST 100
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))
@@ -137,6 +138,18 @@ new garageTick=0;
 static mysql;
 
 enum DUEL_MODEL{
+	ID,
+	PID1,
+	PID2,
+	TYPE,
+	MONEY,
+	WIN_USER_ID,
+	Float:HP,
+	Float:AM
+}
+new DUEL[USED_DUEL_LIST][DUEL_MODEL];
+
+enum DUEL_CORE_MODEL{
 	INDEX,
 	bool:ON,
 	PID1,
@@ -146,7 +159,7 @@ enum DUEL_MODEL{
 	LENGTH,
 	TICK
 }
-new DUEL[DUEL_MODEL];
+new DUEL_CORE[DUEL_CORE_MODEL];
 
 enum DAMAGE_MODEL{
 	Float:TAKE,
@@ -206,6 +219,10 @@ enum USER_MODEL{
 	WEP3,
 	INTERIOR,
 	WORLD,
+	DUEL_WIN,
+	DUEL_LOSS,
+	DUEL_CONTI_WIN,
+	DUEL_MAX_CONTI_WIN,
 	Float:POS_X,
 	Float:POS_Y,
 	Float:POS_Z,
@@ -577,7 +594,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 			case DL_LOGIN, DL_REGIST:return Kick(playerid);
 			case DL_MISSON_CLAN, DL_MISSON_SHOP, DL_MISSON_NOTICE, DL_MISSON_GAMBLE, DL_MYWEP, DL_MYCAR, DL_GARAGE :return 0;
             case DL_MISSON_DUEL :{
-                DUEL[ON]=false;
+                DUEL_CORE[ON]=false;
 			    return 1;
 			}
 			case DL_CLAN_INSERT, DL_CLAN_LIST, DL_CLAN_RANK, DL_CLAN_SETUP, DL_CLAN_LEAVE :return showMisson(playerid, 0);
@@ -754,12 +771,12 @@ stock notice(playerid,listitem){
 }
 
 stock duel(playerid,listitem){
-    if(DUEL[ON]) return SendClientMessage(playerid,COL_SYS, DUEL_ALREADY_SETUP);
+    if(DUEL_CORE[ON]) return SendClientMessage(playerid,COL_SYS, DUEL_ALREADY_SETUP);
     
 	switch(listitem){
         case 0 :{
-			switch(DUEL[LENGTH]){
-				case 0: DUEL[ON]=true, showDialog(playerid, DL_DUEL_TYPE);
+			switch(DUEL_CORE[LENGTH]){
+				case 0: DUEL_CORE[ON]=true, showDialog(playerid, DL_DUEL_TYPE);
 				case 1: showDialog(playerid, DL_DUEL_SUCCESS);
 				case 2: return SendClientMessage(playerid,COL_SYS, DUEL_ALREADY_PROGRESS);
 			}
@@ -1322,7 +1339,7 @@ stock duelInfo(playerid){
     formatMsg(playerid, COL_SYS, "최근 듀얼 경기조회 %d",playerid);
 }
 stock duelType(playerid, listitem){
-    DUEL[TYPE] = listitem;
+    DUEL_CORE[TYPE] = listitem;
     
     showDialog(playerid, DL_DUEL_MONEY);
 }
@@ -1330,37 +1347,37 @@ stock duelMoney(playerid, inputtext[]){
     new money = strval(inputtext);
     if(money < 0 && USER[playerid][MONEY] < money)return SendClientMessage(playerid,COL_SYS,DUEL_NOT_MONEY);
     
-    DUEL[MONEY] = money;
+    DUEL_CORE[MONEY] = money;
     showDialog(playerid, DL_DUEL_SUCCESS);
 	return 0;
 }
 stock duelSuccess(playerid){
-	switch(DUEL[LENGTH]){
+	switch(DUEL_CORE[LENGTH]){
 		case 0:{
-            DUEL[INDEX]+=1;
-            DUEL[PID1]=playerid;
+            DUEL_CORE[INDEX]+=1;
+            DUEL_CORE[PID1]=playerid;
             
-            formatMsgAll(COL_SYS, DUEL_OPEN1_TEXT,DUEL[INDEX],USER[DUEL[PID1]][NAME],DUEL[MONEY],duelTypeName[DUEL[TYPE]]);
+            formatMsgAll(COL_SYS, DUEL_OPEN1_TEXT,DUEL_CORE[INDEX],USER[DUEL_CORE[PID1]][NAME],DUEL_CORE[MONEY],duelTypeName[DUEL_CORE[TYPE]]);
             SendClientMessageToAll(COL_SYS, DUEL_OPEN2_TEXT);
             SendClientMessage(playerid, COL_SYS, DUEL_OPEN3_TEXT);
-            DUEL[ON]=false;
+            DUEL_CORE[ON]=false;
 		}
 		case 1:{
-            DUEL[PID2]=playerid;
-            SetTimerEx("duelTimer", 1500, false, "ii", DUEL[PID1], DUEL[PID2]);
-			TogglePlayerControllable(DUEL[PID1],0);
-			SetCameraBehindPlayer(DUEL[PID1]);
-			SetPlayerArmedWeapon(DUEL[PID1], 0);
-			TogglePlayerControllable(DUEL[PID2],0);
-			SetCameraBehindPlayer(DUEL[PID2]);
-			SetPlayerArmedWeapon(DUEL[PID2], 0);
+            DUEL_CORE[PID2]=playerid;
+            SetTimerEx("duelTimer", 1500, false, "ii", DUEL_CORE[PID1], DUEL_CORE[PID2]);
+			TogglePlayerControllable(DUEL_CORE[PID1],0);
+			SetCameraBehindPlayer(DUEL_CORE[PID1]);
+			SetPlayerArmedWeapon(DUEL_CORE[PID1], 0);
+			TogglePlayerControllable(DUEL_CORE[PID2],0);
+			SetCameraBehindPlayer(DUEL_CORE[PID2]);
+			SetPlayerArmedWeapon(DUEL_CORE[PID2], 0);
 			
-            duelSpawn(DUEL[PID2], 1);
-            formatMsgAll(COL_SYS, DUEL_START_TEXT,DUEL[INDEX],USER[DUEL[PID1]][NAME],USER[DUEL[PID2]][NAME],DUEL[MONEY],duelTypeName[DUEL[TYPE]]);
+            duelSpawn(DUEL_CORE[PID2], 1);
+            formatMsgAll(COL_SYS, DUEL_START_TEXT,DUEL_CORE[INDEX],USER[DUEL_CORE[PID1]][NAME],USER[DUEL_CORE[PID2]][NAME],DUEL_CORE[MONEY],duelTypeName[DUEL_CORE[TYPE]]);
 		}
 	}
-    duelSpawn(DUEL[PID1], 0);
-	DUEL[LENGTH]+=1;
+    duelSpawn(DUEL_CORE[PID1], 0);
+	DUEL_CORE[LENGTH]+=1;
 }
 
 stock duelSpawn(playerid, order){
@@ -1368,7 +1385,7 @@ stock duelSpawn(playerid, order){
 	SetPlayerPos(playerid, DUEL_POS[order][0],DUEL_POS[order][1],DUEL_POS[order][2]);
 	SetPlayerFacingAngle(playerid, DUEL_POS[order][3]);
     ResetPlayerWeapons(playerid);
-    switch(DUEL[TYPE]){
+    switch(DUEL_CORE[TYPE]){
 		case 0: GivePlayerWeapon(playerid, 0, 0);
 		case 1: GivePlayerWeapon(playerid, 24, 9999);
 		case 2: GivePlayerWeapon(playerid, 24, 9999),GivePlayerWeapon(playerid, 25, 9999);
@@ -1384,9 +1401,9 @@ stock duelSpawn(playerid, order){
 
 public duelTimer(p1, p2){
     new str[32];
-	DUEL[TICK]+=1;
+	DUEL_CORE[TICK]+=1;
 	
-	if(DUEL[TICK] == 4){
+	if(DUEL_CORE[TICK] == 4){
         PlayerPlaySound(p1, 3200, 0.0, 0.0, 0.0);
         PlayerPlaySound(p2, 3200, 0.0, 0.0, 0.0);
         TogglePlayerControllable(p1,1);
@@ -1395,11 +1412,11 @@ public duelTimer(p1, p2){
         GameTextForPlayer(p1, str,1400,1);
         GameTextForPlayer(p2, str,1400,1);
 
-        DUEL[TICK] = 0;
+        DUEL_CORE[TICK] = 0;
 	}else{
         PlayerPlaySound(p1, 5201, 0.0, 0.0, 0.0);
         PlayerPlaySound(p2, 5201, 0.0, 0.0, 0.0);
-		format(str,sizeof(str), "~b~~h~%d!",DUEL[TICK]);
+		format(str,sizeof(str), "~b~~h~%d!",DUEL_CORE[TICK]);
         GameTextForPlayer(p1, str,1400,6);
         GameTextForPlayer(p2, str,1400,6);
         SetTimerEx("duelTimer", 1500, false, "ii", p1,p2);
@@ -1411,12 +1428,12 @@ stock duelResult(playerid){
     GetPlayerHealth(killerid, USER[killerid][HP]);
     GetPlayerArmour(killerid, USER[killerid][AM]);
     
-	DUEL[ON]=true;
-	DUEL[LENGTH]=0;
+	DUEL_CORE[ON]=true;
+	DUEL_CORE[LENGTH]=0;
 	
-	formatMsgAll(COL_SYS, DUEL_RESULT_TEXT, DUEL[INDEX], USER[killerid][NAME], USER[playerid][NAME], DUEL[MONEY], duelTypeName[DUEL[TYPE]], USER[killerid][HP], USER[killerid][AM], INGAME[killerid][DUEL_WINS]);
-	giveMoney(playerid, -DUEL[MONEY]);
-	giveMoney(killerid, DUEL[MONEY]);
+	formatMsgAll(COL_SYS, DUEL_RESULT_TEXT, DUEL_CORE[INDEX], USER[killerid][NAME], USER[playerid][NAME], DUEL_CORE[MONEY], duelTypeName[DUEL_CORE[TYPE]], USER[killerid][HP], USER[killerid][AM], INGAME[killerid][DUEL_WINS]);
+	giveMoney(playerid, -DUEL_CORE[MONEY]);
+	giveMoney(killerid, DUEL_CORE[MONEY]);
 	
     INGAME[playerid][DUEL_JOIN] = false;
     INGAME[killerid][DUEL_WINS]+=1;
@@ -1424,17 +1441,17 @@ stock duelResult(playerid){
 }
 
 stock duelMatchID(playerid){
-	if(DUEL[PID1] == playerid) return DUEL[PID2];
-    return DUEL[PID1];
+	if(DUEL_CORE[PID1] == playerid) return DUEL_CORE[PID2];
+    return DUEL_CORE[PID1];
 }
 stock duelLeave(playerid){
-	DUEL[LENGTH]=0;
+	DUEL_CORE[LENGTH]=0;
 	SetPlayerPos(playerid, 1913.1345, -1710.5565, 13.4003);
 	SetPlayerFacingAngle(playerid, 89.3591);
 
 	INGAME[playerid][DUEL_JOIN]=false;
-	DUEL[INDEX]-=1;
-    DUEL[ON]=false;
+	DUEL_CORE[INDEX]-=1;
+    DUEL_CORE[ON]=false;
                 
 	ResetPlayerWeapons(playerid);
 	GivePlayerWeapon(playerid, USER[playerid][WEP1], 9999);
@@ -1534,7 +1551,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
  	}
     if(!strcmp("/re", cmdtext)){
         if(!INGAME[playerid][DUEL_JOIN])return 1;
-        if(DUEL[LENGTH] != 1)return 1;
+        if(DUEL_CORE[LENGTH] != 1)return 1;
         duelLeave(playerid);
         return 1;
  	}
@@ -1553,7 +1570,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         return 1;
  	}
    	if(!strcmp("/kill", cmdtext)){
-        if(INGAME[playerid][DUEL_JOIN] && DUEL[LENGTH] == 1) return SendClientMessage(playerid,COL_SYS, DUEL_KILL_NOT_CMD);
+        if(INGAME[playerid][DUEL_JOIN] && DUEL_CORE[LENGTH] == 1) return SendClientMessage(playerid,COL_SYS, DUEL_KILL_NOT_CMD);
         SetPlayerHealth(playerid, 0);
         return 1;
  	}
@@ -3267,7 +3284,7 @@ stock showDialog(playerid, type){
 		case DL_DUEL_MONEY        : ShowPlayerDialog(playerid, DL_DUEL_MONEY, DIALOG_STYLE_INPUT, DIALOG_TITLE, DUEL_DL_MONEY_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_DUEL_SUCCESS      :{
             new str[256];
-            format(str, sizeof(str), DUEL_DL_SUCCESS_TEXT, duelTypeName[DUEL[TYPE]],DUEL[MONEY]);
+            format(str, sizeof(str), DUEL_DL_SUCCESS_TEXT, duelTypeName[DUEL_CORE[TYPE]],DUEL_CORE[MONEY]);
 		    ShowPlayerDialog(playerid, DL_DUEL_SUCCESS, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, DIALOG_ENTER, DIALOG_PREV);
 		}
 		case DL_GAMBLE_CHOICE     : ShowPlayerDialog(playerid, DL_GAMBLE_CHOICE, DIALOG_STYLE_LIST, DIALOG_TITLE, GAMBLE_DL_CHOICE_TEXT, DIALOG_ENTER, DIALOG_PREV);
