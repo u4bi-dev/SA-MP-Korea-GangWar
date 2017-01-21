@@ -1772,6 +1772,7 @@ stock mode(){
 stock thread(){ SetTimer("ServerThread", 500, true); }
 stock server(){
 	SetGameModeText("samp.war.korea.ver.0.12");
+    SendRconCommand("mapname 한국 전쟁인 모임");
 	UsePlayerPedAnims();
 	EnableStuntBonusForAll(0);
 	DisableInteriorEnterExits();
