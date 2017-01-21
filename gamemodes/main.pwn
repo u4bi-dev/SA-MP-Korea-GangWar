@@ -396,15 +396,15 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
     return 1;
 }
 /* OnDialogResponse stock
-   @ info()
-   @ clan(playerid,listitem)
-   @ shop(playerid,listitem)
-   @ notice(playerid,listitem)
-   @ duel(playerid,listitem)
-   @ gamble(playerid,inputtext[])
-   @ mywep(playerid,listitem)
-   @ mycar(playerid,listitem)
-   @ garage(playerid,listitem)
+   @ info()                          : 도움말 항목      [/help 명령어 관련]
+   @ clan(playerid,listitem)         : 대한 전쟁협회    [클랜 픽업 관련]
+   @ shop(playerid,listitem)         : 카푸치노 상점    [상점 픽업관련]
+   @ notice(playerid,listitem)       : 만남의광장       [공지사항 보드 픽업 관련]
+   @ duel(playerid,listitem)         : 듀얼             [듀얼장 표지판 픽업 관련]
+   @ gamble(playerid,inputtext[])    : 슬롯머신         [슬롯머신 픽업 관련]
+   @ mywep(playerid,listitem)        : 내 무기 설정     [/wep 명령어 관련]
+   @ mycar(playerid,listitem)        : 내 차량 설정     [/car 명령어 관련]
+   @ garage(playerid,listitem)       : 정비소 관련      [정비소 내 경적(Caps Look) 관련]
 */
 stock info(playerid, listitem){
     new result[502], clanName[50];
@@ -509,13 +509,13 @@ stock garage(playerid,listitem){
     return 0;
 }
 /* CLAN
-   @ clanInsert(playerid, inputtext)
-   @ clanList(playerid);
-   @ clanRank(playerid);
-   @ clanSetup(playerid, listitem);
-   @ clanLeave(playerid);
+   @ clanInsert(playerid, inputtext) : 클랜 생성         [clanInsert - clanInsertColor - clanInsertColorRandom - clanInsertSuccess]
+   @ clanList(playerid);             : 클랜 목록
+   @ clanRank(playerid);             : 클랜 랭킹
+   @ clanSetup(playerid, listitem);  : 클랜 관리
+   @ clanLeave(playerid);            : 클랜 탈퇴
 
-   @ clanJoin(playerid, clanid)
+   @ clanJoin(playerid, clanid)      : 클랜 합류
 */
 stock clanInsert(playerid, inputtext[]){
     if(!strlen(inputtext))return showDialog(playerid, DL_CLAN_INSERT);
@@ -523,7 +523,7 @@ stock clanInsert(playerid, inputtext[]){
     if(strlen(inputtext) > 20)return SendClientMessage(playerid,COL_SYS, CLAN_NAME_MAX_LENTH), showDialog(playerid, DL_CLAN_INSERT);
 
     format(CLAN_SETUP[playerid][NAME], 50, "%s", inputtext);
-    if(isClanHangul(playerid, CLAN_SETUP[playerid][NAME])) return showDialog(playerid, DL_CLAN_INSERT);
+    if(isHangul(playerid, CLAN_SETUP[playerid][NAME])) return showDialog(playerid, DL_CLAN_INSERT);
 
     new query[400],row;
     mysql_format(mysql, query, sizeof(query), SQL_CLAN_NAME_CHECK, escape(CLAN_SETUP[playerid][NAME]));
@@ -574,10 +574,10 @@ stock clanJoin(playerid, clanid){
 }
 
 /* CLAN INSERT
-   @ clanInsertColor(playerid, listitem)
-   @ clanInsertColorRandom(playerid)
-   @ clanInsertColorChoice(playerid, inputtext)
-   @ clanInsertSuccess(playerid)
+   @ clanInsertColor(playerid, listitem)         : 클랜 고유색상 지정 방법 [랜덤, 직접]
+   @ clanInsertColorRandom(playerid)             : 클랜 고유색상 랜덤
+   @ clanInsertColorChoice(playerid, inputtext)  : 클랜 고유색상 직접
+   @ clanInsertSuccess(playerid)                 : 클랜 생성 완료 입력에 대한 확인
 */
 stock clanInsertColor(playerid, listitem){
     switch(listitem){
@@ -635,9 +635,9 @@ stock clanInsertSuccess(playerid){
 }
 
 /* CLAN SETUP
-   @ clanInvite(playerid, inputtext)
-   @ clanMember(playerid, listitem)
-   @ clanSkin(playerid,listitem)
+   @ clanInvite(playerid, inputtext)  : 클랜 초대
+   @ clanMember(playerid, listitem)   : 클랜 멤버보기              [clanMember - clanMemberSetup - clanMemberRank - clanMemberKick]
+   @ clanSkin(playerid,listitem)      : 클랜 스킨관리              [clanSkin - clanSkinSetup - clanSkinUpdate]
 */
 stock clanInvite(playerid, inputtext[]){
     new user = getPlayerId(inputtext);
@@ -670,9 +670,9 @@ stock clanSkin(playerid, listitem){
     return 0;
 }
 /* CLAN MEMBER SETUP
-   @ clanMemberSetup(playerid, listitem);
-   @ clanMemberRank(playerid, listitem);
-   @ clanMemberKick(playerid);
+   @ clanMemberSetup(playerid, listitem);  : 클랜 멤버 관리 유형 [직위변경, 추방]
+   @ clanMemberRank(playerid, listitem);   : 클랜원 직위 변경
+   @ clanMemberKick(playerid);             : 클랜원 추방
 */
 stock clanMemberSetup(playerid, listitem){
     switch(listitem){
@@ -688,9 +688,9 @@ stock clanMemberKick(playerid){
     formatMsg(playerid, COL_SYS, "클랜원 강제추방 %d",playerid);
 }
 
-/* CLAN MEMBER SETUP
-   @ clanSkinSetup(playerid, inputtext)
-   @ clanSkinUpdate(playerid)
+/* CLAN SKIN SETUP
+   @ clanSkinSetup(playerid, inputtext)   : 클랜 대표스킨 설정
+   @ clanSkinUpdate(playerid)             : 클랜 대표스킨 착용
 */
 stock clanSkinSetup(playerid, inputtext[]){
     new skin = strval(inputtext);
@@ -722,10 +722,10 @@ stock clanSkinUpdate(playerid){
     return 0;
 }
 /* SHOP
-    @ shopWeapon(playerid, listitem)
-    @ shopSkin(playerid, inputtext)
-    @ shopAcc(playerid, listitem)
-    @ shopName(playerid, inputtext)
+    @ shopWeapon(playerid, listitem)   :  무기 구매      [shopWeapon - shopWeaponBuy]
+    @ shopSkin(playerid, inputtext)    :  스킨 구매      [shopSkin   - shopSkinBuy  ]
+    @ shopAcc(playerid, listitem)      :  악세 구매
+    @ shopName(playerid, inputtext)    :  이름 변경      [shopName   - shopNameEdit ]
 */
 
 stock shopWeapon(playerid, listitem){
@@ -775,7 +775,7 @@ stock shopName(playerid, inputtext[]){
     if(strlen(inputtext) < 3)return SendClientMessage(playerid,COL_SYS, YOU_NAME_MIN_LENTH), showDialog(playerid, DL_SHOP_NAME);
     if(strlen(inputtext) > 24)return SendClientMessage(playerid,COL_SYS, YOU_NAME_MAX_LENTH), showDialog(playerid, DL_SHOP_NAME);
 
-    if(isNameHangul(playerid, inputtext)) return showDialog(playerid, DL_SHOP_NAME);
+    if(isHangul(playerid, inputtext)) return showDialog(playerid, DL_SHOP_NAME);
 
     new query[400],row;
     mysql_format(mysql, query, sizeof(query),SQL_NAME_EDIT_CHECK, escape(inputtext));
@@ -794,7 +794,7 @@ stock shopName(playerid, inputtext[]){
 }
 
 /* SHOP WEAPON BUY
-   @ shopWeaponBuy(playerid)
+   @ shopWeaponBuy(playerid)   : 무기 구매 확인 메세지
 */
 stock shopWeaponBuy(playerid){
     if(isBuyWepMoney(INGAME[playerid][BUY_WEAPONID], USER[playerid][MONEY]))return SendClientMessage(playerid,COL_SYS,WEAPON_BUY_NOT_MONEY);
@@ -818,7 +818,7 @@ stock shopWeaponBuy(playerid){
 }
 
 /* SHOP SKIN BUY
-   @ shopSkinBuy(playerid)
+   @ shopSkinBuy(playerid)   : 스킨 구매 확인 메세지
 */
 stock shopSkinBuy(playerid){
     formatMsg(playerid, COL_SYS, SKIN_BUY_SUCCESS,INGAME[playerid][BUY_SKINID]);
@@ -838,7 +838,7 @@ stock shopSkinBuy(playerid){
 }
 
 /* SHOP NAME EDIT
-   @ shopNameEdit(playerid)
+   @ shopNameEdit(playerid)  : 이름 변경 확인 메세지
 */
 stock shopNameEdit(playerid){
     formatMsg(playerid, COL_SYS, NAME_EDIT_SUCCESS,INGAME[playerid][EDIT_NAME]);
@@ -866,7 +866,7 @@ stock shopNameEdit(playerid){
 }
 
 /* NOTICE
-    @ noticeSeason(playerid)
+    @ noticeSeason(playerid)   : 만남의 광장 시즌랭크
 */
 stock noticeSeason(playerid){
     if(INGAME[playerid][SEASON] == 2) return INGAME[playerid][SEASON] = 0;
@@ -875,10 +875,10 @@ stock noticeSeason(playerid){
 }
 
 /* MYWEP SETUP
-   @ setWep(playerid, listitem)
-   @ setWepOption(playerid, listitem)
-   @ holdWep(playerid)
-   @ putWep(playerid)
+   @ setWep(playerid, listitem)          : 내 무기 보기  [setWep - setWepOption]
+   @ setWepOption(playerid, listitem)    : 주무기 설정
+   @ holdWep(playerid)                   : 주무기 장착
+   @ putWep(playerid)                    : 주무기 탈착
 */
 stock setWep(playerid, listitem){
     INGAME[playerid][HOLD_WEPLIST] = listitem;
@@ -926,8 +926,8 @@ stock putWep(playerid){
 }
 
 /* MYCAR SETUP
-   @ setCar(playerid, listitem)
-   @ spawnCar(playerid)
+   @ setCar(playerid, listitem)   : 내 차량            [setCar - spawnCar]
+   @ spawnCar(playerid)           : 내 차량 소환
 */
 stock setCar(playerid, listitem){
     switch(listitem){
@@ -957,9 +957,9 @@ stock spawnCar(playerid){
     giveMoney(playerid,-500);
 }
 /* GARAGE
-   @ repairCar(playerid)
-   @ paintCar(playerid, inputtext)
-   @ turnCar(playerid)
+   @ repairCar(playerid)              : 차량 수리
+   @ paintCar(playerid, inputtext)    : 차량 도색      [two binding / switch return function ]
+   @ turnCar(playerid)                : 차량 튜닝
 */
 stock repairCar(playerid){
     if(USER[playerid][MONEY] < 100) return SendClientMessage(playerid,COL_SYS,CAR_REPAIR_NOT_MONEY);
@@ -976,13 +976,13 @@ stock paintCar(playerid, inputtext[]){
     if(USER[playerid][MONEY] < 500) return SendClientMessage(playerid,COL_SYS,CAR_PAINT_NOT_MONEY);
 
     switch(INGAME[playerid][PAINT_TYPE]){
-        case 0:{
+        case 0:{ /* first paint color */
             INGAME[playerid][CAR_PAINT1] = strval(inputtext);
             showDialog(playerid, DL_GARAGE_PAINT);
             INGAME[playerid][PAINT_TYPE] =1;
             SendClientMessage(playerid,COL_SYS, CAR_PAINT1_TEXT);
         }
-        case 1:{
+        case 1:{ /* last paint color */
             new vehicleid = GetPlayerVehicleID(playerid);
 
             INGAME[playerid][CAR_PAINT2] = strval(inputtext);
@@ -1010,14 +1010,14 @@ stock turnCar(playerid){
 }
 
 /* DUEL
-    @ duelType(playerid, listitem)
-    @ duelMoney(playerid, inputtext[])
-    @ duelSuccess(playerid)
-    @ duelSpawn(playerid, order)
-    @ duelTimer(p1, p2)
-    @ duelResult(playerid)
-    @ duelMatchID(playerid)
-    @ duelLeave(playerid)
+    @ duelType(playerid, listitem)        : 듀얼 무기유형 지정
+    @ duelMoney(playerid, inputtext[])    : 듀얼 배팅금액 지정
+    @ duelSuccess(playerid)               : 듀얼 입장
+    @ duelSpawn(playerid, order)          : 듀얼장 스폰            @order : 0스폰자리/1스폰자리
+    @ duelTimer(p1, p2)                   : 듀얼 시작 타이머       [ tick timer 1500, four binding]
+    @ duelResult(playerid)                : 듀얼 결과
+    @ duelMatchID(playerid)               : 매치된 상대아이디 리턴받기
+    @ duelLeave(playerid)                 : 듀얼전 종료
 */
 stock duelType(playerid, listitem){
     DUEL_CORE[TYPE] = listitem;
@@ -1162,10 +1162,10 @@ stock duelLeave(playerid){
 }
 
 /* GAMBLE
-   @ gambleChoice(playerid, listitem)
-   @ gambling(playerid, dice, listitem, result);
-   @ gambleRegamble(playerid)
-   @ gambleResult(playerid)
+   @ gambleChoice(playerid, listitem)              : 슬롯머신 배팅금액 지정
+   @ gambling(playerid, dice, listitem, result);   : 슬롯머신 게임 진행
+   @ gambleRegamble(playerid)                      : 슬롯머신 다시 진행        [ 5값 규칙으로 인한 주사위 재던짐]
+   @ gambleResult(playerid)                        : 슬롯머신 결과 출력
 */
 
 stock gambleChoice(playerid,listitem){
@@ -1501,7 +1501,6 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 public OnPlayerDisconnect(playerid, reason){
     if(INGAME[playerid][RESTART]) return 0;
     if(INGAME[playerid][DUEL_JOIN])duelResult(playerid);
-    //duelResult(playerid);
 
     out(playerid);
     return 1;
@@ -1515,9 +1514,9 @@ public OnPlayerDeath(playerid, killerid, reason){
     return 1;
 }
 
-/* REG/LOG CHECK MANAGER
-   @checked(playerid, password[])
-   @join(playerid, type)
+/* REG/LOG
+   @checked(playerid, password[])       : 입력 비밀번호 받기
+   @join(playerid, type)                : 유저 타입에 따른 회원가입/ 로그인
 */
 stock checked(playerid, password[]){
 
@@ -1538,11 +1537,12 @@ stock join(playerid, type){
     return 1;
 }
 
-/* SQL @ check(playerid)
-       @ regist(playerid, pass)
-       @ save(playerid)
-       @ load(playerid)
-       @ escape(str[])
+/* SQL
+   @ check(playerid)          : 입력된 비밀번호 대조  [ 유형 : 로그인일시 ]
+   @ regist(playerid, pass)   : 회원가입
+   @ save(playerid)           : 저장
+   @ load(playerid)           : 유저 데이터 불러옴
+   @ escape(str[])            : mysql real escape     [ SQL Injection 처리 ]
 */
 public check(playerid){
     new query[128], result;
@@ -1717,7 +1717,7 @@ stock escape(str[]){
     return result;
 }
 /* INGAME FUNCTION
-   @ spawn(playerid)
+   @ spawn(playerid)     : 유저 스폰
 */
 stock spawn(playerid){
 
@@ -1778,14 +1778,14 @@ strtok2(const string[], &index)
     return result;
 }
 /* INIT
-   @ out(playerid)
-   @ dbcon()
-   @ data()
-   @ mode()
-   @ thread()
-   @ server()
-   @ cleaning(playerid)
-   @ hide(playerid)
+   @ out(playerid)         : 접속종료
+   @ dbcon()               : DB 풀
+   @ data()                : DB 데이터 로드
+   @ mode()                : 모드단 환경 설정
+   @ thread()              : 서버 스레드 관리
+   @ server()              : 서버단 환경 설정
+   @ cleaning(playerid)    : enum 데이터 초기화
+   @ hide(playerid)        : Text Draw, Gangzone 가리기
 */
 stock out(playerid){
     if(INGAME[playerid][LOGIN]) save(playerid);
@@ -1893,13 +1893,13 @@ stock hide(playerid){
 }
 
 /* DB DATA
-   @ user_data()
-   @ house_data()
-   @ vehicle_data()
-   @ clan_data()
-   @ zone_data()
-   @ weapon_data()
-   @ duel_data()
+   @ user_data()        : 유저 데이터 커넥션 확인
+   @ house_data()       : 집   데이터
+   @ vehicle_data()     : 차량 데이터
+   @ clan_data()        : 클랜 데이터
+   @ zone_data()        : 갱존 데이터
+   @ weapon_data()      : 무기 데이터 커넥션 확인
+   @ duel_data()        : 듀얼 데이터 커넥션 확인          [ 현재 마지막 경기 수 반환 @ DUEL[LENGTH]
 */
 stock user_data(){
     new query[400];
@@ -2070,60 +2070,59 @@ public ServerThread(){
 }
 
 /* stock
-   @ zoneInit()
-   @ zoneSave(id, owner_clan)
-   @ vehicleInit()
-   @ vehicleSave(vehicleid)
-   @ vehicleSpawn(vehicleid)
-   @ zoneSetup()
-   @ showZone(playerid)
-   @ vehicleBuy(playerid, carid)
-   @ showEnvi(playerid)
-   @ showRank(playerid)
-   @ showTextDraw(playerid)
-   @ fixPos(playerid)
-   @ event(playerid)
-   @ checkWarp(playerid)
-   @ inCar(playerid, vehicleid)
-   @ warp(playerid)
-   @ warpInit(playerid)
-   @ giveMoney(playerid,money)
-   @ death(playerid, killerid, reason)
-   @ killCombo(playerid)
-   @ deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pickup_z)
-   @ loadMisson()
-   @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)
-   @ object_init()
-   @ textLabel_init()
-   @ textDraw_init();
-   @ searchMissonRange(playerid)
-   @ searchGarageRange(playerid)
-   @ showMisson(playerid, type)
-   @ showGarage(playerid)
-   @ showDialog(playerid, type)
-   @ isPlayerZone(playerid, zoneid)
-   @ checkZone(playerid)
-   @ holdZone(playerid)
-   @ isHaveWeapon(playerid , weaponid)
-   @ isEmptyWep(playerid, listitem)
-   @ isBuyWepMoney(weponid, money)
-   @ isHoldWep(playerid, model)
-   @ isClan(playerid, type)
-   @ isClanHangul(playerid, str[])
-   @ isNameHangul(playerid, str[])
-   @ isMaxHaveCar(playerid)
-   @ randomColor()
-   @ packet(playerid)
-   @ fps(playerid)
-   @ setAlpha(color, a)
-   @ damage(playerid)
-   @ getPlayerId(name[]
-   @ wepID(model)
-   @ wepName(model)
-   @ wepNameTD(model)
-   @ sync(playerid)
-   @ kdRatio(kill, death)
-   @ kdTier(level, kill, death)
+   @ zoneInit()                          : 갱존 초기화 (init)
+   @ zoneSave(id, owner_clan)            : 갱존 저장
+   @ vehicleInit()                       : 차량 초기화 (init)
+   @ vehicleSave(vehicleid)              : 차량 저장
+   @ vehicleSpawn(vehicleid)             : 차량 리스폰
+   @ zoneSetup()                         : 갱존 설정 (create modeling min xy, max xy)
+   @ showZone(playerid)                  : 갱존 보이기
+   @ vehicleBuy(playerid, carid)         : 차량 구매
+   @ showEnvi(playerid)                  : FPS, PING, Packet Loss 출력     [ ServerThread - event (tick switch 5, 10 ,15) ]
+   @ showRank(playerid)                  : 유저 티어(랭크) 머리 위 출력    [ ServerThread - event (tick switch 20) ]
+   @ showTextDraw(playerid)              : 텍스트 드로우 출력
+   @ fixPos(playerid)                    : 랜덤스폰 위치 랜덤지정
+   @ event(playerid)                     : 스레드 핸들러                   [ ServerTherad - event - showEnvi - showRank ]
+   @ checkWarp(playerid)                 : 차량 워프감지 체크              [ ServerThread - checkWarp ]
+   @ inCar(playerid, vehicleid)          : 차량 정상 탑승 인증 토클 지정
+   @ warp(playerid)                      : 차량 워프감지
+   @ warpInit(playerid)                  : 차량 벗어남 토클 지정 (init )
+   @ giveMoney(playerid,money)           : 돈주기
+   @ death(playerid, killerid, reason)   : 죽음
+   @ killCombo(playerid)                 : 킬 콤보 지정
+   @ deathPickup(killerid, playerid, Float:pickup_x, Float:pickup_y, Float:pickup_z)      : 죽음 픽업 생성 [ 아머, 하트 value 0 이상일시 ]
+   @ loadMisson()                        : 미션 데이터 로드 [클랜, 상점,랭킹,듀얼,슬롯머신]
+   @ missonInit(name[24],Float:pos_x,Float:pos_y,Float:pos_z)                             : 미션 모델 초기화 (init)
+   @ object_init()                       : 오브젝트 초기화 (init)
+   @ textLabel_init()                    : 3D라벨   초기화   (init)
+   @ textDraw_init();                    : 2D텍스쳐 초기화 (init)
+   @ searchMissonRange(playerid)         : 주위반경 미션 이벤트 유무 체크
+   @ searchGarageRange(playerid)         : 주위반경 주유소 이벤트 유무 체크
+   @ showMisson(playerid, type)          : 미션 이벤트 열기
+   @ showGarage(playerid)                : 주유소 이벤트 열기
+   @ showDialog(playerid, type)          : 다이얼로그 핸들러
+   @ isPlayerZone(playerid, zoneid)      : 특정 갱존 존재 유무 체크
+   @ checkZone(playerid)                 : 갱존 이벤트                    [ ServerThread - checkZone ]
+   @ holdZone(playerid)                  : 갱존 획득
+   @ isHaveWeapon(playerid , weaponid)   : 특정 무기 구매 유무 체크
+   @ isEmptyWep(playerid, listitem)      : 상점 무기 구매 유무 체크       [ shopWeapon (다이얼로그) ]
+   @ isBuyWepMoney(weponid, money)       : 특정 무기 구매 조건 체크       [ shopWeapon ( money ) ]
+   @ isHoldWep(playerid, model)          : 주무기 착용 우무 체크
+   @ isClan(playerid, type)              : 유저 클랜관련 상태 확인        @ type : IS_CLEN_HAVE, IS_CLEN_NOT, IS_CLEN_LEADER, IS_CLEN_INSERT_MONEY
+   @ isHangul(playerid, str[])           : 입력에 한글 입력 체크
+   @ isMaxHaveCar(playerid)              : 보유 차량수 제한 체크
+   @ randomColor()                       : 랜덤 hax값 리턴
+   @ packet(playerid)                    : 유저 Packet loss 업데이트
+   @ fps(playerid)                       : 유저 FPS 업데이트
+   @ setAlpha(color, a)                  : 데미지 텍스트드로우 alpha값 지정      [TakeDamage Callback - damage - setalpha]
+   @ damage(playerid)                    : 피격 타격 정보 표출
+   @ getPlayerId(name[]                  : 유저 이름으로 아이디 반환
+   @ wepID(model)                        : 무기 모델명으로 무기 배열값 반환
+   @ wepName(model)                      : 무기 모델명으로 무기 이름 반환 (한글)
+   @ wepNameTD(model)                    : 무기 모델명으로 무기 이름 반환 (Text Draw용 영문)
+   @ sync(playerid)                      : 디싱크
+   @ kdRatio(kill, death)                : 유저 킬뎃 비율 반환
+   @ kdTier(level, kill, death)          : 유저 티어 이름 반환
 */
 
 stock vehicleInit(){
@@ -3106,19 +3105,11 @@ stock isClan(playerid, type){
     return 0;
 }
 
-stock isClanHangul(playerid, str[]){
+stock isHangul(playerid, str[]){
     for (new i=0, j=strlen(str); i<j; i++){
         if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
         if(str[i] > '9' || str[i] < '0')
-        if(str[i] != '_' && str[i] != '[' && str[i] != ']' && str[i] != '.' && str[i] != '@')return SendClientMessage(playerid,COL_SYS, CLAN_NOT_ENG);
-    }
-    return 0;
-}
-stock isNameHangul(playerid, str[]){
-    for (new i=0, j=strlen(str); i<j; i++){
-        if((str[i] < 'a' || str[i] > 'z') && (str[i] < 'A' || str[i] > 'Z'))
-        if(str[i] > '9' || str[i] < '0')
-        if(str[i] != '_' && str[i] != '[' && str[i] != ']' && str[i] != '.' && str[i] != '@')return SendClientMessage(playerid,COL_SYS, NAME_NOT_ENG);
+        if(str[i] != '_' && str[i] != '[' && str[i] != ']' && str[i] != '.' && str[i] != '@')return SendClientMessage(playerid,COL_SYS, INPUT_TEXT_HANGUL);
     }
     return 0;
 }
