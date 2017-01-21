@@ -87,7 +87,7 @@
 #define USED_MISSON    5
 #define USED_GARAGE    5
 #define USED_DUEL      2
-#define USED_DUEL_LIST 100
+#define USED_DUEL_LIST 20
 
 #define PRESSED(%0) \
 	(((newkeys & (%0)) == (%0)) && ((oldkeys & (%0)) != (%0)))

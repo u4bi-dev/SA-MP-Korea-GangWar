@@ -143,7 +143,8 @@ WIN_ID \
 ,MONEY \
 ,WIN_HP \
 ,WIN_AM \
-FROM duel_info AS duel;"
+FROM duel_info AS duel \
+LIMIT 20"
 
 /* USER LOG */
 #define SQL_USER_WEAPON_JOIN "\
