@@ -139,13 +139,12 @@ static mysql;
 
 enum DUEL_MODEL{
 	ID,
-	PID1,
-	PNAME1[24],
-	PID2,
-	PNAME2[24],
+	WIN_ID,
+	WIN_NAME[24],
+	LOSS_ID,
+	LOSS_NAME[24],
 	TYPE,
 	MONEY,
-	WIN_USER_ID,
 	Float:WIN_HP,
 	Float:WIN_AM
 }
@@ -2330,15 +2329,14 @@ stock duel_data(){
     for(new i=0; i < rows; i++){
 	    DUEL[i][ID]             = cache_get_field_content_int(i, "ID");
 
-		DUEL[i][PID1]           = cache_get_field_content_int(i, "PID1");
-		cache_get_field_content(i, "PNAME1", DUEL[i][PNAME1], mysql, 24);
+		DUEL[i][WIN_ID]           = cache_get_field_content_int(i, "WIN_ID");
+		cache_get_field_content(i, "WIN_NAME", DUEL[i][WIN_NAME], mysql, 24);
 
-	    DUEL[i][PID2]           = cache_get_field_content_int(i, "PID2");
-		cache_get_field_content(i, "PNAME2", DUEL[i][PNAME2], mysql, 24);
+	    DUEL[i][LOSS_ID]           = cache_get_field_content_int(i, "LOSS_ID");
+		cache_get_field_content(i, "LOSS_NAME", DUEL[i][LOSS_NAME], mysql, 24);
 		
 	    DUEL[i][TYPE]           = cache_get_field_content_int(i, "TYPE");
 	    DUEL[i][MONEY]          = cache_get_field_content_int(i, "MONEY");
-	    DUEL[i][WIN_USER_ID]    = cache_get_field_content_int(i, "WIN_USER_ID");
 	    DUEL[i][WIN_HP]         = cache_get_field_content_float(i, "WIN_HP");
 	    DUEL[i][WIN_AM]         = cache_get_field_content_float(i, "WIN_AM");
     }

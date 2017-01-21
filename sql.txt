@@ -4,6 +4,7 @@ drop table zone_info;
 drop table vehicle_info;
 drop table house_info;
 drop table weapon_info;
+drop table duel_info;
 
 CREATE TABLE user_info(
 ID INT PRIMARY KEY AUTO_INCREMENT,
