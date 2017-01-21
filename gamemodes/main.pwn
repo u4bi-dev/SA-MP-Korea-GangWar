@@ -455,12 +455,13 @@ stock duel(playerid,listitem){
 stock gamble(playerid,inputtext[]){
     new money = strval(inputtext);
     
+    if(money < 0)return ShowPlayerDialog(playerid, DL_MISSON_GAMBLE, DIALOG_STYLE_INPUT,DIALOG_TITLE, MISSON_GAMBLE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
+    if(USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS, GAMBLE_NOT_MONEY);
     if(money > 0 && money < 500){
 	    SendClientMessage(playerid, COL_SYS, GAMBLE_MIN_MONEY);
         ShowPlayerDialog(playerid, DL_MISSON_GAMBLE, DIALOG_STYLE_INPUT,DIALOG_TITLE, MISSON_GAMBLE_TEXT, DIALOG_ENTER, DIALOG_CLOSE);
 	    return 0;
     }
-    if(USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS, GAMBLE_NOT_MONEY);
 
     if(money == 0)INGAME[playerid][GAMBLE] = 500;
     else INGAME[playerid][GAMBLE] = money;
@@ -597,7 +598,7 @@ stock clanInsertSuccess(playerid){
     if(isClan(playerid, IS_CLEN_INSERT_MONEY)) return 0;
     
 	formatMsg(playerid, COL_SYS, YOU_CLAN_INSERT_SUCCESS, CLAN_SETUP[playerid][COLOR] >>> 8, CLAN_SETUP[playerid][NAME]);
-    giveMoney(playerid, -20000);
+    giveMoney(playerid, -8000);
 	
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), SQL_CLAN_INSERT_SUCCESS,
@@ -1008,7 +1009,8 @@ stock duelType(playerid, listitem){
 }
 stock duelMoney(playerid, inputtext[]){
     new money = strval(inputtext);
-    if(money < 0 && USER[playerid][MONEY] < money)return SendClientMessage(playerid,COL_SYS,DUEL_NOT_MONEY);
+    if(money < 0)return showDialog(playerid, DL_DUEL_MONEY);
+    if(USER[playerid][MONEY] < money)return showDialog(playerid, DL_DUEL_MONEY);
     
     DUEL_CORE[MONEY] = money;
     showDialog(playerid, DL_DUEL_SUCCESS);
@@ -1026,7 +1028,8 @@ stock duelSuccess(playerid){
             DUEL_CORE[ON]=false;
 		}
 		case 1:{
-            if(DUEL_CORE[MONEY] < 0 && USER[playerid][MONEY] < DUEL_CORE[MONEY])return SendClientMessage(playerid,COL_SYS,DUEL_NOT_MONEY);
+            if(USER[playerid][MONEY] < DUEL_CORE[MONEY])return SendClientMessage(playerid,COL_SYS,DUEL_NOT_MONEY);
+            
             DUEL_CORE[PID2]=playerid;
             SetTimerEx("duelTimer", 1500, false, "ii", DUEL_CORE[PID1], DUEL_CORE[PID2]);
 			TogglePlayerControllable(DUEL_CORE[PID1],0);
@@ -3059,7 +3062,7 @@ stock isClan(playerid, type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,CLAN_HAVE_TEXT);
 		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,CLAN_NOT_TEXT);
 		case IS_CLEN_LEADER : if(CLAN[USER[playerid][CLANID]-1][LEADER_ID] != USER[playerid][ID])return SendClientMessage(playerid,COL_SYS,CLAN_NOT_LEADER_TEXT);
-        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,CLAN_INSERT_NOT_MONEY);
+        case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 8000) return SendClientMessage(playerid,COL_SYS,CLAN_INSERT_NOT_MONEY);
 	}
     return 0;
 }
