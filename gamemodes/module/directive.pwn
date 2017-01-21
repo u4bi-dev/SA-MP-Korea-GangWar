@@ -8,7 +8,7 @@
         strcat( str, "{1229FA}◈Diamond {FFFFFF}K/D Ratio 70% {7FFF00}↑\n\n");
         strcat( str, "{FF0000}▩Challenger {FFFFFF}K/D Ratio 80%  {7FFF00}↑{FFFFFF} K/D 서버 랭킹 3위권 {7FFF00}↑\n\n");
         strcat( str, "\n");
-        strcat( str, "{8D8DFF}레벨 10부터{FFFFFF} 머리 상단에 티어가 표시됩니다.");
+        strcat( str, "{8D8DFF}레벨 3부터{FFFFFF} 머리 상단에 티어가 표시됩니다.");
         return str;
     }
 

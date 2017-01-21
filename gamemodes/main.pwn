@@ -3315,7 +3315,7 @@ public Float:kdRatio(kill, death){
 
 stock kdTier(level, kill, death){
     new rank[30];
-    if(level < 10)rank = "unrank";
+    if(level < 2)rank = "unrank";
     else{
         new Float:kd = kdRatio(kill, death);
 
