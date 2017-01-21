@@ -1191,26 +1191,26 @@ stock gambling(playerid, dice, choice, result){
     format(diceText, sizeof(diceText), GAMBLE_RESULT_TEXT ,INGAME[playerid][GAMBLE], dice, choiceText[choice]);
 
     if(result){
+        giveMoney(playerid, INGAME[playerid][GAMBLE]);
         format(str, sizeof(str), GAMBLE_DL_WIN, diceText);
         ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
-
-        giveMoney(playerid, INGAME[playerid][GAMBLE]);
     }else{
-        format(str, sizeof(str), GAMBLE_DL_LOSE, diceText);
-        ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
-
-        giveMoney(playerid, -INGAME[playerid][GAMBLE]);
-
-        if(dice == 5){
-            format(str, sizeof(str), GAMBLE_DL_REGAMBLE, diceText);
-            ShowPlayerDialog(playerid, DL_GAMBLE_REGAMBLE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
-        }
-        if(dice == 6){
-            format(str, sizeof(str), GAMBLE_DL_FAIL, diceText);
-            ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
-
-            giveMoney(playerid, -INGAME[playerid][GAMBLE]);
-        }
+        switch(dice){
+            case 5:{
+                format(str, sizeof(str), GAMBLE_DL_REGAMBLE, diceText);
+                ShowPlayerDialog(playerid, DL_GAMBLE_REGAMBLE, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
+            }
+            case 6:{
+                giveMoney(playerid, -INGAME[playerid][GAMBLE]);
+                format(str, sizeof(str), GAMBLE_DL_FAIL, diceText);
+                ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
+            }
+            default:{
+                giveMoney(playerid, -INGAME[playerid][GAMBLE]);
+                format(str, sizeof(str), GAMBLE_DL_LOSE, diceText);
+                ShowPlayerDialog(playerid, DL_GAMBLE_RESULT, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,str, DIALOG_STRAT, DIALOG_CLOSE);
+            }
+		}
     }
 }
 
