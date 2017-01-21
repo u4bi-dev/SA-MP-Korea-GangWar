@@ -3,6 +3,7 @@ announce.exe
 samp-npc.exe
 samp-server.exe
 server_log.txt
+module
 pawno
 mysql_log.txt
 *.amx
