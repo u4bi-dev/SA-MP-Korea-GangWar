@@ -1316,7 +1316,8 @@ public OnPlayerCommandText(playerid, cmdtext[]){
         if(!strlen(str))return SendClientMessage(playerid, COL_SYS,HELP_MONEY_TEXT);
 
         new money = strval(str);
-        if(money < 0 && USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS,GIVE_NOT_MONEY_LENGTH);
+        if(money < 0)return 1;
+        if(USER[playerid][MONEY] < money) return SendClientMessage(playerid,COL_SYS,GIVE_NOT_MONEY_LENGTH);
 
         giveMoney(playerid, -money);
         giveMoney(giveid, money);
