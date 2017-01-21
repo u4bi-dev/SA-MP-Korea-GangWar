@@ -733,7 +733,7 @@ stock shopWeapon(playerid, listitem){
     switch(listitem){
         case 0 : INGAME[playerid][BUY_WEAPONID] = 24;
         case 1 : INGAME[playerid][BUY_WEAPONID] = 25;
-        case 2 : INGAME[playerid][BUY_WEAPONID] = 26;
+        case 2 : INGAME[playerid][BUY_WEAPONID] = 42;
         case 3 : INGAME[playerid][BUY_WEAPONID] = 27;
         case 4 : INGAME[playerid][BUY_WEAPONID] = 28;
         case 5 : INGAME[playerid][BUY_WEAPONID] = 29;
@@ -3206,7 +3206,7 @@ stock wepID(model){
     switch(model){
         case 24 : wep = 0;
         case 25 : wep = 1;
-        case 26 : wep = 2;
+        case 42 : wep = 2;
         case 27 : wep = 3;
         case 28 : wep = 4;
         case 29 : wep = 5;
@@ -3224,7 +3224,7 @@ stock wepName(model){
     switch(model){
         case 24 : format(wep, sizeof(wep), "%s", wepModel[0]);
         case 25 : format(wep, sizeof(wep), "%s", wepModel[1]);
-        case 26 : format(wep, sizeof(wep), "%s", wepModel[2]);
+        case 42 : format(wep, sizeof(wep), "%s", wepModel[2]);
         case 27 : format(wep, sizeof(wep), "%s", wepModel[3]);
         case 28 : format(wep, sizeof(wep), "%s", wepModel[4]);
         case 29 : format(wep, sizeof(wep), "%s", wepModel[5]);
@@ -3241,7 +3241,7 @@ stock wepNameTD(model){
     switch(model){
         case 24 : format(wep, sizeof(wep), "%s", wepModelTD[0]);
         case 25 : format(wep, sizeof(wep), "%s", wepModelTD[1]);
-        case 26 : format(wep, sizeof(wep), "%s", wepModelTD[2]);
+        case 42 : format(wep, sizeof(wep), "%s", wepModelTD[2]);
         case 27 : format(wep, sizeof(wep), "%s", wepModelTD[3]);
         case 28 : format(wep, sizeof(wep), "%s", wepModelTD[4]);
         case 29 : format(wep, sizeof(wep), "%s", wepModelTD[5]);
@@ -3259,7 +3259,7 @@ stock wepPrice(model){
     switch(model){
         case 24 : price = 8000;
         case 25 : price = 8000;
-        case 26 : price = 40000;
+        case 42 : price = 40000;
         case 27 : price = 80000;
         case 28 : price = 15000;
         case 29 : price = 8000;
