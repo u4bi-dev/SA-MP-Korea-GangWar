@@ -134,17 +134,8 @@ FROM weapon_info \
 LIMIT 1"
 
 #define SQL_DATA_LOAD_DUEL "\
-SELECT \
-WIN_ID \
-,(SELECT NAME FROM user_info WHERE ID = duel.WIN_ID) AS WIN_NAME \
-,LOSS_ID \
-,(SELECT NAME FROM user_info WHERE ID = duel.LOSS_ID) AS LOSS_NAME \
-,TYPE \
-,MONEY \
-,WIN_HP \
-,WIN_AM \
-FROM duel_info AS duel \
-LIMIT 20"
+SELECT ID \
+FROM duel_info"
 
 /* USER LOG */
 #define SQL_USER_WEAPON_JOIN "\
@@ -187,7 +178,29 @@ NAME \
 VALUES ('%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f,%f)"
 
 #define SQL_USER_SELECT "\
-SELECT * \
+SELECT \
+USERIP \
+,ADMIN \
+,CLANID \
+,MONEY \
+,LEVEL \
+,EXP \
+,KILLS \
+,DEATHS \
+,SKIN \
+,WEP1 \
+,WEP2 \
+,WEP3 \
+,INTERIOR \
+,WORLD \
+,(SELECT COUNT(TYPE) FROM duel_info WHERE WIN_ID = %d) AS DUEL_WIN \
+,(SELECT COUNT(TYPE) FROM duel_info WHERE LOSS_ID = %d) AS DUEL_LOSS \
+,POS_X \
+,POS_Y \
+,POS_Z \
+,ANGLE \
+,HP \
+,AM \
 FROM user_info \
 WHERE ID = %d \
 LIMIT 1"
@@ -366,4 +379,31 @@ WHERE ID = %d"
 #define SQL_ZONE_DATA_SELECT "\
 SELECT OWNER_CLAN \
 FROM zone_info"
+
+/* DUEL INSERT */
+
+#define SQL_DUEL_INSERT "\
+INSERT INTO duel_info( \
+WIN_ID \
+,LOSS_ID \
+,TYPE \
+,MONEY \
+,WIN_HP \
+,WIN_AM) \
+VALUES( \
+%d,%d,%d,%d,%f,%f)"
+
+#define SQL_DUEL_SELECT "\
+SELECT \
+WIN_ID \
+,(SELECT NAME FROM user_info WHERE ID = duel.WIN_ID) AS WIN_NAME \
+,LOSS_ID \
+,(SELECT NAME FROM user_info WHERE ID = duel.LOSS_ID) AS LOSS_NAME \
+,TYPE \
+,MONEY \
+,WIN_HP \
+,WIN_AM \
+FROM duel_info AS duel \
+ORDER BY ID DESC \
+LIMIT 20"
 

@@ -1,4 +1,3 @@
-
 	enum DUEL_MODEL{
 		ID,
 		WIN_ID,
@@ -84,8 +83,6 @@
 		WORLD,
 		DUEL_WIN,
 		DUEL_LOSS,
-		DUEL_CONTI_WIN,
-		DUEL_MAX_CONTI_WIN,
 		Float:POS_X,
 		Float:POS_Y,
 		Float:POS_Z,
@@ -170,7 +167,6 @@
 		bool:RESTART,
 		bool:NODM,
 		bool:DUEL_JOIN,
-	    DUEL_WINS,
 		EVENT_TICK,
 		SEASON,
 	    PAINT_TYPE,

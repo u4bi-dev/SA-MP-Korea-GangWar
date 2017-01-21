@@ -164,7 +164,9 @@ public OnPlayerClickPlayer(playerid, clickedplayerid, source){
 	if(USER[clickedplayerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[clickedplayerid][CLANID]-1][NAME]);
 
-    format(result,sizeof(result), infoMessege[1],USER[clickedplayerid][NAME],clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][LEVEL], USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]));
+    format(result,sizeof(result), infoMessege[1],
+		USER[clickedplayerid][NAME],
+		clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][LEVEL], USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),USER[clickedplayerid][DUEL_WIN],USER[clickedplayerid][DUEL_LOSS],kdRatio(USER[clickedplayerid][DUEL_WIN],USER[clickedplayerid][DUEL_LOSS]));
     ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
     
     return 1;
@@ -371,7 +373,6 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[]){
 		case DL_GARAGE_TURNING     : turnCar(playerid);
 		
 		/* DUEL */
-		case DL_DUEL_INFO          : duelInfo(playerid);
 		case DL_DUEL_TYPE          : duelType(playerid, listitem);
 		case DL_DUEL_MONEY         : duelMoney(playerid, inputtext);
 		case DL_DUEL_SUCCESS       : duelSuccess(playerid);
@@ -406,7 +407,7 @@ stock info(playerid, listitem){
 	if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
 	else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 	
-	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][LEVEL],USER[playerid][KILLS],USER[playerid][DEATHS]));
+	if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][LEVEL],USER[playerid][KILLS],USER[playerid][DEATHS]),USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS],kdRatio(USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS]));
 	else format(result,sizeof(result), infoMessege[listitem]);
 	ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
 	return 0;
@@ -990,7 +991,6 @@ stock turnCar(playerid){
 }
 
 /* DUEL
-	@ duelInfo(playerid)
 	@ duelType(playerid, listitem)
 	@ duelMoney(playerid, inputtext[])
 	@ duelSuccess(playerid)
@@ -1000,9 +1000,6 @@ stock turnCar(playerid){
 	@ duelMatchID(playerid)
 	@ duelLeave(playerid)
 */
-stock duelInfo(playerid){
-    formatMsg(playerid, COL_SYS, "최근 듀얼 경기조회 %d",playerid);
-}
 stock duelType(playerid, listitem){
     DUEL_CORE[TYPE] = listitem;
     
@@ -1028,6 +1025,7 @@ stock duelSuccess(playerid){
             DUEL_CORE[ON]=false;
 		}
 		case 1:{
+            if(DUEL_CORE[MONEY] < 0 && USER[playerid][MONEY] < DUEL_CORE[MONEY])return SendClientMessage(playerid,COL_SYS,DUEL_NOT_MONEY);
             DUEL_CORE[PID2]=playerid;
             SetTimerEx("duelTimer", 1500, false, "ii", DUEL_CORE[PID1], DUEL_CORE[PID2]);
 			TogglePlayerControllable(DUEL_CORE[PID1],0);
@@ -1043,6 +1041,7 @@ stock duelSuccess(playerid){
 	}
     duelSpawn(DUEL_CORE[PID1], 0);
 	DUEL_CORE[LENGTH]+=1;
+	return 0;
 }
 
 stock duelSpawn(playerid, order){
@@ -1090,19 +1089,26 @@ public duelTimer(p1, p2){
 
 stock duelResult(playerid){
 	new killerid = duelMatchID(playerid);
+
     GetPlayerHealth(killerid, USER[killerid][HP]);
     GetPlayerArmour(killerid, USER[killerid][AM]);
     
 	DUEL_CORE[ON]=true;
 	DUEL_CORE[LENGTH]=0;
 	
-	formatMsgAll(COL_SYS, DUEL_RESULT_TEXT, DUEL_CORE[INDEX], USER[killerid][NAME], USER[playerid][NAME], DUEL_CORE[MONEY], duelTypeName[DUEL_CORE[TYPE]], USER[killerid][HP], USER[killerid][AM], INGAME[killerid][DUEL_WINS]);
+	formatMsgAll(COL_SYS, DUEL_RESULT_TEXT, DUEL_CORE[INDEX], USER[killerid][NAME], USER[playerid][NAME], DUEL_CORE[MONEY], duelTypeName[DUEL_CORE[TYPE]], USER[killerid][HP], USER[killerid][AM]);
+
+	USER[playerid][DUEL_LOSS]+=1;
 	giveMoney(playerid, -DUEL_CORE[MONEY]);
-	giveMoney(killerid, DUEL_CORE[MONEY]);
+	INGAME[playerid][DUEL_JOIN] = false;
 	
-    INGAME[playerid][DUEL_JOIN] = false;
-    INGAME[killerid][DUEL_WINS]+=1;
+    USER[killerid][DUEL_WIN]+=1;
+	giveMoney(killerid, DUEL_CORE[MONEY]);
     showDialog(killerid, DL_DUEL_TYPE);
+	
+	new query[400];
+    mysql_format(mysql, query, sizeof(query), SQL_DUEL_INSERT, killerid, playerid, DUEL_CORE[TYPE], DUEL_CORE[MONEY], USER[killerid][HP], USER[killerid][AM]);
+    mysql_query(mysql, query);
 }
 
 stock duelMatchID(playerid){
@@ -1615,29 +1621,34 @@ public save(playerid){
 }
 public load(playerid){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), SQL_USER_SELECT, USER[playerid][ID]);
+	new id = USER[playerid][ID];
+	mysql_format(mysql, query, sizeof(query), SQL_USER_SELECT, id,id,id);
 	mysql_query(mysql, query);
 
-	USER[playerid][USERIP]   = cache_get_field_content_int(0, "USERIP");
-	USER[playerid][ADMIN]   = cache_get_field_content_int(0, "ADMIN");
-	USER[playerid][CLANID]   = cache_get_field_content_int(0, "CLANID");
-	USER[playerid][MONEY]   = cache_get_field_content_int(0, "MONEY");
-	USER[playerid][LEVEL]   = cache_get_field_content_int(0, "LEVEL");
-	USER[playerid][EXP]   = cache_get_field_content_int(0, "EXP");
-	USER[playerid][KILLS]   = cache_get_field_content_int(0, "KILLS");
-	USER[playerid][DEATHS]  = cache_get_field_content_int(0, "DEATHS");
-	USER[playerid][SKIN]    = cache_get_field_content_int(0, "SKIN");
-	USER[playerid][WEP1]    = cache_get_field_content_int(0, "WEP1");
-	USER[playerid][WEP2]    = cache_get_field_content_int(0, "WEP2");
-	USER[playerid][WEP3]    = cache_get_field_content_int(0, "WEP3");
-	USER[playerid][POS_X]   = cache_get_field_content_float(0, "POS_X");
-	USER[playerid][POS_Y]   = cache_get_field_content_float(0, "POS_Y");
-	USER[playerid][POS_Z]   = cache_get_field_content_float(0, "POS_Z");
-	USER[playerid][ANGLE]   = cache_get_field_content_float(0, "ANGLE");
-	USER[playerid][HP]      = cache_get_field_content_float(0, "HP");
-	USER[playerid][AM]      = cache_get_field_content_float(0, "AM");
+	USER[playerid][USERIP]    = cache_get_field_content_int(0, "USERIP");
+	USER[playerid][ADMIN]     = cache_get_field_content_int(0, "ADMIN");
+	USER[playerid][CLANID]    = cache_get_field_content_int(0, "CLANID");
+	USER[playerid][MONEY]     = cache_get_field_content_int(0, "MONEY");
+	USER[playerid][LEVEL]     = cache_get_field_content_int(0, "LEVEL");
+	USER[playerid][EXP]       = cache_get_field_content_int(0, "EXP");
+	USER[playerid][KILLS]     = cache_get_field_content_int(0, "KILLS");
+	USER[playerid][DEATHS]    = cache_get_field_content_int(0, "DEATHS");
+	USER[playerid][SKIN]      = cache_get_field_content_int(0, "SKIN");
+	USER[playerid][WEP1]      = cache_get_field_content_int(0, "WEP1");
+	USER[playerid][WEP2]      = cache_get_field_content_int(0, "WEP2");
+	USER[playerid][WEP3]      = cache_get_field_content_int(0, "WEP3");
+	USER[playerid][INTERIOR]  = cache_get_field_content_int(0, "INTERIOR");
+	USER[playerid][WORLD]     = cache_get_field_content_int(0, "WORLD");
+	USER[playerid][DUEL_WIN]  = cache_get_field_content_int(0, "DUEL_WIN");
+	USER[playerid][DUEL_LOSS] = cache_get_field_content_int(0, "DUEL_LOSS");
+	USER[playerid][POS_X]     = cache_get_field_content_float(0, "POS_X");
+	USER[playerid][POS_Y]     = cache_get_field_content_float(0, "POS_Y");
+	USER[playerid][POS_Z]     = cache_get_field_content_float(0, "POS_Z");
+	USER[playerid][ANGLE]     = cache_get_field_content_float(0, "ANGLE");
+	USER[playerid][HP]        = cache_get_field_content_float(0, "HP");
+	USER[playerid][AM]        = cache_get_field_content_float(0, "AM");
 
-	mysql_format(mysql, query, sizeof(query), SQL_USER_WEAPON_JOIN, USER[playerid][ID]);
+	mysql_format(mysql, query, sizeof(query), SQL_USER_WEAPON_JOIN, id);
 	mysql_query(mysql, query);
 
 	new rows, fields;
@@ -1989,21 +2000,7 @@ stock duel_data(){
 	}
 	new rows, fields;
 	cache_get_data(rows, fields);
-
-    for(new i=0; i < rows; i++){
-	    DUEL[i][ID]             = cache_get_field_content_int(i, "ID");
-
-		DUEL[i][WIN_ID]           = cache_get_field_content_int(i, "WIN_ID");
-		cache_get_field_content(i, "WIN_NAME", DUEL[i][WIN_NAME], mysql, 24);
-
-	    DUEL[i][LOSS_ID]           = cache_get_field_content_int(i, "LOSS_ID");
-		cache_get_field_content(i, "LOSS_NAME", DUEL[i][LOSS_NAME], mysql, 24);
-		
-	    DUEL[i][TYPE]           = cache_get_field_content_int(i, "TYPE");
-	    DUEL[i][MONEY]          = cache_get_field_content_int(i, "MONEY");
-	    DUEL[i][WIN_HP]         = cache_get_field_content_float(i, "WIN_HP");
-	    DUEL[i][WIN_AM]         = cache_get_field_content_float(i, "WIN_AM");
-    }
+	DUEL_CORE[INDEX] = rows;
 	return 0;
 }
 
@@ -2978,7 +2975,35 @@ stock showDialog(playerid, type){
 		case DL_GARAGE_PAINT      : ShowPlayerDialog(playerid, DL_GARAGE_PAINT, DIALOG_STYLE_INPUT, DIALOG_TITLE, GARAGE_DL_PAINT_SETUP, DIALOG_ENTER, DIALOG_PREV);
 		case DL_GARAGE_TURNING    : ShowPlayerDialog(playerid, DL_GARAGE_TURNING, DIALOG_STYLE_LIST, DIALOG_TITLE, GARAGE_DL_TURNING_TEXT, DIALOG_ENTER, DIALOG_PREV);
 
-		case DL_DUEL_INFO         : ShowPlayerDialog(playerid, DL_DUEL_INFO, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, DUEL_DL_INFO_TEXT, DIALOG_ENTER, DIALOG_PREV);
+		case DL_DUEL_INFO         :{
+
+            new query[400], str[1286];
+
+			mysql_format(mysql, query, sizeof(query), SQL_DUEL_SELECT);
+			mysql_query(mysql, query);
+
+			new rows, fields;
+			cache_get_data(rows, fields);
+			strcat(str, DUEL_LIST_DL_TITLE);
+
+		    for(new i=0; i < rows; i++){
+                new temp[128];
+
+				DUEL[i][ID]             = cache_get_field_content_int(i, "ID");
+				DUEL[i][WIN_ID]         = cache_get_field_content_int(i, "WIN_ID");
+				cache_get_field_content(i, "WIN_NAME", DUEL[i][WIN_NAME], mysql, 24);
+				DUEL[i][LOSS_ID]        = cache_get_field_content_int(i, "LOSS_ID");
+				cache_get_field_content(i, "LOSS_NAME", DUEL[i][LOSS_NAME], mysql, 24);
+				DUEL[i][TYPE]           = cache_get_field_content_int(i, "TYPE");
+				DUEL[i][MONEY]          = cache_get_field_content_int(i, "MONEY");
+				DUEL[i][WIN_HP]         = cache_get_field_content_float(i, "WIN_HP");
+				DUEL[i][WIN_AM]         = cache_get_field_content_float(i, "WIN_AM");
+				
+				format(temp, sizeof(temp), DUEL_LIST_DL_CONTENT, DUEL[i][ID], DUEL[i][WIN_ID], DUEL[i][LOSS_ID], duelTypeName[DUEL[i][TYPE]], DUEL[i][MONEY], DUEL[i][WIN_HP], DUEL[i][WIN_AM]);
+                strcat(str, temp);
+		    }
+		    ShowPlayerDialog(playerid, DL_DUEL_INFO, DIALOG_STYLE_MSGBOX, DIALOG_TITLE, str, "", DIALOG_ENTER);
+        }
 		case DL_DUEL_TYPE         : ShowPlayerDialog(playerid, DL_DUEL_TYPE, DIALOG_STYLE_LIST, DIALOG_TITLE, DUEL_DL_TYPE_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_DUEL_MONEY        : ShowPlayerDialog(playerid, DL_DUEL_MONEY, DIALOG_STYLE_INPUT, DIALOG_TITLE, DUEL_DL_MONEY_TEXT, DIALOG_ENTER, DIALOG_PREV);
 		case DL_DUEL_SUCCESS      :{
