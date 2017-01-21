@@ -77,6 +77,17 @@ ID INT PRIMARY KEY AUTO_INCREMENT \
 ,USER_ID INT NOT NULL \
 ,MODEL INT(4) NOT NULL) ENGINE=INNODB"
 
+#define SQL_DUEL_TABLE "\
+CREATE TABLE duel_info( \
+ID INT PRIMARY KEY AUTO_INCREMENT, \
+PID1 INT, \
+PID2 INT, \
+TYPE INT(1), \
+MONEY INT, \
+WIN_USER_ID INT, \
+WIN_HP DECIMAL (3,0) NOT NULL, \
+WIN_AM DECIMAL (3,0) NOT NULL)"
+
 /* DB DATA LOAD SELECT */
 #define SQL_DATA_LOAD_USER "\
 SELECT ID \
@@ -91,7 +102,7 @@ FROM house_info"
 SELECT \
 vehicle.ID\
 ,vehicle.OWNER_ID \
-,(SELECT NAME FROM user_info WHERE vehicle.OWNER_ID) AS OWNER_NAME \
+,(SELECT NAME FROM user_info WHERE ID = vehicle.OWNER_ID) AS OWNER_NAME \
 ,vehicle.POS_X \
 ,vehicle.POS_Y \
 ,vehicle.POS_Z \
@@ -122,6 +133,19 @@ FROM zone_info"
 SELECT ID \
 FROM weapon_info \
 LIMIT 1"
+
+#define SQL_DATA_LOAD_DUEL "\
+SELECT \
+PID1 \
+,(SELECT NAME FROM user_info WHERE ID = duel.PID1) AS PNAME1 \
+,PID2 \
+,(SELECT NAME FROM user_info WHERE ID = duel.PID1) AS PNAME2 \
+,TYPE \
+,MONEY \
+,WIN_USER_ID \
+,WIN_HP \
+,WIN_AM \
+FROM duel_info AS duel;"
 
 /* USER LOG */
 #define SQL_USER_WEAPON_JOIN "\

@@ -140,12 +140,14 @@ static mysql;
 enum DUEL_MODEL{
 	ID,
 	PID1,
+	PNAME1[24],
 	PID2,
+	PNAME2[24],
 	TYPE,
 	MONEY,
 	WIN_USER_ID,
-	Float:HP,
-	Float:AM
+	Float:WIN_HP,
+	Float:WIN_AM
 }
 new DUEL[USED_DUEL_LIST][DUEL_MODEL];
 
@@ -2123,6 +2125,7 @@ stock data(){
 	zone_data();
 	clan_data();
 	weapon_data();
+	duel_data();
 }
 stock cleaning(playerid){
     new
@@ -2170,6 +2173,7 @@ stock hide(playerid){
    @ clan_data()
    @ zone_data()
    @ weapon_data()
+   @ duel_data()
 */
 stock user_data(){
     new query[400];
@@ -2306,6 +2310,39 @@ stock weapon_data(){
       mysql_query(mysql, query);
       weapon_data();
     }
+}
+
+stock duel_data(){
+	new query[400];
+	mysql_format(mysql, query, sizeof(query), SQL_DATA_LOAD_DUEL);
+	mysql_query(mysql, query);
+	if(!mysql_errno(mysql))print("듀얼 : 정상");
+	else{
+        print("듀얼 DB 에러 테이블 생성 리로드..");
+        mysql_format(mysql, query, sizeof(query), SQL_DUEL_TABLE);
+        mysql_query(mysql, query);
+        duel_data();
+        return 0;
+	}
+	new rows, fields;
+	cache_get_data(rows, fields);
+
+    for(new i=0; i < rows; i++){
+	    DUEL[i][ID]             = cache_get_field_content_int(i, "ID");
+
+		DUEL[i][PID1]           = cache_get_field_content_int(i, "PID1");
+		cache_get_field_content(i, "PNAME1", DUEL[i][PNAME1], mysql, 24);
+
+	    DUEL[i][PID2]           = cache_get_field_content_int(i, "PID2");
+		cache_get_field_content(i, "PNAME2", DUEL[i][PNAME2], mysql, 24);
+		
+	    DUEL[i][TYPE]           = cache_get_field_content_int(i, "TYPE");
+	    DUEL[i][MONEY]          = cache_get_field_content_int(i, "MONEY");
+	    DUEL[i][WIN_USER_ID]    = cache_get_field_content_int(i, "WIN_USER_ID");
+	    DUEL[i][WIN_HP]         = cache_get_field_content_float(i, "WIN_HP");
+	    DUEL[i][WIN_AM]         = cache_get_field_content_float(i, "WIN_AM");
+    }
+	return 0;
 }
 
 /* SERVER THREAD*/
