@@ -88,12 +88,31 @@ SELECT * \
 FROM house_info"
 
 #define SQL_DATA_LOAD_VEHICLE "\
-SELECT * \
-FROM vehicle_info"
+SELECT \
+vehicle.ID\
+,vehicle.OWNER_ID \
+,(SELECT NAME FROM user_info WHERE vehicle.OWNER_ID) AS OWNER_NAME \
+,vehicle.POS_X \
+,vehicle.POS_Y \
+,vehicle.POS_Z \
+,vehicle.ANGLE \
+,vehicle.COLOR1 \
+,vehicle.COLOR2 \
+FROM vehicle_info AS vehicle"
 
 #define SQL_DATA_LOAD_CALN "\
-SELECT * \
-FROM clan_info"
+SELECT \
+clan.ID \
+,clan.NAME \
+,clan.LEADER_ID \
+,user.NAME AS LEADER_NAME \
+,clan.KILLS \
+,clan.DEATHS \
+,clan.COLOR \
+,clan.ZONE_LENGTH \
+FROM clan_info AS clan \
+INNER JOIN user_info AS user ON \
+clan.LEADER_ID = user.ID"
 
 #define SQL_DATA_LOAD_ZONE "\
 SELECT * \
@@ -106,9 +125,9 @@ LIMIT 1"
 
 /* USER LOG */
 #define SQL_USER_WEAPON_JOIN "\
-SELECT weapon.MODEL FROM \
-user_info as user INNER JOIN \
-weapon_info as weapon \
+SELECT weapon.MODEL \
+FROM user_info AS user \
+INNER JOIN weapon_info AS weapon \
 on user.ID = weapon.USER_ID \
 WHERE user.ID = %d"
 
@@ -189,14 +208,16 @@ LIMIT 1"
 INSERT INTO clan_info( \
 NAME \
 ,LEADER_ID \
-,KILLS,DEATHS \
+,KILLS \
+,DEATHS \
 ,COLOR \
 ,ZONE_LENGTH \
 ,SKIN) \
 VALUES( \
 '%s' \
 ,%d \
-,0,0 \
+,0 \
+,0 \
 ,%d \
 ,0,0)"
 
@@ -263,24 +284,19 @@ LIMIT 1"
 #define SQL_NAME_CLAN_EDIT "\
 UPDATE user_info \
 SET NAME = '%s' \
-WHERE NAME = '%s'"
-
-#define SQL_NAME_CLAN_EDIT_LEADER "\
-UPDATE clan_info \
-SET LEADER_ID = '%s' \
-WHERE LEADER_NAME = '%s'"
+WHERE ID = %d"
 
 /* VEHICLE DATA */
 #define SQL_VEHICLE_INIT_INSERT "\
 INSERT INTO vehicle_info( \
-NAME \
+OWNER_ID \
 ,POS_X \
 ,POS_Y \
 ,POS_Z \
 ,ANGLE \
 ,COLOR1 \
 ,COLOR2) \
-VALUES ('N', %f, %f, %f, %f, 0, 0)"
+VALUES (0, %f, %f, %f, %f, 0, 0)"
 
 #define SQL_VEHICLE_DATA_UPDATE "\
 UPDATE vehicle_info \
@@ -305,13 +321,13 @@ WHERE ID = %d"
 #define SQL_MYCAR_SELECT "\
 SELECT ID \
 FROM vehicle_info \
-WHERE NAME='%S'"
+WHERE OWNER_ID=%d"
 
 /* MY VEHICLE LENGTH CAR */
 #define SQL_MYCAR_LENGTH "\
 SELECT OWNER_ID \
 FROM vehicle_info \
-WHERE NAME='%s'"
+WHERE OWNER_ID=%d"
 
 /* ZONE DATA */
 #define SQL_ZONE_INIT_INSERT "\

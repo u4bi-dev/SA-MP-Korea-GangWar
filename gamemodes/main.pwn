@@ -122,7 +122,7 @@ forward save(playerid);
 forward load(playerid);
 forward ServerThread();
 forward Float:kdRatio(kill, death);
-forward vehicleSapwn(vehicleid);
+forward vehicleSpawn(vehicleid);
 forward duelTimer(p1, p2);
 
 /* global variable */
@@ -350,14 +350,13 @@ new TDraw[USED_PLAYER][TDraw_MODEL];
 public OnGameModeExit(){return 1;
 }
 public OnGameModeInit(){
-    printf(SQL_DATA_LOAD_USER);
 	#include "module/vehicles.pwn"
 	dbcon();
     mode();
 	server();
 	thread();
     for(new vehicleid=1; vehicleid<=230; vehicleid++){
-        vehicleSapwn(vehicleid);
+        vehicleSpawn(vehicleid);
     }
     return 1;
 }
@@ -424,8 +423,8 @@ public OnPlayerSpawn(playerid){
 }
 
 public OnVehicleSpawn(vehicleid){
-    if(!strcmp("N", VEHICLE[vehicleid][OWNER_NAME]))return 0;
-	vehicleSapwn(vehicleid);
+    if(VEHICLE[vehicleid][OWNER_ID] == 0) return 0;
+	vehicleSpawn(vehicleid);
     return 1;
 }
 public OnVehicleDeath(vehicleid, killerid){
@@ -437,15 +436,15 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger){
 }
 
 public OnPlayerExitVehicle(playerid, vehicleid){
-	if(INGAME[playerid][NODM] && !strcmp("N", VEHICLE[vehicleid][OWNER_NAME])){
+	if(INGAME[playerid][NODM] && VEHICLE[vehicleid][OWNER_ID] == 0){
         ClearAnimations(playerid);
-	    vehicleSapwn(vehicleid);
+	    vehicleSpawn(vehicleid);
 	    formatMsg(playerid, COL_SYS, "    비전투구역에 주차를 할 시 미입찰 차량은 즉시 스폰됩니다.");
 	    return 1;
 	}
 	
 	vehicleSave(vehicleid);
-    SetTimerEx("vehicleSapwn", 1500, false, "i", vehicleid);
+    SetTimerEx("vehicleSpawn", 1500, false, "i", vehicleid);
     return 1;
 }
 
@@ -537,7 +536,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate){
     
     if(newstate == PLAYER_STATE_DRIVER){
         new vehicleid = GetPlayerVehicleID(playerid);
-	    if(!strcmp("N", VEHICLE[vehicleid][OWNER_NAME])) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
+	    if(VEHICLE[vehicleid][OWNER_ID] == 0) SendClientMessage(playerid,COL_SYS,IN_CAR_NOT_OWNER);
 	    else formatMsg(playerid, COL_SYS, IN_CAR_WHO_OWNER, VEHICLE[vehicleid][OWNER_NAME]);
 	}
     return 1;
@@ -804,11 +803,11 @@ stock garage(playerid,listitem){
 	switch(listitem){
         case 0 : showDialog(playerid, DL_GARAGE_REPAIR);
         case 1 :{
-            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][OWNER_NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
+            if(VEHICLE[GetPlayerVehicleID(playerid)][OWNER_ID] != USER[playerid][ID])return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
 		    showDialog(playerid, DL_GARAGE_PAINT);
 		}
         case 2 :{
-            if(strcmp(USER[playerid][NAME], VEHICLE[GetPlayerVehicleID(playerid)][OWNER_NAME]))return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
+            if(VEHICLE[GetPlayerVehicleID(playerid)][OWNER_ID] != USER[playerid][ID])return SendClientMessage(playerid,COL_SYS, YOU_NOT_MYCAR);
             showDialog(playerid, DL_GARAGE_TURNING);
 		}
 	}
@@ -1013,8 +1012,13 @@ stock clanSkinUpdate(playerid){
     formatMsg(playerid, COL_SYS, CLAN_SKIN_GET_SUCCESS, CLAN[USER[playerid][CLANID]-1][SKIN]);
 
 	USER[playerid][SKIN] = CLAN[USER[playerid][CLANID]-1][SKIN];
-	SetPlayerSkin(playerid, CLAN[USER[playerid][CLANID]-1][SKIN]);
-	
+
+	GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+
+    new ammo = 9999;
+    SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
+
 	save(playerid);
 	return 0;
 }
@@ -1075,7 +1079,7 @@ stock shopName(playerid, inputtext[]){
     if(isNameHangul(playerid, inputtext)) return showDialog(playerid, DL_SHOP_NAME);
     
 	new query[400],row;
-    mysql_format(mysql, query, sizeof(query),SQL_NAME_EDIT_CHECK, inputtext);
+    mysql_format(mysql, query, sizeof(query),SQL_NAME_EDIT_CHECK, escape(inputtext));
     mysql_query(mysql, query);
 
     row = cache_num_rows();
@@ -1123,7 +1127,13 @@ stock shopSkinBuy(playerid){
 
     USER[playerid][SKIN] = INGAME[playerid][BUY_SKINID];
     INGAME[playerid][BUY_SKINID] = 0;
-    SetPlayerSkin(playerid, USER[playerid][SKIN]);
+    
+	GetPlayerPos(playerid, USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z]);
+	GetPlayerFacingAngle(playerid, USER[playerid][ANGLE]);
+
+    new ammo = 9999;
+    SetSpawnInfo(playerid, USER[playerid][CLANID], USER[playerid][SKIN], USER[playerid][POS_X], USER[playerid][POS_Y], USER[playerid][POS_Z], USER[playerid][ANGLE], USER[playerid][WEP1], ammo, USER[playerid][WEP2], ammo, USER[playerid][WEP3], ammo);
+
 	save(playerid);
 }
 
@@ -1135,19 +1145,23 @@ stock shopNameEdit(playerid){
     giveMoney(playerid, -20000);
 
 	new query[400];
-	if(USER[playerid][NAME] == CLAN[USER[playerid][CLANID]-1][LEADER_NAME]){
-		mysql_format(mysql, query, sizeof(query), SQL_NAME_CLAN_EDIT_LEADER, escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
-		mysql_query(mysql, query);
-		format(CLAN[USER[playerid][CLANID]-1][LEADER_NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
-    }
 
-    mysql_format(mysql, query, sizeof(query), SQL_NAME_CLAN_EDIT, escape(INGAME[playerid][EDIT_NAME]), USER[playerid][NAME]);
+    mysql_format(mysql, query, sizeof(query), SQL_NAME_CLAN_EDIT, escape(INGAME[playerid][EDIT_NAME]), USER[playerid][ID]);
     mysql_query(mysql, query);
-    
+
     format(USER[playerid][NAME], 24,"%s",INGAME[playerid][EDIT_NAME]);
     SetPlayerName(playerid, USER[playerid][NAME]);
-    format(INGAME[playerid][EDIT_NAME], 24,"");
 
+	mysql_format(mysql, query, sizeof(query), SQL_MYCAR_SELECT, USER[playerid][ID]);
+	mysql_query(mysql, query);
+	new rows, fields;
+	cache_get_data(rows, fields);
+	for(new i=0; i < rows; i++){
+		new vehicleid = cache_get_field_content_int(i, "ID");
+        format(VEHICLE[vehicleid][OWNER_NAME], 24, USER[playerid][NAME]);
+	}
+	
+    format(INGAME[playerid][EDIT_NAME], 24,"");
 }
 
 /* NOTICE
@@ -1239,7 +1253,7 @@ stock spawnCar(playerid){
 	
 	vehicleSave(vehicleid);
 	formatMsg(playerid, COL_SYS, CAR_SPAWN_SUCCESS, vehicleName[model - 400]);
-    giveMoney(playerid,-2000);
+    giveMoney(playerid,-500);
 }
 /* GARAGE
    @ repairCar(playerid)
@@ -1547,7 +1561,7 @@ public OnPlayerCommandText(playerid, cmdtext[]){
 		if(isMaxHaveCar(playerid)) return SendClientMessage(playerid, COL_SYS, CAR_HAVE_MAX_LENTH);
         if(!IsPlayerInAnyVehicle(playerid))return SendClientMessage(playerid,COL_SYS,CAR_NOT_IN);
         if(USER[playerid][MONEY] < 30000) return SendClientMessage(playerid,COL_SYS,CAR_BUY_NOT_MONEY);
-        if(strcmp("N", VEHICLE[GetPlayerVehicleID(playerid)][OWNER_NAME]))return SendClientMessage(playerid,COL_SYS,CAR_ALREADY_SELL);
+        if(VEHICLE[GetPlayerVehicleID(playerid)][OWNER_ID] != 0)return SendClientMessage(playerid,COL_SYS,CAR_ALREADY_SELL);
         
 		vehicleBuy(playerid, GetPlayerVehicleID(playerid));
 		return 1;
@@ -2204,6 +2218,7 @@ stock vehicle_data(){
     for(new i=0; i < rows; i++){
 	    VEHICLE[i+1][ID]           = cache_get_field_content_int(i, "ID");
 	    VEHICLE[i+1][OWNER_ID]     = cache_get_field_content_int(i, "OWNER_ID");
+		cache_get_field_content(i, "OWNER_NAME", VEHICLE[i+1][OWNER_NAME], mysql, 24);
 	    VEHICLE[i+1][POS_X]        = cache_get_field_content_float(i, "POS_X");
 	    VEHICLE[i+1][POS_Y]        = cache_get_field_content_float(i, "POS_Y");
 	    VEHICLE[i+1][POS_Z]        = cache_get_field_content_float(i, "POS_Z");
@@ -2233,6 +2248,7 @@ stock clan_data(){
 	    CLAN[i][ID]             = cache_get_field_content_int(i, "ID");
 		cache_get_field_content(i, "NAME", CLAN[i][NAME], mysql, 50);
 	    CLAN[i][LEADER_ID]      = cache_get_field_content_int(i, "LEADER_ID");
+		cache_get_field_content(i, "LEADER_NAME", CLAN[i][LEADER_NAME], mysql, 24);
 	    CLAN[i][KILLS]          = cache_get_field_content_int(i, "KILLS");
 	    CLAN[i][DEATHS]         = cache_get_field_content_int(i, "DEATHS");
 	    CLAN[i][COLOR]          = cache_get_field_content_int(i, "COLOR");
@@ -2293,7 +2309,7 @@ public ServerThread(){
    @ zoneSave(id, owner_clan)
    @ vehicleInit()
    @ vehicleSave(vehicleid)
-   @ vehicleSapwn(vehicleid)
+   @ vehicleSpawn(vehicleid)
    @ zoneSetup()
    @ showZone(playerid)
    @ vehicleBuy(playerid, carid)
@@ -2380,7 +2396,7 @@ stock vehicleSave(vehicleid){
     GetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
     GetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
 
-    if(!strcmp("N", VEHICLE[vehicleid][OWNER_NAME]))return 0;
+    if(VEHICLE[vehicleid][OWNER_ID] == 0)return 0;
 	new query[400];
 	mysql_format(mysql, query, sizeof(query), SQL_VEHICLE_DATA_UPDATE,
 	VEHICLE[vehicleid][POS_X],
@@ -2392,10 +2408,11 @@ stock vehicleSave(vehicleid){
 	mysql_query(mysql, query);
     return 0;
 }
-public vehicleSapwn(vehicleid){
+public vehicleSpawn(vehicleid){
     SetVehiclePos(vehicleid, VEHICLE[vehicleid][POS_X], VEHICLE[vehicleid][POS_Y], VEHICLE[vehicleid][POS_Z]);
     SetVehicleZAngle(vehicleid, VEHICLE[vehicleid][ANGLE]);
     ChangeVehicleColor(vehicleid, VEHICLE[vehicleid][COLOR1], VEHICLE[vehicleid][COLOR2]);
+    SetVehicleHealth(vehicleid, 5000);
 }
 stock zoneSetup(){
 	new pos[4] = { -3000, 2800, -2800, 3000 };
@@ -2532,14 +2549,14 @@ stock checkZone(playerid){
 		if(isPlayerZone(playerid, i)){
 		    if(isDmZone(playerid))notDmZone(playerid);
 		    else if(INGAME[playerid][NODM]){
-				threadZone(playerid, i);
+                threadZone(playerid, i);
 			    INGAME[playerid][NODM] =false;
 			    return 0;
 			}
 		    
             if(!INGAME[playerid][NODM] && INGAME[playerid][ENTER_ZONE] == i)return enterZone(playerid);
 
-		    leaveZone(playerid);
+            leaveZone(playerid);
 			threadZone(playerid, i);
 		}
 	}
@@ -3003,7 +3020,7 @@ stock showDialog(playerid, type){
 		case DL_MYCAR :{
             new query[400], str[600];
 
-			mysql_format(mysql, query, sizeof(query), SQL_MYCAR_SELECT, USER[playerid][NAME]);
+			mysql_format(mysql, query, sizeof(query), SQL_MYCAR_SELECT, USER[playerid][ID]);
 			mysql_query(mysql, query);
 
 			new rows, fields;
@@ -3288,7 +3305,7 @@ stock isClan(playerid, type){
 	switch(type){
 		case IS_CLEN_HAVE   : if(USER[playerid][CLANID] != 0) return SendClientMessage(playerid,COL_SYS,CLAN_HAVE_TEXT);
 		case IS_CLEN_NOT    : if(USER[playerid][CLANID] == 0)return SendClientMessage(playerid,COL_SYS,CLAN_NOT_TEXT);
-		case IS_CLEN_LEADER : if(USER[playerid][NAME] != CLAN[USER[playerid][CLANID]-1][LEADER_NAME])return SendClientMessage(playerid,COL_SYS,CLAN_NOT_LEADER_TEXT);
+		case IS_CLEN_LEADER : if(CLAN[USER[playerid][CLANID]-1][LEADER_ID] != USER[playerid][ID])return SendClientMessage(playerid,COL_SYS,CLAN_NOT_LEADER_TEXT);
         case IS_CLEN_INSERT_MONEY   : if(USER[playerid][MONEY] < 20000) return SendClientMessage(playerid,COL_SYS,CLAN_INSERT_NOT_MONEY);
 	}
     return 0;
@@ -3312,7 +3329,7 @@ stock isNameHangul(playerid, str[]){
 
 stock isMaxHaveCar(playerid){
 	new query[400];
-	mysql_format(mysql, query, sizeof(query), SQL_MYCAR_LENGTH, USER[playerid][NAME]);
+	mysql_format(mysql, query, sizeof(query), SQL_MYCAR_LENGTH, USER[playerid][ID]);
 	mysql_query(mysql, query);
 
 	new rows, fields;
