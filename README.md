@@ -56,11 +56,11 @@
 
 
 ### English Version (v0.12) Branch:
->https://github.com/u4bi/samp-war-kor...e/eng.ver.0.12
+>https://github.com/u4bi/samp-war-korea.GangWar-DM-mode/tree/eng.ver.0.12
 
 
 **Download v0.12 korea ver:**
->https://github.com/u4bi/samp-war-korea.GangWar-DM-
+>https://github.com/u4bi/samp-war-korea.GangWar-DM-mode
 
 **This gamemode Modeling Architecture v0.1(800Line):**
->https://github.com/u4bi/samp-war-kor...ode/tree/v.0.1
+>https://github.com/u4bi/samp-war-korea.GangWar-DM-mode/tree/v.0.1
