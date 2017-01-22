@@ -2,7 +2,7 @@
 #include <a_mysql>
 #include <foreach>
 
-#include "module/language/korea.pwn"
+#include "module/language/english.pwn" /*english ver*/ //#include "module/language/korea.pwn"/*korea ver*/
 #include "module/define.pwn"
 #include "module/resource.pwn"
 #include "module/directive.pwn"
@@ -163,7 +163,7 @@ public OnPlayerClickPlayer(playerid, clickedplayerid, source){
     if(USER[clickedplayerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
     else format(clanName,sizeof(clanName), "%s",CLAN[USER[clickedplayerid][CLANID]-1][NAME]);
 
-    format(result,sizeof(result), infoMessege[1],USER[clickedplayerid][NAME],clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][LEVEL],
+    format(result,sizeof(result), infoMessegeENG[1],USER[clickedplayerid][NAME],clanName,USER[clickedplayerid][LEVEL],USER[clickedplayerid][EXP],USER[clickedplayerid][MONEY],USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS],kdRatio(USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),kdTier(USER[clickedplayerid][LEVEL],
     USER[clickedplayerid][KILLS],USER[clickedplayerid][DEATHS]),USER[clickedplayerid][DUEL_WIN],USER[clickedplayerid][DUEL_LOSS],kdRatio(USER[clickedplayerid][DUEL_WIN],USER[clickedplayerid][DUEL_LOSS]));
 
     ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
@@ -417,8 +417,8 @@ stock info(playerid, listitem){
     if(USER[playerid][CLANID] == 0) format(clanName,sizeof(clanName), UNCLAN);
     else format(clanName,sizeof(clanName), "%s",CLAN[USER[playerid][CLANID]-1][NAME]);
 
-    if(listitem ==1) format(result,sizeof(result), infoMessege[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][LEVEL],USER[playerid][KILLS],USER[playerid][DEATHS]),USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS],kdRatio(USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS]));
-    else format(result,sizeof(result), infoMessege[listitem]);
+    if(listitem ==1) format(result,sizeof(result), infoMessegeENG[listitem],USER[playerid][NAME],clanName,USER[playerid][LEVEL],USER[playerid][EXP],USER[playerid][MONEY],USER[playerid][KILLS],USER[playerid][DEATHS],kdRatio(USER[playerid][KILLS],USER[playerid][DEATHS]),kdTier(USER[playerid][LEVEL],USER[playerid][KILLS],USER[playerid][DEATHS]),USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS],kdRatio(USER[playerid][DUEL_WIN],USER[playerid][DUEL_LOSS]));
+    else format(result,sizeof(result), infoMessegeENG[listitem]);
 
     ShowPlayerDialog(playerid, DL_MENU, DIALOG_STYLE_MSGBOX, DIALOG_TITLE,result, DIALOG_CLOSE, "");
     return 0;

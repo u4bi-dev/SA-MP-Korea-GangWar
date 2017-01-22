@@ -130,7 +130,7 @@
 #define MISSON_NOTICE_TEXT      "{FFFFFF}시즌 랭킹"
 #define MISSON_DUEL_TEXT        "{FFFFFF}입장\n최근 듀얼 경기조회\n"
 #define DUEL_LIST_DL_TITLE      "{8D8DFF}\t\t최근 듀얼 경기조회{FFFFFF}\n\n"
-#define DUEL_LIST_DL_CONTENT    "제 %3d회 탑건\t\t무기: %s\t배팅금: %d원\t\tHP/AM: %.0f%/%.0f%\t\t승자: %s 패자: %s\n\n"
+#define DUEL_LIST_DL_CONTENT    "제 %d회 탑건\t\t무기: %s\t배팅금: %d원\t\tHP/AM: %.0f%/%.0f%\t\t승자: %s 패자: %s\n\n"
 #define DUEL_DL_TYPE_TEXT       "{FFFFFF}주먹\n데져트이글\n데져트이글 & 샷건\n스나이퍼 라이플 & 샷건\nSPAS 샷건 & 컨트리 라이플\nM4 카빈 자동소총 & 샷건"
 #define DUEL_DL_MONEY_TEXT      "{FFFFFF}듀얼전에서 난입하는 상대와 거실 배팅 금액을 입력해주세요."
 #define DUEL_DL_SUCCESS_TEXT    "{FFFFFF}아래와 같은 조건으로 듀얼전을 진행하시겠습니까?\n\n무기 설정 : %s\n배팅 금액 : %d원\n\n"
