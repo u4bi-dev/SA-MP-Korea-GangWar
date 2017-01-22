@@ -2272,7 +2272,7 @@ stock showEnvi(playerid){
 stock showRank(playerid){
     new str[50];
     if(INGAME[playerid][DUEL_JOIN]) format(str, sizeof(str),"{CC0033}FPS : %d PING : %d",INGAME[playerid][FPS], GetPlayerPing(playerid));
-    else if(INGAME[playerid][NODM] && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d 비전투상태{7FFF00}]",USER[playerid][LEVEL]);
+    else if(INGAME[playerid][NODM] && USER[playerid][HP] > 90 && USER[playerid][AM] > 90) format(str, sizeof(str),"[LV.%d Non-combat status{7FFF00}]",USER[playerid][LEVEL]);
     else format(str, sizeof(str),"[LV.%d %s{7FFF00}]",USER[playerid][LEVEL], kdTier(USER[playerid][LEVEL], USER[playerid][KILLS],USER[playerid][DEATHS]));
     SetPlayerChatBubble(playerid, str, 0x7FFF00FF, 14.0, 10000);
     return 0;
