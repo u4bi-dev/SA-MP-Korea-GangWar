@@ -80,7 +80,6 @@
 #define ADMIN_ADMIN_GET         "    관리자님이 당신에게 어드민(%d등급) 권한을 지급합니다.)"
 #define ADMIN_ADMIN_SEND        "    (관리자기능) %s님에게 어드민(%d등급) 관리권한을 지급합니다."
 #define ADMIN_NOT_MAX_LENGTH    "    4등급 이상의 관리권한을 지급할 수 없습니다."
-
 #define ADMIN_SETTIME_NOTICE    "    관리자님이 서버 환경을 %d시로 조정하였습니다."
 #define PM_SEND_TEXT            "(( PM 보냄 %s(%d)에게 : %s ))"
 #define PM_GET_TEXT             "(( PM %s(%d) : %s ))"
