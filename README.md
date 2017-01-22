@@ -1,6 +1,3 @@
-
-#### english ver0.12 Gamemode : [branch: eng.ver.0.12](https://github.com/u4bi/samp-war-korea.GangWar-DM-mode/tree/eng.ver.0.12) 
-
 ## How to start a server?
 
 ##### 1. scriptfiles/database.cfg [new file]
